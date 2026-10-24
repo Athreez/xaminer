@@ -325,7 +325,9 @@ REST + JSON under `/api/v1`.
 | IDs | UUIDs in paths |
 | Lists | Cursor pagination: `?limit=&cursor=` → `{data, next_cursor}` |
 | Idempotency | `Idempotency-Key` header required on: start attempt, autosave, submit attempt, run code, submit code |
-| Errors | `{"error": {"code": "SNAKE_CASE_CODE", "message": "..."}}`. Clients check `code`, not `message` |
+| Errors | `{"error": {"code": "SNAKE_CASE_CODE", "message": "...", "details": [...], "request_id": "..."}}`. `details` only for validation errors (`field`, `message`). Clients check `code`, not `message`. Unexpected errors return `INTERNAL_ERROR` with no internals |
+| Request ID | `X-Request-ID` accepted from the caller (if safe: ≤ 64 chars of `A-Z a-z 0-9 . _ -`) or generated; returned on every response and written on every log line |
+| API docs | `/api/v1/docs` (hidden when `ENVIRONMENT=production`); spec at `/api/v1/openapi.json` |
 | Not found vs forbidden | Another tenant's or another user's resource returns `404`, so its existence is not revealed |
 | Time | Attempt responses include `server_time` |
 

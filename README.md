@@ -6,7 +6,8 @@ AI-assisted webcam proctoring where the AI only flags and a teacher decides.
 ## Status
 
 Building **E00 Foundation**. Done: TCK-0001 (repository layout and code checks), TCK-0002 (Docker
-Compose stack; API and workers are placeholders until their tickets). The design lives in
+Compose stack), TCK-0003 (FastAPI skeleton: settings, JSON logs, error format, request IDs, health).
+Workers are still placeholders until their tickets. The design lives in
 [`docs/`](docs/):
 
 | Document | What it covers |
@@ -74,6 +75,8 @@ make down                             # stop (data volumes are kept)
 | URL | What |
 |---|---|
 | http://localhost:8080 | The app (nginx → React; `/api/` → FastAPI) |
+| http://localhost:8080/api/v1/health | API health check |
+| http://localhost:8080/api/v1/docs | Interactive API docs (not in production) |
 | http://localhost:8025 | Mailpit — emails sent in development |
 | `localhost:8333` | Object storage S3 API (SeaweedFS) |
 | `localhost:15432` | PostgreSQL, for local DB tools |

@@ -3,10 +3,15 @@ name = "xaminer-backend"
 version = "0.1.0"
 description = "Xaminer API, background workers and shared domain logic"
 requires-python = ">=3.12,<3.13"
-dependencies = []
+dependencies = [
+    "fastapi>=0.162.0",
+    "pydantic-settings>=2.16.1",
+    "uvicorn[standard]>=0.54.0",
+]
 
 [dependency-groups]
 dev = [
+    "httpx>=0.28.1",
     "mypy>=1.13",
     "pytest>=8.3",
     "ruff>=0.8",

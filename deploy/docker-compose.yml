@@ -6,6 +6,8 @@
 name: xaminer
 
 x-backend-env: &backend-env
+  ENVIRONMENT: ${ENVIRONMENT:-development}
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
   POSTGRES_HOST: postgres
   POSTGRES_DB: ${POSTGRES_DB}
   POSTGRES_USER: ${POSTGRES_USER}
@@ -37,8 +39,15 @@ services:
   # ---------------------------------------------------------------- trusted zone (Z1)
   api:
     build: { context: ../backend, target: app }
-    # TODO(TCK-0003): replace with the FastAPI app (uvicorn).
-    command: ["python", "-m", "http.server", "8000"]
+    # Only nginx can reach the API (frontend network), so trusting its X-Forwarded-* headers is safe.
+    command:
+      ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000",
+       "--proxy-headers", "--forwarded-allow-ips", "*", "--no-access-log"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     environment: *backend-env
     depends_on:
       postgres: { condition: service_healthy }
