@@ -182,7 +182,7 @@ and score, not the correct answer.
 | HTTPS | Required in deployment (nginx); HSTS on |
 | CSRF | API calls use the `Authorization` header, so they are not exposed to CSRF. The refresh cookie is `SameSite=Strict`, POST-only, and the server checks the `Origin` header |
 | CORS | Not needed: the app and API share one origin through nginx. Cross-origin requests are refused |
-| Content Security Policy | `default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; img-src 'self' blob: data: <minio-origin>; connect-src 'self'; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'` |
+| Content Security Policy | `default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; img-src 'self' blob: data: <storage-origin>; connect-src 'self'; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'` |
 | Other headers | `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy: camera=(self), microphone=(self), geolocation=()` |
 
 `'wasm-unsafe-eval'` is needed by the in-browser MediaPipe models. MediaPipe files are served from our
@@ -224,9 +224,9 @@ Stored in Redis so they apply across all API processes.
 
 ### 5.5 Secrets
 
-- All secrets (DB passwords, JWT key, MinIO keys, SMTP password) live in `.env`, which is git-ignored.
+- All secrets (DB passwords, JWT key, storage keys, SMTP password) live in `.env`, which is git-ignored.
   `.env.example` lists the names with dummy values.
-- `exec-worker` and `inference-worker` receive **no** database or MinIO credentials — only Redis access and
+- `exec-worker` and `inference-worker` receive **no** database or storage credentials — only Redis access and
   short-lived pre-signed URLs inside each job.
 - Logs never contain passwords, tokens, answers, source code, test case data or evidence file names.
 
@@ -272,7 +272,7 @@ reach the network, crash the machine, or forge a grade.
 | Limits | Memory (no swap), 1 CPU, 64 processes, 64 KB output, wall-clock kill at 2× time limit |
 | Engine | Containers run on `sandbox-docker`, a separate Docker engine, not the host's |
 | Network | `exec-worker` and `sandbox-docker` sit on a Docker network that has no route to Postgres |
-| Credentials | `exec-worker` holds no DB or MinIO credentials; one 5-minute link per job, for one bundle file |
+| Credentials | `exec-worker` holds no DB or storage credentials; one 5-minute link per job, for one bundle file |
 | Scoring | The worker never compares output or computes scores; `app-worker` does, after checking the job exists and is running |
 | Images | Language images pinned by digest; rebuilt and scanned regularly |
 | Optional | gVisor (`--runtime runsc`) for a second kernel boundary |
@@ -341,7 +341,7 @@ student agreed to.
 
 | Topic | Rule |
 |---|---|
-| Storage | MinIO bucket `evidence`, private, no public access. Keys are random (`ev/{institution}/{yyyy}/{mm}/{random}.jpg`) |
+| Storage | Storage bucket `evidence`, private, no public access. Keys are random (`ev/{institution}/{yyyy}/{mm}/{random}.jpg`) |
 | Viewing | Teacher of the exam only, via a signed URL valid 5 minutes for one image. Every URL issued is audit-logged |
 | Bulk download | Not available |
 | Other buckets | `bundles` (test bundles) and `images` (question images) are also private; question images are delivered with signed URLs valid for the exam duration |

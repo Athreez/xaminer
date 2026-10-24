@@ -5,7 +5,8 @@ AI-assisted webcam proctoring where the AI only flags and a teacher decides.
 
 ## Status
 
-Building **E00 Foundation**. Done: TCK-0001 (repository layout and code checks). The design lives in
+Building **E00 Foundation**. Done: TCK-0001 (repository layout and code checks), TCK-0002 (Docker
+Compose stack; API and workers are placeholders until their tickets). The design lives in
 [`docs/`](docs/):
 
 | Document | What it covers |
@@ -18,7 +19,7 @@ Building **E00 Foundation**. Done: TCK-0001 (repository layout and code checks).
 
 ## Planned stack
 
-React + Vite (frontend) · FastAPI (backend) · PostgreSQL · Redis + Celery · MinIO · Docker sandboxes for
+React + Vite (frontend) · FastAPI (backend) · PostgreSQL · Redis + Celery · SeaweedFS (S3 storage) · Docker sandboxes for
 code execution · MediaPipe (in-browser) and PyTorch/ONNX (server) for proctoring · Docker Compose.
 
 ## Repository layout
@@ -59,3 +60,24 @@ uvx pre-commit install     # optional: run checks before every commit
 make check                 # lint + type-check + tests, backend and frontend
 make format                # auto-format everything
 ```
+
+## Running the full stack
+
+```sh
+cp deploy/.env.example deploy/.env    # then change every "change-me" value
+make up                               # build and start all services
+make ps                               # status
+make logs                             # follow logs
+make down                             # stop (data volumes are kept)
+```
+
+| URL | What |
+|---|---|
+| http://localhost:8080 | The app (nginx → React; `/api/` → FastAPI) |
+| http://localhost:8025 | Mailpit — emails sent in development |
+| `localhost:8333` | Object storage S3 API (SeaweedFS) |
+| `localhost:15432` | PostgreSQL, for local DB tools |
+
+Services: `web`, `api`, `app-worker`, `scheduler`, `exec-worker`, `sandbox-docker`, `inference-worker`,
+`postgres`, `redis`, `storage` (+ one-off `storage-init` that creates the buckets), `mailpit`. See
+[architecture § 3](docs/TECHNICAL_ARCHITECTURE.md#3-services).

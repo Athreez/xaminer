@@ -58,7 +58,7 @@ These are the rules the whole design is built around. Every later section follow
 | Proctoring AI (server) | PyTorch / ONNX Runtime, reusing smartSquad's RT-DETR object detector and liveness code |
 | Database | PostgreSQL 16 |
 | Cache / broker | Redis 7 |
-| File storage | MinIO (S3-compatible) |
+| File storage | SeaweedFS (S3-compatible). Code uses the plain S3 API (boto3), so the store can be swapped |
 | Email | Mailpit in development, any SMTP server in production |
 | Deployment | Docker Compose on one Linux machine (WSL2 on Windows for development) |
 | Dev tooling | Backend: uv (Python 3.12 + dependencies + lockfile), ruff, mypy (strict), pytest. Frontend: npm, oxlint, Prettier, `tsc`. A root `Makefile` runs them all (`make check`) |
@@ -79,15 +79,15 @@ security risk, language or resource needs are different from the API's.
 | Service | Role | Can reach | Must never |
 |---|---|---|---|
 | `web` | nginx. Serves the React build, forwards `/api/*` to `api` | `api` | Contain logic |
-| `api` | FastAPI. All business logic, the only public backend | Postgres, Redis, MinIO | Run student code or ML models |
-| `app-worker` | Celery. Trusted background work: grading, scoring code results, saving proctoring verdicts, emails, cleanup | Postgres, Redis, MinIO, SMTP | Run student code |
+| `api` | FastAPI. All business logic, the only public backend | Postgres, Redis, object storage | Run student code or ML models |
+| `app-worker` | Celery. Trusted background work: grading, scoring code results, saving proctoring verdicts, emails, cleanup | Postgres, Redis, object storage, SMTP | Run student code |
 | `scheduler` | Celery Beat. Puts scheduled jobs on the queue (sweeper, retention) | Redis | Do the work itself |
-| `exec-worker` | Celery. Runs student code: fetches test bundle, compiles, runs each case in a container, returns raw output | Redis, `sandbox-docker`, MinIO via pre-signed URLs only | Hold DB or MinIO credentials, compare output, compute scores |
+| `exec-worker` | Celery. Runs student code: fetches test bundle, compiles, runs each case in a container, returns raw output | Redis, `sandbox-docker`, storage via pre-signed URLs only | Hold DB or storage credentials, compare output, compute scores |
 | `sandbox-docker` | Docker-in-Docker engine where student containers run | Nothing (student containers have no network) | Be the host's Docker engine |
-| `inference-worker` | Celery. Checks proctoring images: face count, phone/book detection, liveness | Redis, MinIO via pre-signed URLs only | Hold DB or MinIO credentials, decide outcomes |
+| `inference-worker` | Celery. Checks proctoring images: face count, phone/book detection, liveness | Redis, storage via pre-signed URLs only | Hold DB or storage credentials, decide outcomes |
 | `postgres` | All permanent data | — | Store image files |
 | `redis` | Celery broker, rate limits, idempotency keys, heartbeat cache | — | Be the only copy of anything important |
-| `minio` | Evidence images, test bundles, question images | — | Be publicly readable |
+| `storage` | Evidence images, test bundles, question images | — | Be publicly readable |
 | `mailpit` | Dev only: catches outgoing email | — | — |
 
 Language runner images (`cpp17`, `java21`, `python312`, `node22`) are images, not running services.
@@ -105,7 +105,7 @@ container profile in § 9.3; gVisor or a separate VM for `sandbox-docker` are th
 ### How they talk
 
 ```
-browser ──HTTPS──► web ──► api ──► postgres / redis / minio
+browser ──HTTPS──► web ──► api ──► postgres / redis / storage
 api ──enqueue──► redis ──► exec-worker ──► sandbox-docker ──► runner containers
                        └─► inference-worker
 exec-worker / inference-worker ──result queue──► app-worker ──► postgres
@@ -119,9 +119,9 @@ All browser updates use polling. Endpoints that change in the background return 
 | Network | Members |
 |---|---|
 | `frontend` | `web`, `api` |
-| `backend` | `api`, `app-worker`, `scheduler`, `postgres`, `redis`, `minio`, `mailpit` |
-| `exec` | `exec-worker`, `sandbox-docker`, `redis`, `minio` |
-| `inference` | `inference-worker`, `redis`, `minio` |
+| `backend` | `api`, `app-worker`, `scheduler`, `postgres`, `redis`, `storage`, `mailpit` |
+| `exec` | `exec-worker`, `sandbox-docker`, `redis`, `storage` |
+| `inference` | `inference-worker`, `redis`, `storage` |
 
 Postgres is only on `backend`, so the two untrusted-input workers cannot reach it even by address.
 
@@ -176,7 +176,7 @@ through their service functions.
 | `monitoring` | — | Live exam view, analytics. Read-only |
 | `notifications` | `notification` | In-app list + email jobs |
 | `audit` | `audit_log` | Append-only. Every module writes to it |
-| `storage` | — | MinIO pre-signed URLs, upload checks, image re-encoding |
+| `storage` | — | Pre-signed storage URLs, upload checks, image re-encoding |
 
 **Tenant scoping.** Every request gets `institution_id` from its JWT. Repository helpers add the
 `institution_id` filter automatically, so query code cannot forget it. (Postgres row-level security is an
@@ -407,7 +407,7 @@ Student clicks Run / Submit
 If Run Code becomes slow under load, start a second `exec-worker` that listens only to `exec.run`.
 
 **Test bundle.** When a coding question version is saved, `app-worker` builds one tar file
-(`001.in`, `001.out`, …, `manifest.json`) and stores it in MinIO. The worker gets a pre-signed URL for that
+(`001.in`, `001.out`, …, `manifest.json`) and stores it in object storage. The worker gets a pre-signed URL for that
 one file only. Bundles never change, so the worker can cache them by hash.
 
 **Scoring rules** (in `domain_core`):
@@ -462,7 +462,7 @@ them.
 
 ```
 Camera event in browser → upload {event info, up to 3 JPEG frames} with attempt token
-  → api: check type & size, re-encode images (removes EXIF/GPS), store at tmp/ in MinIO,
+  → api: check type & size, re-encode images (removes EXIF/GPS), store at tmp/ in object storage,
          save event as PROCESSING (no severity), enqueue check
   → inference-worker: re-check the frames → CONFIRM or REJECT, with severity + confidence
   → app-worker: CONFIRM → move images to evidence/, status PENDING_REVIEW
@@ -549,15 +549,18 @@ changing anything, because Celery may deliver a job more than once.
 
 ## 11. Deployment
 
-- **Development:** `docker compose up` in WSL2. Mailpit at `localhost:8025`, MinIO console at
-  `localhost:9001`. The inference worker can run with a lightweight stub model on machines without a GPU.
+- **Development:** `make up` (Docker Desktop, WSL 2 engine) using `deploy/docker-compose.yml`. App at
+  `localhost:8080`, Mailpit at `localhost:8025`, S3 API at `localhost:8333`, Postgres at `localhost:15432`
+  (avoids a locally installed Postgres). A one-off `storage-init` service creates the buckets `evidence`,
+  `bundles`, `images`. The inference worker can run with a lightweight stub model on machines without a GPU.
 - **Demo / college server:** the same Compose file on one Linux machine, with real SMTP settings and HTTPS
   at nginx.
-- **Setup:** `docker compose run api alembic upgrade head`, then
-  `docker compose run api platform-admin create-institution` to create the first institution and admin.
+- **Setup:** `docker compose -f deploy/docker-compose.yml run api alembic upgrade head`, then
+  `docker compose -f deploy/docker-compose.yml run api platform-admin create-institution` to create the
+  first institution and admin.
 - **Config:** all settings and secrets in `.env` (never committed); `.env.example` lists them.
 - **Backups:** Postgres holds all state, so it is the one thing that must not be lost. A nightly `pg_dump`
-  plus a copy of the MinIO buckets, kept for 7 days, with the restore steps written down and tried once.
+  plus a copy of the Storage buckets, kept for 7 days, with the restore steps written down and tried once.
   Redis is not backed up (nothing permanent lives there).
 - **CI:** on every push — lint (ruff, oxlint, Prettier), type-check (mypy, tsc), unit tests (including `domain_core`),
   API tests against a real Postgres, and the hidden-test-case leak test. Sandbox tests run on a Linux
@@ -582,5 +585,6 @@ Short records of the choices most likely to be questioned.
 | D-09 | Polling, not WebSockets | Needed freshness is 1–15 s; polling is simpler and has no connection state |
 | D-10 | Multi-tenant from the start | Adding `institution_id` later means touching every table and query |
 | D-11 | Immutable versions + DB triggers | A grade must be explainable after the question or exam is edited |
-| D-12 | Uploads go through the API, not straight to MinIO | The API must check file type, size and strip EXIF before storing |
+| D-12 | Uploads go through the API, not straight to object storage | The API must check file type, size and strip EXIF before storing |
 | D-13 | Postgres for everything durable, incl. search | One database to run; full-text search covers the question bank |
+| D-14 | SeaweedFS instead of MinIO (changed 2026-10-25) | MinIO stopped publishing free images in Oct 2025 and archived its community edition in 2026. SeaweedFS is Apache-licensed, runs as one container, and supports S3 auth, private buckets and pre-signed URLs (all verified). We only use the S3 API, so the store stays swappable |

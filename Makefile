@@ -1,6 +1,21 @@
 # Run from the repository root. Requires uv (backend) and npm (frontend).
 .PHONY: setup check lint typecheck test format \
-        backend-lint backend-typecheck backend-test frontend-lint frontend-typecheck
+        backend-lint backend-typecheck backend-test frontend-lint frontend-typecheck \
+        up down ps logs
+
+COMPOSE = docker compose -f deploy/docker-compose.yml
+
+up:
+	$(COMPOSE) up -d --build
+
+down:
+	$(COMPOSE) down
+
+ps:
+	$(COMPOSE) ps
+
+logs:
+	$(COMPOSE) logs -f --tail=100
 
 setup:
 	cd backend && uv sync

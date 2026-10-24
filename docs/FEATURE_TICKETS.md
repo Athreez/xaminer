@@ -114,7 +114,7 @@ After M1, four people (or pairs) can work mostly in parallel:
 | TCK-0403 | Type rules: MCQ (1 correct, 2–10 options), MSQ (≥ 1 correct, scoring mode), True/False, Descriptive (max length, rubric) | Invalid shapes rejected with field errors | BE | M | 0402 | M | QB-02..05 |
 | TCK-0404 | Visibility (private / institution) and read-only access for other teachers | Other teacher can view and copy a shared question, not edit | BE | S | 0402 | M | ACC-04 |
 | TCK-0405 | Markdown sanitiser (server, on save) + shared `MarkdownView` (client) | Script/iframe/event-handler payloads removed (test list) | Full | M | 0402, 0007 | M | QB-06 |
-| TCK-0406 | Image upload: content check, re-encode, MinIO `images` bucket, signed URLs | Non-images rejected; EXIF removed | BE | M | 0402 | M | QB-06 |
+| TCK-0406 | Image upload: content check, re-encode, storage `images` bucket, signed URLs | Non-images rejected; EXIF removed | BE | M | 0402 | M | QB-06 |
 | TCK-0407 | Student view types for questions (no keys, no rubric) + preview endpoint | Preview response contains no `is_correct` or rubric (test) | BE | S | 0403 | M | QB-08 |
 | TCK-0408 | UI: question bank list, editor for all non-coding types, preview | Teacher creates each type and sees the student preview | FE | L | 0110, 0402–0407 | M | QB-01..09 |
 
@@ -156,7 +156,7 @@ After M1, four people (or pairs) can work mostly in parallel:
 | TCK-0701 | `coding_config`, `test_case`, `reference_solution` tables | Migration applied | DB | S | 0401 | M | CQ-01..07 |
 | TCK-0702 | Coding APIs: problem fields, languages + starter code, limits, comparison mode, test cases (CRUD, reorder, from examples) | Limits validated; ≥ 1 hidden case required before validation | BE | M | 0701, 0402 | M | CQ-01..07 |
 | TCK-0703 | Hidden-case access only through one function; student view type for coding questions | Leak test: hidden markers never appear in any student response | BE | S | 0702 | M | CQ-05, NFR-02 |
-| TCK-0704 | Test bundle builder job (tar + manifest + hash → MinIO `bundles`) | Bundle rebuilt on change; hash stored | BE | S | 0702, 0006 | M | — |
+| TCK-0704 | Test bundle builder job (tar + manifest + hash → storage `bundles`) | Bundle rebuilt on change; hash stored | BE | S | 0702, 0006 | M | — |
 | TCK-0705 | Validation: reference solution → `exec.validation` job → report (per case time, > 50% warning); "needs validation" on edits | Bad reference fails validation; editing a case resets status | BE | M | 0704, 0806 | M | CQ-08, CQ-09 |
 | TCK-0706 | UI: coding editor tabs (Problem, Languages & limits, Test cases, Validate) | Teacher creates and validates a coding question | FE | L | 0408, 0702, 0705 | M | CQ-01..09 |
 
@@ -221,7 +221,7 @@ After M1, four people (or pairs) can work mostly in parallel:
 | ID | Ticket | Done when | Area | Size | Needs | P | PRD |
 |---|---|---|---|---|---|---|---|
 | TCK-1101 | `proctoring_event` table with constraints (decision needs reviewer; no severity before check) | Constraints tested | DB | S | 0601 | M | PRC-07, PRC-10 |
-| TCK-1102 | Upload endpoints: attempt-token auth, type/size checks, re-encode (strip EXIF), MinIO `tmp/`, event `PROCESSING`, enqueue check; response reveals nothing | Fake JPEG rejected; EXIF gone; rate limits work | BE | M | 1101 | M | PRC-05, PRC-07 |
+| TCK-1102 | Upload endpoints: attempt-token auth, type/size checks, re-encode (strip EXIF), storage `tmp/`, event `PROCESSING`, enqueue check; response reveals nothing | Fake JPEG rejected; EXIF gone; rate limits work | BE | M | 1101 | M | PRC-05, PRC-07 |
 | TCK-1103 | `inference-worker`: port smartSquad RT-DETR (phone, book), face count, liveness; CONFIRM/REJECT + severity + confidence; GPU optional, stub mode | Works on CPU; returns verdict on sample images | AI | L | 0002 | M | PRC-06, PRC-07 |
 | TCK-1104 | Verdict consumer in `app-worker`: move images to `evidence/` or delete; set status/severity; confidence < 0.6 lowers severity | Rejected events never appear in any API | BE | M | 1102, 1103 | M | PRC-07 |
 | TCK-1105 | Rule-based severity for no-image events (TAB_SWITCH, VOICE_DETECTED); SIGNAL_LOST from heartbeat counter (only when heartbeats arrive) | Network loss never creates SIGNAL_LOST (test) | BE | M | 1101, 0606 | M | PRC-06, PRC-14 |
@@ -259,7 +259,7 @@ After M1, four people (or pairs) can work mostly in parallel:
 | TCK-1403 | Load test (k6 or Locust): 200 students autosaving + 100 simultaneous submissions | Meets NFR-04, NFR-05, G-03, G-04 | QA | M | M3 | M | NFR-04, NFR-05 |
 | TCK-1404 | Proctoring calibration: honest and staged-cheating runs, tune thresholds, record results | G-06 and G-07 measured; table for the report | AI | M | M4 | M | G-06, G-07 |
 | TCK-1405 | Accessibility pass: `axe` in CI + keyboard-only exam run | No serious `axe` issues on main pages | QA | S | M4 | M | NFR-11 |
-| TCK-1406 | Backups: nightly `pg_dump` + MinIO copy, 7-day keep; restore tested once | Restore into a fresh stack works | INF | S | 0002 | M | NFR-13 |
+| TCK-1406 | Backups: nightly `pg_dump` + storage copy, 7-day keep; restore tested once | Restore into a fresh stack works | INF | S | 0002 | M | NFR-13 |
 | TCK-1407 | Demo deployment: HTTPS at nginx, real SMTP, seed demo data (institution, users, sample exams) | Fresh machine to running demo following the README | INF | M | M4 | M | — |
 | TCK-1408 | Consent text and README / user guide | Consent covers all points in security § 8.2 | Docs | S | 1001 | M | PRC-03 |
 
