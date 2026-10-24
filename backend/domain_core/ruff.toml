@@ -1,0 +1,20 @@
+# domain_core holds the rules that decide grades. It must stay pure: no I/O of any kind.
+# See docs/TECHNICAL_ARCHITECTURE.md § 4.
+extend = "../pyproject.toml"
+
+[lint.flake8-tidy-imports.banned-api]
+"os".msg = "domain_core must not do I/O"
+"io".msg = "domain_core must not do I/O"
+"pathlib".msg = "domain_core must not do I/O"
+"socket".msg = "domain_core must not do I/O"
+"subprocess".msg = "domain_core must not do I/O"
+"time".msg = "domain_core must not read the clock; pass time in as an argument"
+"random".msg = "domain_core must be deterministic; pass seeds in"
+"sqlalchemy".msg = "domain_core must not access the database"
+"redis".msg = "domain_core must not access Redis"
+"celery".msg = "domain_core must not enqueue jobs"
+"httpx".msg = "domain_core must not do network I/O"
+"requests".msg = "domain_core must not do network I/O"
+"fastapi".msg = "domain_core must not depend on the web layer"
+"app".msg = "domain_core must not import application modules"
+"workers".msg = "domain_core must not import worker modules"

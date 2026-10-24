@@ -5,7 +5,8 @@ AI-assisted webcam proctoring where the AI only flags and a teacher decides.
 
 ## Status
 
-Design phase. No application code yet — the design lives in [`docs/`](docs/):
+Building **E00 Foundation**. Done: TCK-0001 (repository layout and code checks). The design lives in
+[`docs/`](docs/):
 
 | Document | What it covers |
 |---|---|
@@ -20,4 +21,41 @@ Design phase. No application code yet — the design lives in [`docs/`](docs/):
 React + Vite (frontend) · FastAPI (backend) · PostgreSQL · Redis + Celery · MinIO · Docker sandboxes for
 code execution · MediaPipe (in-browser) and PyTorch/ONNX (server) for proctoring · Docker Compose.
 
-Setup and run instructions will be added here as the project is built.
+## Repository layout
+
+```
+backend/     FastAPI app (app/), pure grading rules (domain_core/), Celery workers (workers/), CLI (cli/)
+frontend/    React + Vite app
+runners/     Docker images for each programming language
+deploy/      Docker Compose and nginx config
+docs/        Design documents
+```
+
+## Development setup
+
+**Prerequisites**
+
+| Tool | Version | Notes |
+|---|---|---|
+| Git | any recent | |
+| Node.js + npm | 22+ | |
+| uv | 0.13+ | `pip install --user uv`; then `uv python install 3.12` |
+| GNU Make | any | Ships with Git for Windows' bash |
+| Docker Desktop | latest | With the WSL 2 backend on Windows. Needed from TCK-0002 onwards |
+
+On Windows, make sure these are on `PATH`: the folder containing `uv.exe` (for a `pip --user` install,
+`%APPDATA%\Python\Python311\Scripts`) and `%USERPROFILE%\.local\bin`.
+
+**First time**
+
+```sh
+make setup                 # installs backend and frontend dependencies
+uvx pre-commit install     # optional: run checks before every commit
+```
+
+**Checks**
+
+```sh
+make check                 # lint + type-check + tests, backend and frontend
+make format                # auto-format everything
+```

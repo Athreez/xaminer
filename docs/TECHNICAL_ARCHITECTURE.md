@@ -61,6 +61,7 @@ These are the rules the whole design is built around. Every later section follow
 | File storage | MinIO (S3-compatible) |
 | Email | Mailpit in development, any SMTP server in production |
 | Deployment | Docker Compose on one Linux machine (WSL2 on Windows for development) |
+| Dev tooling | Backend: uv (Python 3.12 + dependencies + lockfile), ruff, mypy (strict), pytest. Frontend: npm, oxlint, Prettier, `tsc`. A root `Makefile` runs them all (`make check`) |
 | CI | GitHub Actions: lint, type-check, tests, image build |
 | Logging | Structured JSON logs; Sentry optional |
 
@@ -558,7 +559,7 @@ changing anything, because Celery may deliver a job more than once.
 - **Backups:** Postgres holds all state, so it is the one thing that must not be lost. A nightly `pg_dump`
   plus a copy of the MinIO buckets, kept for 7 days, with the restore steps written down and tried once.
   Redis is not backed up (nothing permanent lives there).
-- **CI:** on every push — lint (ruff, eslint), type-check (mypy, tsc), unit tests (including `domain_core`),
+- **CI:** on every push — lint (ruff, oxlint, Prettier), type-check (mypy, tsc), unit tests (including `domain_core`),
   API tests against a real Postgres, and the hidden-test-case leak test. Sandbox tests run on a Linux
   runner with Docker.
 

@@ -62,7 +62,7 @@ After M1, four people (or pairs) can work mostly in parallel:
 
 | ID | Ticket | Done when | Area | Size | Needs | P | PRD |
 |---|---|---|---|---|---|---|---|
-| TCK-0001 | Repository layout per architecture § 4; ruff, mypy, eslint, prettier, pre-commit | Lint and type-check pass on empty projects | INF | S | — | M | NFR-14 |
+| TCK-0001 | Repository layout per architecture § 4; uv, ruff, mypy, oxlint, Prettier, pre-commit, `Makefile`, `.gitattributes` (LF) | `make check` passes on empty projects | INF | S | — | M | NFR-14 |
 | TCK-0002 | `docker-compose.yml` with all services (§ 3), networks (`frontend`, `backend`, `exec`, `inference`), `.env.example` | `docker compose up` starts everything; Postgres not reachable from the `exec` network | INF | M | 0001 | M | NFR-03 |
 | TCK-0003 | FastAPI skeleton: settings, structured JSON logging, error format, `/health`, request ID | `/health` returns OK through nginx | BE | S | 0002 | M | — |
 | TCK-0004 | SQLAlchemy + Alembic setup; `migrator` and `app` DB users; base model (UUIDv7, timestamps, `institution_id`); tenant-scoped repository helper | Migration runs; a query through the helper always filters by institution (test) | DB | M | 0003 | M | ACC-02 |

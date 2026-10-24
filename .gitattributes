@@ -1,0 +1,8 @@
+# Store and check out text files with LF so shell scripts and Dockerfiles work inside Linux containers.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.ico binary
+*.onnx binary
+*.pt binary

@@ -6,6 +6,14 @@ docs/archive/
 .env.*
 !.env.example
 
+# Python
+.venv/
+__pycache__/
+*.pyc
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
 # OS / editor
 .DS_Store
 Thumbs.db
