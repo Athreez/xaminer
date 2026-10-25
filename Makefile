@@ -1,9 +1,13 @@
 # Run from the repository root. Requires uv (backend) and npm (frontend).
 .PHONY: setup check lint typecheck test format \
         backend-lint backend-typecheck backend-test frontend-lint frontend-typecheck \
-        up down ps logs
+        up down ps logs platform-admin
 
 COMPOSE = docker compose -f deploy/docker-compose.yml
+
+# Usage: make platform-admin ARGS='create-institution --name "ABC College"'   (stack must be up)
+platform-admin:
+	$(COMPOSE) run --rm --no-deps api python -m cli $(ARGS)
 
 up:
 	$(COMPOSE) up -d --build

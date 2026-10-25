@@ -566,9 +566,10 @@ changing anything, because Celery may deliver a job more than once.
   `bundles`, `images`. The inference worker can run with a lightweight stub model on machines without a GPU.
 - **Demo / college server:** the same Compose file on one Linux machine, with real SMTP settings and HTTPS
   at nginx.
-- **Setup:** `docker compose -f deploy/docker-compose.yml run api alembic upgrade head`, then
-  `docker compose -f deploy/docker-compose.yml run api platform-admin create-institution` to create the
-  first institution and admin.
+- **Setup:** migrations run automatically on `make up`. Then
+  `make platform-admin ARGS='create-institution --name "ABC College"'` (default timezone
+  `Asia/Kolkata`) creates the first institution; a `create-admin` command follows in TCK-0101.
+  `platform-admin` is `python -m cli` inside the `api` image, connecting as the `app` DB user.
 - **Config:** all settings and secrets in `.env` (never committed); `.env.example` lists them.
 - **Backups:** Postgres holds all state, so it is the one thing that must not be lost. A nightly `pg_dump`
   plus a copy of the Storage buckets, kept for 7 days, with the restore steps written down and tried once.

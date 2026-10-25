@@ -7,7 +7,8 @@ AI-assisted webcam proctoring where the AI only flags and a teacher decides.
 
 Building **E00 Foundation**. Done: TCK-0001 (repository layout and code checks), TCK-0002 (Docker
 Compose stack), TCK-0003 (FastAPI skeleton: settings, JSON logs, error format, request IDs, health),
-TCK-0004 (database: SQLAlchemy + Alembic, `migrator`/`app` users, automatic institution filter).
+TCK-0004 (database: SQLAlchemy + Alembic, `migrator`/`app` users, automatic institution filter),
+TCK-0005 (language catalogue, `platform-admin` command).
 Workers are still placeholders until their tickets. The design lives in
 [`docs/`](docs/):
 
@@ -94,6 +95,17 @@ make down                             # stop (data volumes are kept)
 | http://localhost:8025 | Mailpit — emails sent in development |
 | `localhost:8333` | Object storage S3 API (SeaweedFS) |
 | `localhost:15432` | PostgreSQL, for local DB tools |
+
+### Platform admin commands
+
+Set-up tasks for whoever runs the platform (not an in-app role). The stack must be up.
+
+```sh
+make platform-admin ARGS='create-institution --name "ABC College"'   # timezone defaults to Asia/Kolkata
+make platform-admin ARGS='create-institution --name "XYZ" --timezone Europe/London'
+make platform-admin ARGS='list-institutions'
+make platform-admin ARGS='list-languages'
+```
 
 Services: `web`, `api`, `app-worker`, `scheduler`, `exec-worker`, `sandbox-docker`, `inference-worker`,
 `postgres`, `redis`, `storage` (+ one-off `storage-init` that creates the buckets), `mailpit`. See

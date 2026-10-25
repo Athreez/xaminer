@@ -66,7 +66,7 @@ After M1, four people (or pairs) can work mostly in parallel:
 | TCK-0002 | `docker-compose.yml` with all services (§ 3), networks (`frontend`, `backend`, `exec`, `inference`), `.env.example` | `docker compose up` starts everything; Postgres not reachable from the `exec` network | INF | M | 0001 | M | NFR-03 |
 | TCK-0003 | FastAPI skeleton: settings, structured JSON logging, error format, `/health`, request ID | `/health` returns OK through nginx | BE | S | 0002 | M | — |
 | TCK-0004 | SQLAlchemy + Alembic setup; `migrator` and `app` DB users (`db-init`, `migrate` services); base model (UUIDv7, timestamps, `institution_id`); automatic tenant filter; `institution` table (moved here from 0005, the filter needs it) | Migration runs; a query through the helper always filters by institution (test) | DB | M | 0003 | M | ACC-02 |
-| TCK-0005 | `language` table; `platform-admin` CLI: create institution + first admin, seed languages | CLI creates an institution and an admin who can log in (after E01) | BE | S | 0004 | M | — |
+| TCK-0005 | `language` table seeded by migration (C++17, Java 21, Python 3.12, Node 22, with time multipliers); `platform-admin` CLI: create/list institutions, list languages | CLI creates an institution; languages listed | BE | S | 0004 | M | — |
 | TCK-0006 | Celery app, `app-worker` and `scheduler` containers, a test task end-to-end | A task enqueued by the API runs on `app-worker` | BE | S | 0002 | M | — |
 | TCK-0007 | Frontend skeleton: Vite, React Router, Tailwind, shadcn/ui, TanStack Query, generated API client script, layout shells per role | App builds; generated client compiles from the API's OpenAPI | FE | M | 0003 | M | — |
 | TCK-0008 | GitHub Actions CI: lint, type-check, backend tests with real Postgres/Redis, frontend tests, image builds | CI green on main | INF | M | 0001 | M | NFR-14 |
@@ -75,7 +75,7 @@ After M1, four people (or pairs) can work mostly in parallel:
 
 | ID | Ticket | Done when | Area | Size | Needs | P | PRD |
 |---|---|---|---|---|---|---|---|
-| TCK-0101 | `user`, `refresh_token`, `auth_token` tables | Migrations applied; unique `(institution_id, email)` | DB | S | 0004 | M | USR-01 |
+| TCK-0101 | `user`, `refresh_token`, `auth_token` tables; `platform-admin create-admin` (first admin of an institution, moved here from 0005) | Migrations applied; unique `(institution_id, email)`; CLI creates an admin | DB | S | 0005 | M | USR-01 |
 | TCK-0102 | Argon2 hashing, password policy (≥ 10 chars, common-password list) | Weak passwords rejected; hashes verify | BE | S | 0101 | M | AUTH-07 |
 | TCK-0103 | Login, logout, logout-everywhere; JWT access token; refresh cookie | Same error for wrong email and wrong password; logout revokes | BE | M | 0102 | M | AUTH-01, AUTH-04 |
 | TCK-0104 | Refresh rotation with reuse detection (family revocation) | Re-using an old refresh token logs out the whole family (test) | BE | S | 0103 | M | AUTH-03 |
