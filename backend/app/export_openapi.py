@@ -16,7 +16,10 @@ from app.main import create_app
 def main() -> None:
     target = Path(sys.argv[1] if len(sys.argv) > 1 else "openapi.json")
     spec = create_app(Settings(environment="development")).openapi()
-    target.write_text(json.dumps(spec, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    # Always LF, so the committed file is byte-identical whether generated on Windows or in CI.
+    target.write_text(
+        json.dumps(spec, indent=2, sort_keys=True) + "\n", encoding="utf-8", newline="\n"
+    )
     print(f"Wrote {target}")
 
 

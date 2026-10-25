@@ -1,0 +1,134 @@
+# Runs on every push and pull request. See docs/TECHNICAL_ARCHITECTURE.md § 11 (CI).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A newer push to the same branch cancels the older run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend (lint, types, tests)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: xaminer
+          POSTGRES_USER: xaminer
+          POSTGRES_PASSWORD: ci-superuser
+        ports: ["15432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U xaminer -d xaminer"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      # Tests read these (backend/tests/services.py). REQUIRE_SERVICES=1: never skip, fail instead.
+      REQUIRE_SERVICES: "1"
+      TEST_SERVICES_HOST: 127.0.0.1
+      POSTGRES_DB: xaminer
+      POSTGRES_HOST_PORT: "15432"
+      DB_MIGRATOR_PASSWORD: ci-migrator
+      DB_APP_PASSWORD: ci-app
+      REDIS_HOST_PORT: "16379"
+      REDIS_PASSWORD: ci-redis
+    steps:
+      - uses: actions/checkout@v4
+
+      # Redis is started here rather than as a service so it can require a password, like in Docker.
+      - name: Start Redis
+        run: docker run -d --name redis -p 16379:6379 redis:7-alpine redis-server --requirepass "$REDIS_PASSWORD"
+
+      - name: Create database users (same script as the db-init service)
+        env:
+          PGPASSWORD: ci-superuser
+        run: >
+          psql -h 127.0.0.1 -p 15432 -U xaminer -d xaminer
+          -v migrator_password="$DB_MIGRATOR_PASSWORD" -v app_password="$DB_APP_PASSWORD"
+          -v main_db=xaminer -v test_db=xaminer_test
+          -f deploy/db-init/db-init.sql
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Install Python 3.12 and dependencies
+        working-directory: backend
+        run: |
+          uv python install 3.12
+          uv sync --locked
+
+      - name: Lint
+        working-directory: backend
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+
+      - name: Type check
+        working-directory: backend
+        run: uv run mypy
+
+      - name: Tests
+        working-directory: backend
+        run: uv run pytest -q
+
+  frontend:
+    name: Frontend (lint, types, build, API client up to date)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install
+        working-directory: frontend
+        run: npm ci
+
+      - name: Lint and format
+        working-directory: frontend
+        run: |
+          npm run lint
+          npm run format:check
+
+      - name: Type check and build
+        working-directory: frontend
+        run: npm run build
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      # Fails if someone changed backend endpoints but didn't run `make api-client`.
+      - name: Generated API client is up to date
+        run: |
+          (cd backend && uv python install 3.12 && uv sync --locked)
+          make api-client
+          git diff --exit-code -- frontend/src/api/ || {
+            echo "::error::frontend/src/api is out of date. Run 'make api-client' and commit the result."
+            exit 1
+          }
+
+  images:
+    name: Docker images build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build all images
+        run: docker compose -f deploy/docker-compose.yml --env-file deploy/.env.example build
