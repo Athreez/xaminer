@@ -71,9 +71,14 @@ def _read_password(from_stdin: bool) -> str:
     """Never take a password as an argument: it would end up in shell history."""
     if from_stdin:
         return sys.stdin.readline().rstrip("\r\n")
-    first = getpass.getpass("Password (hidden): ")
-    if getpass.getpass("Repeat password: ") != first:
-        raise commands.CommandError("Passwords don't match.")
+    try:
+        first = getpass.getpass("Password (hidden): ")
+        if getpass.getpass("Repeat password: ") != first:
+            raise commands.CommandError("Passwords don't match.")
+    except EOFError as exc:
+        raise commands.CommandError(
+            "No password entered. Run this in an interactive terminal, or use --password-stdin."
+        ) from exc
     return first
 
 

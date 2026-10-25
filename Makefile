@@ -1,7 +1,8 @@
 # Run from the repository root. Requires uv (backend) and npm (frontend).
 .PHONY: setup check lint typecheck test format \
         backend-lint backend-typecheck backend-test frontend-lint frontend-typecheck \
-        up down ps logs platform-admin api-client
+        up down ps logs platform-admin api-client \
+        create-institution create-admin list-institutions list-languages
 
 # Regenerate the frontend's typed API client after changing backend endpoints. Commit the result.
 api-client:
@@ -10,9 +11,25 @@ api-client:
 
 COMPOSE = docker compose -f deploy/docker-compose.yml
 
-# Usage: make platform-admin ARGS='create-institution --name "ABC College"'   (stack must be up)
+ADMIN_CLI = $(COMPOSE) run --rm --no-deps api python -m cli
+
+# platform-admin shortcuts (stack must be up). Values go in variables, which works the same in
+# PowerShell, cmd and bash, e.g.:  make create-admin INSTITUTION="ABC College" EMAIL=a@abc.edu NAME="Asha Rao"
+create-institution:
+	$(ADMIN_CLI) create-institution --name "$(NAME)" --timezone "$(or $(TIMEZONE),Asia/Kolkata)"
+
+create-admin:
+	$(ADMIN_CLI) create-admin --institution "$(INSTITUTION)" --email "$(EMAIL)" --name "$(NAME)"
+
+list-institutions:
+	$(ADMIN_CLI) list-institutions
+
+list-languages:
+	$(ADMIN_CLI) list-languages
+
+# Any other platform-admin command. Avoid nested quotes here in Windows PowerShell 5.1.
 platform-admin:
-	$(COMPOSE) run --rm --no-deps api python -m cli $(ARGS)
+	$(ADMIN_CLI) $(ARGS)
 
 up:
 	$(COMPOSE) up -d --build

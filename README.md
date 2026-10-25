@@ -124,15 +124,16 @@ make down                             # stop (data volumes are kept)
 
 ### Platform admin commands
 
-Set-up tasks for whoever runs the platform (not an in-app role). The stack must be up.
+Set-up tasks for whoever runs the platform (not an in-app role). The stack must be up. Values are
+passed as variables, which works the same in PowerShell, cmd and bash:
 
 ```sh
-make platform-admin ARGS='create-institution --name "ABC College"'   # timezone defaults to Asia/Kolkata
-make platform-admin ARGS='create-institution --name "XYZ" --timezone Europe/London'
-make platform-admin ARGS='create-admin --institution "ABC College" --email admin@abc.edu --name "Asha Rao"'
+make create-institution NAME="ABC College"                     # timezone defaults to Asia/Kolkata
+make create-institution NAME="XYZ School" TIMEZONE=Europe/London
+make create-admin INSTITUTION="ABC College" EMAIL=admin@abc.edu NAME="Asha Rao"
 #   asks for the password twice (hidden); it is never passed on the command line
-make platform-admin ARGS='list-institutions'
-make platform-admin ARGS='list-languages'
+make list-institutions
+make list-languages
 ```
 
 Services: `web`, `api`, `app-worker`, `scheduler`, `exec-worker`, `sandbox-docker`, `inference-worker`,

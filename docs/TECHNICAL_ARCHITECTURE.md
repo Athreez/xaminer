@@ -579,8 +579,9 @@ changing anything, because Celery may deliver a job more than once.
 - **Demo / college server:** the same Compose file on one Linux machine, with real SMTP settings and HTTPS
   at nginx.
 - **Setup:** migrations run automatically on `make up`. Then
-  `make platform-admin ARGS='create-institution --name "ABC College"'` (default timezone
-  `Asia/Kolkata`) creates the first institution; a `create-admin` command follows in TCK-0101.
+  `make create-institution NAME="ABC College"` (default timezone `Asia/Kolkata`) and
+  `make create-admin INSTITUTION="ABC College" EMAIL=... NAME="..."` (hidden password prompt) create
+  the first institution and its admin.
   `platform-admin` is `python -m cli` inside the `api` image, connecting as the `app` DB user.
 - **Config:** all settings and secrets in `.env` (never committed); `.env.example` lists them.
 - **Backups:** Postgres holds all state, so it is the one thing that must not be lost. A nightly `pg_dump`
