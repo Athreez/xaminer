@@ -234,10 +234,12 @@ Stored in Redis so they apply across all API processes.
 
 | DB user | Can |
 |---|---|
-| `migrator` | Owns the schema; used only by Alembic |
-| `app` | Read/write on all tables except `audit_log`, where it can only `INSERT` and `SELECT` |
+| superuser (`POSTGRES_USER`) | Everything. Only the `postgres` and one-off `db-init` containers have its password |
+| `migrator` | Owns the schema; used only by the one-off `migrate` service (Alembic) |
+| `app` | Read/write rows on all tables except `audit_log`, where it can only `INSERT` and `SELECT`. Cannot create, alter, drop or truncate tables (tested) |
 
-So the audit log is append-only by database rule, not just by convention.
+So the audit log is append-only by database rule, not just by convention, and a bug or injection in the
+API cannot change the schema. `api` and `app-worker` only ever receive the `app` password.
 
 ---
 

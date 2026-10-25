@@ -90,6 +90,9 @@ security risk, language or resource needs are different from the API's.
 | `storage` | Evidence images, test bundles, question images | — | Be publicly readable |
 | `mailpit` | Dev only: catches outgoing email | — | — |
 
+One-off setup services run on every start and then exit: `db-init` (creates the `migrator` and `app`
+database users and the test database), `migrate` (applies migrations), `storage-init` (creates buckets).
+
 Language runner images (`cpp17`, `java21`, `python312`, `node22`) are images, not running services.
 `sandbox-docker` starts containers from them on demand.
 
@@ -178,9 +181,12 @@ through their service functions.
 | `audit` | `audit_log` | Append-only. Every module writes to it |
 | `storage` | — | Pre-signed storage URLs, upload checks, image re-encoding |
 
-**Tenant scoping.** Every request gets `institution_id` from its JWT. Repository helpers add the
-`institution_id` filter automatically, so query code cannot forget it. (Postgres row-level security is an
-optional extra.)
+**Tenant scoping.** Every request gets `institution_id` from its JWT and opens a `tenant_session` for it.
+A SQLAlchemy hook (`app/db/tenancy.py`) then adds `institution_id = …` to every ORM SELECT, UPDATE and
+DELETE on tenant tables, stamps new rows with the session's institution, and refuses rows for another
+institution. A query in a session with no institution raises an error instead of returning everything.
+CLI commands and cross-institution jobs use an explicit `system_session`. Raw SQL is not filtered, so
+it must filter by hand. (Postgres row-level security is an optional extra.)
 
 ---
 
@@ -232,6 +238,9 @@ IntegrityOutcome       PENDING_REVIEW | NO_CONCERNS | CONCERNS_CONFIRMED
 | Time | `timestamptz`, UTC. `created_at`, `updated_at` on every table |
 | Scores | `numeric(8,2)`, never float |
 | Flexible data | `jsonb` only for snapshots and detector payloads |
+| Enum columns | `text` + `CHECK` constraint with the § 6 values (easier to extend than Postgres enum types) |
+| Constraint names | Fixed naming convention (`pk_`, `fk_`, `ix_`, `uq_`, `ck_` + table/columns) so migrations can refer to them |
+| Migrations | Alembic, run by the one-off `migrate` service as `migrator` before `api` and `app-worker` start |
 | Deletes | `ON DELETE RESTRICT` by default; graded work is never cascade-deleted |
 | Names | `snake_case`, singular table names |
 

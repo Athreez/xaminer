@@ -6,7 +6,8 @@ AI-assisted webcam proctoring where the AI only flags and a teacher decides.
 ## Status
 
 Building **E00 Foundation**. Done: TCK-0001 (repository layout and code checks), TCK-0002 (Docker
-Compose stack), TCK-0003 (FastAPI skeleton: settings, JSON logs, error format, request IDs, health).
+Compose stack), TCK-0003 (FastAPI skeleton: settings, JSON logs, error format, request IDs, health),
+TCK-0004 (database: SQLAlchemy + Alembic, `migrator`/`app` users, automatic institution filter).
 Workers are still placeholders until their tickets. The design lives in
 [`docs/`](docs/):
 
@@ -61,6 +62,19 @@ uvx pre-commit install     # optional: run checks before every commit
 make check                 # lint + type-check + tests, backend and frontend
 make format                # auto-format everything
 ```
+
+Database tests use the `xaminer_test` database of the running stack, so run `make up` first; without it
+they are skipped (in CI, `REQUIRE_DB=1` makes them fail instead).
+
+**Database migrations** (from `backend/`, with the stack running):
+
+```sh
+uv run alembic revision --autogenerate -m "what changed"   # then review the generated file
+make up                                                      # the `migrate` service applies it
+```
+
+For `alembic` commands on the host, export `POSTGRES_HOST=127.0.0.1`, `POSTGRES_PORT=15432` and
+`DB_MIGRATOR_PASSWORD` from `deploy/.env` first.
 
 ## Running the full stack
 

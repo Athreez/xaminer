@@ -5,6 +5,7 @@ from typing import Literal
 
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from sqlalchemy import URL
 
 
 class Settings(BaseSettings):
@@ -16,8 +17,11 @@ class Settings(BaseSettings):
     postgres_host: str = "localhost"
     postgres_port: int = 5432
     postgres_db: str = "xaminer"
-    postgres_user: str = "xaminer"
-    postgres_password: SecretStr = SecretStr("")
+    # Two DB users (SECURITY_AND_ACCESS.md § 5.6). The app never gets the migrator password.
+    db_app_user: str = "app"
+    db_app_password: SecretStr = SecretStr("")
+    db_migrator_user: str = "migrator"
+    db_migrator_password: SecretStr = SecretStr("")
 
     redis_url: SecretStr = SecretStr("redis://localhost:6379/0")
 
@@ -31,6 +35,21 @@ class Settings(BaseSettings):
     @property
     def docs_enabled(self) -> bool:
         return self.environment != "production"
+
+    def database_url(self, role: Literal["app", "migrator"] = "app") -> URL:
+        user, password = (
+            (self.db_app_user, self.db_app_password)
+            if role == "app"
+            else (self.db_migrator_user, self.db_migrator_password)
+        )
+        return URL.create(
+            "postgresql+asyncpg",
+            username=user,
+            password=password.get_secret_value(),
+            host=self.postgres_host,
+            port=self.postgres_port,
+            database=self.postgres_db,
+        )
 
 
 @lru_cache
