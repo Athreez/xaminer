@@ -301,3 +301,139 @@ def test_refuses_to_start_without_proper_signing_secret(secret: str) -> None:
     with pytest.raises(RuntimeError, match="JWT_SECRET"):
         with TestClient(create_app(make_settings(jwt_secret=secret))):
             pass
+
+
+# ----------------------------------------------------------------------------- refresh (AUTH-03)
+
+REFRESH = "/api/v1/auth/refresh"
+
+
+def refresh_with(client: TestClient, raw: str):  # type: ignore[no-untyped-def]
+    """Refresh using a specific cookie value (as a copied/stolen cookie would be used)."""
+    client.cookies.clear()
+    return client.post(REFRESH, headers={"Cookie": f"xaminer_refresh={raw}"})
+
+
+async def _family(factory: SessionFactory, raw: str) -> list[RefreshToken]:
+    async with system_session(factory) as s:
+        token = (
+            await s.scalars(select(RefreshToken).where(RefreshToken.token_hash == hash_token(raw)))
+        ).one()
+        return list(
+            await s.scalars(
+                select(RefreshToken)
+                .where(RefreshToken.family_id == token.family_id)
+                .order_by(RefreshToken.created_at)
+            )
+        )
+
+
+async def _age_use(factory: SessionFactory, raw: str, seconds: int) -> None:
+    """Pretend the token was rotated `seconds` ago (to step outside the grace window)."""
+    async with system_session(factory) as s:
+        await s.execute(
+            update(RefreshToken)
+            .where(RefreshToken.token_hash == hash_token(raw))
+            .values(used_at=datetime.now(UTC) - timedelta(seconds=seconds))
+        )
+        await s.commit()
+
+
+async def test_refresh_rotates_the_token(
+    client: TestClient, world: World, factory: SessionFactory
+) -> None:
+    login(client, "a@abc.edu")
+    first = client.cookies["xaminer_refresh"]
+
+    response = client.post(REFRESH)
+    assert response.status_code == 200
+    second = client.cookies["xaminer_refresh"]
+    assert second != first
+    me = client.get(
+        "/api/v1/auth/me", headers={"Authorization": f"Bearer {response.json()['access_token']}"}
+    )
+    assert me.json()["email"] == "a@abc.edu"
+
+    family = await _family(factory, first)
+    assert len(family) == 2  # same login, same family
+    assert family[0].used_at is not None and family[1].used_at is None
+
+
+def test_refresh_can_be_repeated_down_the_chain(client: TestClient, world: World) -> None:
+    login(client, "a@abc.edu")
+    for _ in range(4):
+        assert client.post(REFRESH).status_code == 200
+
+
+async def test_reuse_of_an_old_token_logs_out_the_whole_family(
+    client: TestClient, world: World, factory: SessionFactory
+) -> None:
+    login(client, "a@abc.edu")
+    stolen = client.cookies["xaminer_refresh"]
+    client.post(REFRESH)  # the real user refreshes; `stolen` is now used
+    current = client.cookies["xaminer_refresh"]
+    await _age_use(factory, stolen, seconds=60)  # well past the grace window
+
+    replay = refresh_with(client, stolen)
+    assert replay.status_code == 401
+    assert error_code(replay) == "TOKEN_REUSE_DETECTED"
+    assert 'xaminer_refresh=""' in replay.headers["set-cookie"]  # cookie cleared
+    assert all(t.revoked_at is not None for t in await _family(factory, stolen))
+    # The real user's newer token is gone too: everyone on that login must sign in again.
+    assert error_code(refresh_with(client, current)) == "UNAUTHENTICATED"
+
+
+async def test_two_tabs_refreshing_at_once_is_not_treated_as_theft(
+    client: TestClient, world: World, factory: SessionFactory
+) -> None:
+    login(client, "a@abc.edu")
+    shared = client.cookies["xaminer_refresh"]
+    client.post(REFRESH)  # tab 1 wins
+    current = client.cookies["xaminer_refresh"]
+
+    late = refresh_with(client, shared)  # tab 2, a moment later, same old cookie
+    assert late.status_code == 401
+    assert error_code(late) == "TOKEN_ALREADY_ROTATED"
+    assert "set-cookie" not in late.headers  # keeps the new cookie tab 1 received
+    assert all(t.revoked_at is None for t in await _family(factory, shared))
+    assert refresh_with(client, current).status_code == 200  # the retry works
+
+
+def test_refresh_without_cookie(client: TestClient) -> None:
+    response = client.post(REFRESH)
+    assert response.status_code == 401
+    assert error_code(response) == "UNAUTHENTICATED"
+
+
+def test_refresh_after_logout(client: TestClient, world: World) -> None:
+    login(client, "a@abc.edu")
+    raw = client.cookies["xaminer_refresh"]
+    client.post("/api/v1/auth/logout")
+    assert error_code(refresh_with(client, raw)) == "UNAUTHENTICATED"
+
+
+async def test_refresh_with_expired_token(
+    client: TestClient, world: World, factory: SessionFactory
+) -> None:
+    login(client, "a@abc.edu")
+    raw = client.cookies["xaminer_refresh"]
+    async with system_session(factory) as s:
+        await s.execute(
+            update(RefreshToken)
+            .where(RefreshToken.token_hash == hash_token(raw))
+            .values(expires_at=datetime.now(UTC) - timedelta(minutes=1))
+        )
+        await s.commit()
+    assert error_code(refresh_with(client, raw)) == "UNAUTHENTICATED"
+
+
+async def test_refresh_after_deactivation_ends_the_session(
+    client: TestClient, world: World, factory: SessionFactory
+) -> None:
+    login(client, "a@abc.edu")
+    raw = client.cookies["xaminer_refresh"]
+    async with system_session(factory) as s:
+        await s.execute(update(User).where(User.id == world.admin.id).values(status="DEACTIVATED"))
+        await s.commit()
+    assert error_code(refresh_with(client, raw)) == "UNAUTHENTICATED"
+    assert all(t.revoked_at is not None for t in await _family(factory, raw))

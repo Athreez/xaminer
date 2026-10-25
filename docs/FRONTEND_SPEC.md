@@ -64,7 +64,7 @@ Imports use the `@/` alias for `src/`. shadcn components live in `src/components
 | Mechanism | How |
 |---|---|
 | Server data | TanStack Query for all fetching and polling. Polling interval comes from the server's `poll_after_ms` |
-| Auth | Access token kept in memory. On `401` the wrapper calls `/auth/refresh` once (the cookie is sent automatically) and retries. If refresh fails → `SESSION_EXPIRED` |
+| Auth | Access token kept in memory. On `401` the wrapper calls `/auth/refresh` (the cookie is sent automatically) and retries the request. Only one refresh runs at a time across all tabs (Web Locks API, `navigator.locks`); on `TOKEN_ALREADY_ROTATED` it retries the refresh once. Any other refresh failure → `SESSION_EXPIRED` |
 | Route guards | Each route declares its role; wrong role → `/403`. The server checks again anyway |
 | Exam state | Zustand store for the runner: answers, current question, flags, timer offset, connection status |
 | Outbox | IndexedDB queue of unsent answers, drafts and proctoring uploads. Survives reload and crash. One uploader sends in priority order: answers/drafts → heartbeat → code run/submit → proctoring events → spot checks |

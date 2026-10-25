@@ -50,7 +50,7 @@ Two decisions define the security of the whole system:
 | Token | Form | Lifetime | Stored where | Notes |
 |---|---|---|---|---|
 | Access token | JWT (HS256, algorithm pinned on decode): user id, role, institution id, type | 15 min | Browser memory only (not localStorage) | Sent as `Authorization: Bearer`. Signed with `JWT_SECRET`; the API refuses to start if it is missing, under 32 characters or still the example placeholder |
-| Refresh token | Random 256-bit string, stored as SHA-256 | 7 days | `xaminer_refresh` cookie: `HttpOnly`, `Secure`, `SameSite=Strict`, path `/api/v1/auth` | Rotated on every use. Using an already-used token revokes the whole session family (it means the token was stolen) |
+| Refresh token | Random 256-bit string, stored as SHA-256 | 7 days | `xaminer_refresh` cookie: `HttpOnly`, `Secure`, `SameSite=Strict`, path `/api/v1/auth` | Rotated on every use (`POST /auth/refresh`; the row is locked while checked). Using an already-used token revokes the whole session family (it means the token was copied): `TOKEN_REUSE_DETECTED`. Exception: within 10 s of rotation the answer is `TOKEN_ALREADY_ROTATED` with no revocation, because two tabs refreshing at once look the same; the slower tab already has the new cookie and retries. Each refresh extends the session by 7 days |
 | Attempt token | JWT with scope `proctoring-upload`, one attempt id | 10 min, renewed by heartbeat; usable for uploads up to 30 min after the attempt ends | Browser memory | Only accepted by the two proctoring upload endpoints, and only for that attempt |
 
 Changing a user's role, email or password, or deactivating them, revokes all their refresh tokens.

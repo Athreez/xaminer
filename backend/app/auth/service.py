@@ -133,6 +133,91 @@ async def logout(factory: SessionFactory, raw_refresh_token: str | None) -> None
             await session.commit()
 
 
+# Two tabs refreshing at the same moment both send the same cookie; the slower one would look like a
+# stolen token. Inside this window it is told to retry (its tab already has the new cookie) instead.
+REUSE_GRACE = timedelta(seconds=10)
+
+
+def _session_ended() -> AppError:
+    return AppError("UNAUTHENTICATED", "Your session has ended. Log in again.", status_code=401)
+
+
+async def refresh(
+    factory: SessionFactory,
+    raw_refresh_token: str | None,
+    *,
+    refresh_days: int,
+    user_agent: str | None,
+    ip: str | None,
+    now: datetime | None = None,
+) -> LoginResult:
+    """Swap a refresh token for a new access token and a new refresh token (PRD AUTH-03).
+
+    Each refresh token works once. Presenting an already-used one (after the grace window) means
+    it was copied, so the whole family, i.e. every device of that login, is logged out.
+    """
+    now = now or datetime.now(UTC)
+    if not raw_refresh_token:
+        raise _session_ended()
+
+    async with system_session(factory) as session:
+        token = await session.scalar(
+            select(RefreshToken)
+            .where(RefreshToken.token_hash == hash_token(raw_refresh_token))
+            .with_for_update()  # two requests with the same token are handled one after the other
+        )
+        if token is None or token.revoked_at is not None or token.expires_at <= now:
+            raise _session_ended()
+
+        if token.used_at is not None:
+            if now - token.used_at <= REUSE_GRACE:
+                raise AppError(
+                    "TOKEN_ALREADY_ROTATED",
+                    "This session was just refreshed in another tab. Retry.",
+                    status_code=401,
+                )
+            await _revoke(session, RefreshToken.family_id == token.family_id)
+            await session.commit()
+            raise AppError(
+                "TOKEN_REUSE_DETECTED",
+                "This session was used from somewhere else and has been ended. Log in again.",
+                status_code=401,
+            )
+
+        row = (
+            await session.execute(
+                select(User, Institution)
+                .join(Institution, Institution.id == User.institution_id)
+                .where(User.id == token.user_id)
+            )
+        ).one()
+        user, institution = row
+        if user.status != "ACTIVE" or institution.status != "ACTIVE":
+            await _revoke(session, RefreshToken.family_id == token.family_id)
+            await session.commit()
+            raise _session_ended()
+
+        token.used_at = now
+        raw, hashed = new_opaque_token()
+        session.add(
+            RefreshToken(
+                institution_id=token.institution_id,
+                user_id=token.user_id,
+                family_id=token.family_id,
+                token_hash=hashed,
+                expires_at=now + timedelta(days=refresh_days),
+                user_agent=(user_agent or "")[:255] or None,
+                ip=ip,
+            )
+        )
+        await session.commit()
+        return LoginResult(
+            user=_view(user, institution),
+            principal=Principal(user.id, user.institution_id, user.role),
+            refresh_token=raw,
+        )
+
+
 async def logout_everywhere(session: AsyncSession, user_id: uuid.UUID) -> None:
     """Revoke every session of the user (PRD AUTH-04). `session` is the user's tenant session."""
     await _revoke(session, RefreshToken.user_id == user_id)

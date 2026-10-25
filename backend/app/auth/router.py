@@ -12,6 +12,7 @@ from app.auth.dependencies import (
 from app.auth.schemas import LoginRequest, LoginResponse, UserView
 from app.auth.tokens import create_access_token
 from app.core.config import Settings
+from app.core.errors import AppError
 from app.db.session import SessionFactory
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -35,6 +36,27 @@ def _set_refresh_cookie(response: Response, token: str, settings: Settings) -> N
         secure=settings.cookie_secure,
         samesite="strict",
     )
+
+
+def _issue(result: service.LoginResult, response: Response, settings: Settings) -> LoginResponse:
+    """Set the new refresh cookie and return a fresh access token."""
+    _set_refresh_cookie(response, result.refresh_token, settings)
+    return LoginResponse(
+        access_token=create_access_token(
+            result.principal,
+            settings.jwt_secret.get_secret_value(),
+            settings.access_token_minutes,
+        ),
+        expires_in=settings.access_token_minutes * 60,
+        user=result.user,
+    )
+
+
+def _cleared_cookie_header(settings: Settings) -> str:
+    """The Set-Cookie value that deletes the refresh cookie (for error responses)."""
+    scratch = Response()
+    _clear_refresh_cookie(scratch, settings)
+    return scratch.headers["set-cookie"]
 
 
 def _clear_refresh_cookie(response: Response, settings: Settings) -> None:
@@ -65,16 +87,31 @@ async def login(
         user_agent=request.headers.get("user-agent"),
         ip=request.client.host if request.client else None,
     )
-    _set_refresh_cookie(response, result.refresh_token, settings)
-    return LoginResponse(
-        access_token=create_access_token(
-            result.principal,
-            settings.jwt_secret.get_secret_value(),
-            settings.access_token_minutes,
-        ),
-        expires_in=settings.access_token_minutes * 60,
-        user=result.user,
-    )
+    return _issue(result, response, settings)
+
+
+@router.post("/refresh")
+async def refresh(
+    request: Request,
+    response: Response,
+    factory: Factory,
+    settings: AppSettings,
+    xaminer_refresh: Annotated[str | None, Cookie()] = None,
+) -> LoginResponse:
+    """Get a new access token using the refresh cookie. The cookie is replaced each time."""
+    try:
+        result = await service.refresh(
+            factory,
+            xaminer_refresh,
+            refresh_days=settings.refresh_token_days,
+            user_agent=request.headers.get("user-agent"),
+            ip=request.client.host if request.client else None,
+        )
+    except AppError as exc:
+        if exc.code != "TOKEN_ALREADY_ROTATED":  # that tab already holds the new cookie: keep it
+            exc.headers = {**(exc.headers or {}), "set-cookie": _cleared_cookie_header(settings)}
+        raise
+    return _issue(result, response, settings)
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
