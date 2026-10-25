@@ -14,17 +14,13 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from app.auth.models import RefreshToken
 from app.auth.passwords import hash_password
 from app.auth.tokens import Principal, create_access_token, hash_token
-from app.core.config import Settings
 from app.db.session import SessionFactory, create_session_factory, system_session, tenant_session
 from app.main import create_app
 from app.platform.models import Institution
 from app.users.models import User
 from cli import commands
-from tests.db.conftest import PORT, TEST_DB
-from tests.services import ENV, HOST
+from tests.db.api_helpers import PASSWORD, SECRET, make_settings
 
-PASSWORD = "violet-tram-42-lantern"
-SECRET = "test-signing-secret-that-is-long-enough-123"
 LOGIN = "/api/v1/auth/login"
 
 
@@ -32,20 +28,6 @@ LOGIN = "/api/v1/auth/login"
 class World:
     college: Institution
     admin: User
-
-
-def make_settings(**overrides: object) -> Settings:
-    values: dict[str, object] = {
-        "environment": "test",
-        "postgres_host": HOST,
-        "postgres_port": PORT,
-        "postgres_db": TEST_DB,
-        "db_app_password": ENV.get("DB_APP_PASSWORD", ""),
-        "jwt_secret": SECRET,
-        "cookie_secure": False,  # the test client talks plain http
-    }
-    values.update(overrides)
-    return Settings(**values)  # type: ignore[arg-type]
 
 
 @pytest.fixture

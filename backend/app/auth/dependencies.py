@@ -5,6 +5,7 @@ from typing import Annotated
 
 from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.tokens import InvalidTokenError, Principal, decode_access_token
@@ -23,6 +24,11 @@ def settings_of(request: Request) -> Settings:
 def session_factory_of(request: Request) -> SessionFactory:
     factory: SessionFactory = request.app.state.session_factory
     return factory
+
+
+def redis_of(request: Request) -> Redis:
+    redis: Redis = request.app.state.redis
+    return redis
 
 
 def _unauthenticated() -> AppError:

@@ -4,6 +4,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from redis.asyncio import Redis
 
 from app.auth.router import router as auth_router
 from app.core import health
@@ -25,7 +26,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         settings.check_secrets()  # refuse to start without a proper signing secret
         engine = create_engine(settings.database_url("app"))
         app.state.session_factory = create_session_factory(engine)
+        app.state.redis = Redis.from_url(settings.redis_url.get_secret_value())
         yield
+        await app.state.redis.aclose()
         await engine.dispose()
 
     app = FastAPI(

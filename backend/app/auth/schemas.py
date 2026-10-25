@@ -33,3 +33,27 @@ class LoginResponse(BaseModel):
 class InstitutionChoice(BaseModel):
     id: uuid.UUID
     name: str
+
+
+class InvitationInfo(BaseModel):
+    email: str
+    full_name: str
+    institution_name: str
+
+
+class TokenRequest(BaseModel):
+    """One-time tokens travel in the body, never the URL, so they can't end up in access logs."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    token: str = Field(min_length=10, max_length=200)
+
+
+class SetPasswordRequest(TokenRequest):
+    password: str = Field(max_length=1024)
+
+
+class PasswordResetRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    email: str = Field(max_length=320)

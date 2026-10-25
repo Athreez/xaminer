@@ -1,15 +1,25 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Cookie, Depends, Request, Response, status
+from redis.asyncio import Redis
 
-from app.auth import service
+from app.auth import accounts, service
 from app.auth.dependencies import (
     CurrentPrincipal,
     TenantDB,
+    redis_of,
     session_factory_of,
     settings_of,
 )
-from app.auth.schemas import LoginRequest, LoginResponse, UserView
+from app.auth.schemas import (
+    InvitationInfo,
+    LoginRequest,
+    LoginResponse,
+    PasswordResetRequest,
+    SetPasswordRequest,
+    TokenRequest,
+    UserView,
+)
 from app.auth.tokens import create_access_token
 from app.core.config import Settings
 from app.core.errors import AppError
@@ -22,6 +32,7 @@ REFRESH_COOKIE_PATH = "/api/v1/auth"  # sent only to auth endpoints, never to th
 
 Factory = Annotated[SessionFactory, Depends(session_factory_of)]
 AppSettings = Annotated[Settings, Depends(settings_of)]
+RedisClient = Annotated[Redis, Depends(redis_of)]
 
 
 def _set_refresh_cookie(response: Response, token: str, settings: Settings) -> None:
@@ -139,3 +150,30 @@ async def logout_all(
 async def me(principal: CurrentPrincipal, db: TenantDB) -> UserView:
     """The logged-in user."""
     return await service.current_user(db, principal)
+
+
+@router.post("/invite/inspect")
+async def inspect_invitation(body: TokenRequest, factory: Factory) -> InvitationInfo:
+    """Who an invitation link is for (the activation page shows it). Doesn't use up the link."""
+    return await accounts.inspect_invitation(factory, body.token)
+
+
+@router.post("/invite/accept", status_code=status.HTTP_204_NO_CONTENT)
+async def accept_invitation(body: SetPasswordRequest, factory: Factory) -> None:
+    """Set the first password from an invitation link. The account becomes active."""
+    await accounts.accept_invitation(factory, body.token, body.password)
+
+
+@router.post("/password-reset/request", status_code=status.HTTP_202_ACCEPTED)
+async def request_password_reset(
+    body: PasswordResetRequest, factory: Factory, redis: RedisClient, settings: AppSettings
+) -> dict[str, str]:
+    """Email a reset link if the account exists. The answer is the same either way."""
+    await accounts.request_password_reset(factory, redis, body.email, settings.public_base_url)
+    return {"message": "If an account exists for that email, a reset link has been sent."}
+
+
+@router.post("/password-reset/confirm", status_code=status.HTTP_204_NO_CONTENT)
+async def confirm_password_reset(body: SetPasswordRequest, factory: Factory) -> None:
+    """Set a new password from a reset link. Every session of the account is logged out."""
+    await accounts.confirm_password_reset(factory, body.token, body.password)

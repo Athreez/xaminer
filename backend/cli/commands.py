@@ -7,10 +7,12 @@ from email_validator import EmailNotValidError, validate_email
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 
+from app.auth.accounts import create_invitation
 from app.auth.passwords import WeakPasswordError, check_policy, hash_password
 from app.db.session import SessionFactory, system_session, tenant_session
+from app.notifications.emails import queue_email
 from app.platform.models import Institution, Language
-from app.users.models import User
+from app.users.models import ROLES, User
 
 DEFAULT_TIMEZONE = "Asia/Kolkata"
 
@@ -105,3 +107,53 @@ async def create_admin(
         except IntegrityError as exc:  # another command created the same email at the same time
             raise CommandError(f"{email} already has an account in {target.name!r}.") from exc
         return admin
+
+
+async def invite_user(
+    factory: SessionFactory,
+    institution: str,
+    email: str,
+    full_name: str,
+    role: str,
+    base_url: str,
+    roll_no: str | None = None,
+) -> tuple[User, bool]:
+    """Create an INVITED user and email them an activation link.
+
+    Running it again for someone still INVITED re-sends: a new link that cancels the old one.
+    Returns (user, created).
+    """
+    target = await find_institution(factory, institution)
+    role = role.upper()
+    if role not in ROLES:
+        raise CommandError(f"Role must be one of {', '.join(ROLES)}.")
+    full_name = full_name.strip()
+    if not full_name or len(full_name) > 200:
+        raise CommandError("Name must be 1-200 characters.")
+    try:
+        email = validate_email(email.strip(), check_deliverability=False).normalized
+    except EmailNotValidError as exc:
+        raise CommandError(f"Invalid email: {exc}") from exc
+
+    async with tenant_session(factory, target.id) as session:
+        user = await session.scalar(select(User).where(User.email == email))
+        created = user is None
+        if user is None:
+            user = User(
+                email=email,
+                full_name=full_name,
+                role=role,
+                status="INVITED",
+                roll_no=(roll_no or "").strip() or None,
+            )
+            session.add(user)
+            await session.flush()
+        elif user.status != "INVITED":
+            raise CommandError(f"{email} is already {user.status} in {target.name!r}.")
+        message = await create_invitation(session, user, target.name, base_url)
+        try:
+            await session.commit()
+        except IntegrityError as exc:
+            raise CommandError("That roll number is already used in this institution.") from exc
+    queue_email(message)  # only after the commit, so nobody gets a link that doesn't work
+    return user, created

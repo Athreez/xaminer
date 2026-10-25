@@ -90,7 +90,7 @@ After M1, four people (or pairs) can work mostly in parallel:
 
 | ID | Ticket | Done when | Area | Size | Needs | P | PRD |
 |---|---|---|---|---|---|---|---|
-| TCK-0201 | Email sender (SMTP; Mailpit in dev) as an `app-worker` task; HTML + text templates | Invitation and reset emails arrive in Mailpit | BE | S | 0006, 0105 | M | NOT-01 |
+| TCK-0201 | Email sender (SMTP; Mailpit in dev) as an `app-worker` task; HTML + text templates. **Done together with TCK-0105** (plus `platform-admin invite-user` until the admin UI exists) | Invitation and reset emails arrive in Mailpit | BE | S | 0006, 0105 | M | NOT-01 |
 
 ## E03 · Users, groups, admin
 

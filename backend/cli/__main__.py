@@ -2,6 +2,7 @@
 
     python -m cli create-institution --name "ABC College" [--timezone Asia/Kolkata]
     python -m cli create-admin --institution "ABC College" --email a@abc.edu --name "Asha Rao"
+    python -m cli invite-user --institution "ABC" --email s@abc.edu --name "Ravi K" --role STUDENT
     python -m cli list-institutions
     python -m cli list-languages
 
@@ -40,6 +41,16 @@ def _parser() -> argparse.ArgumentParser:
         help="Read the password from standard input instead of prompting (for scripts)",
     )
 
+    invite = sub.add_parser(
+        "invite-user",
+        help="Create a user and email them an activation link (re-sends if still invited).",
+    )
+    invite.add_argument("--institution", required=True, help="Institution id or exact name")
+    invite.add_argument("--email", required=True)
+    invite.add_argument("--name", required=True, help="Full name")
+    invite.add_argument("--role", required=True, choices=["ADMIN", "TEACHER", "STUDENT"])
+    invite.add_argument("--roll-no", default=None, help="Optional student roll number")
+
     sub.add_parser("list-institutions", help="List all institutions.")
     sub.add_parser("list-languages", help="List the programming language catalogue.")
     return parser
@@ -51,6 +62,7 @@ async def _run(args: argparse.Namespace) -> None:
     handlers: dict[str, Callable[[SessionFactory, argparse.Namespace], Awaitable[None]]] = {
         "create-institution": _create_institution,
         "create-admin": _create_admin,
+        "invite-user": _invite_user,
         "list-institutions": _list_institutions,
         "list-languages": _list_languages,
     }
@@ -88,6 +100,21 @@ async def _create_admin(factory: SessionFactory, args: argparse.Namespace) -> No
     )
     print(f"Created admin {admin.full_name} <{admin.email}>  (id {admin.id})")
     print("They can log in once the login page exists (TCK-0110).")
+
+
+async def _invite_user(factory: SessionFactory, args: argparse.Namespace) -> None:
+    user, created = await commands.invite_user(
+        factory,
+        args.institution,
+        args.email,
+        args.name,
+        args.role,
+        get_settings().public_base_url,
+        roll_no=args.roll_no,
+    )
+    action = "Invited" if created else "Re-sent the invitation to"
+    print(f"{action} {user.full_name} <{user.email}> as {user.role}.")
+    print("The email is on its way (in development: http://localhost:8025).")
 
 
 async def _list_institutions(factory: SessionFactory, _: argparse.Namespace) -> None:

@@ -2,7 +2,7 @@
 .PHONY: setup check lint typecheck test format \
         backend-lint backend-typecheck backend-test frontend-lint frontend-typecheck \
         up down ps logs platform-admin api-client \
-        create-institution create-admin list-institutions list-languages
+        create-institution create-admin invite-user list-institutions list-languages
 
 # Regenerate the frontend's typed API client after changing backend endpoints. Commit the result.
 api-client:
@@ -23,6 +23,10 @@ create-institution:
 
 create-admin:
 	$(ADMIN_CLI) create-admin --institution "$(INSTITUTION)" --email "$(EMAIL)" --name "$(NAME)"
+
+# ROLE is ADMIN, TEACHER or STUDENT; ROLL_NO is optional.
+invite-user:
+	$(ADMIN_CLI) invite-user --institution "$(INSTITUTION)" --email "$(EMAIL)" --name "$(NAME)" --role "$(ROLE)" $(if $(ROLL_NO),--roll-no "$(ROLL_NO)",)
 
 list-institutions:
 	$(ADMIN_CLI) list-institutions

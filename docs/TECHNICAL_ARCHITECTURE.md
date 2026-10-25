@@ -341,7 +341,7 @@ REST + JSON under `/api/v1`.
 | Not found vs forbidden | Another tenant's or another user's resource returns `404`, so its existence is not revealed |
 | Time | Attempt responses include `server_time` |
 
-Main error codes: `UNAUTHENTICATED`, `INVALID_CREDENTIALS`, `ACCOUNT_LOCKED`, `INSTITUTION_REQUIRED`, `TOKEN_REUSE_DETECTED`, `TOKEN_ALREADY_ROTATED`, `FORBIDDEN`, `NOT_FOUND`,
+Main error codes: `UNAUTHENTICATED`, `INVALID_CREDENTIALS`, `ACCOUNT_LOCKED`, `INSTITUTION_REQUIRED`, `INVALID_TOKEN`, `TOKEN_REUSE_DETECTED`, `TOKEN_ALREADY_ROTATED`, `FORBIDDEN`, `NOT_FOUND`,
 `NOT_ASSIGNED`, `VALIDATION_FAILED`, `ATTEMPT_NOT_ACTIVE`, `EXAM_NOT_OPEN`, `ATTEMPT_LIMIT_REACHED`,
 `CONSENT_REQUIRED`, `PUBLISH_BLOCKED`, `SUBMISSION_LIMIT_REACHED`, `RUN_CODE_DISABLED`, `RATE_LIMITED`.
 
@@ -351,7 +351,7 @@ Main error codes: `UNAUTHENTICATED`, `INVALID_CREDENTIALS`, `ACCOUNT_LOCKED`, `I
 
 | Area | Endpoints | Who |
 |---|---|---|
-| Auth | `POST /auth/login` · `/auth/refresh` · `/auth/logout` · `/auth/logout-all` · `/auth/invite/accept` · `/auth/password-reset/request` · `/auth/password-reset/confirm` · `GET /auth/me` | all |
+| Auth | `POST /auth/login` · `/auth/refresh` · `/auth/logout` · `/auth/logout-all` · `/auth/invite/inspect` · `/auth/invite/accept` · `/auth/password-reset/request` · `/auth/password-reset/confirm` · `GET /auth/me` | all |
 | Users | `GET/POST /users` · `GET/PATCH /users/{id}` · `POST /users/{id}/deactivate` · `POST /users/import` (CSV) · `GET/POST /groups` · `POST/DELETE /groups/{id}/members` | Admin |
 | Audit, settings | `GET /audit-logs` · `GET/PATCH /institution/settings` (includes overdue-deletion count) · `GET /admin/exams` (metadata only) | Admin |
 | Questions | `GET/POST /questions` · `GET/PATCH /questions/{id}` · `POST /questions/{id}/archive` · `GET /questions/{id}/preview` (student view) · `POST /uploads/images` | Teacher |

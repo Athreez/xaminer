@@ -145,8 +145,8 @@ One label per state, used everywhere.
 | Route | Role | Page |
 |---|---|---|
 | `/login` | — | Sign in |
-| `/activate/:token` | — | Set password from invitation |
-| `/forgot-password` · `/reset-password/:token` | — | Password reset |
+| `/activate#token=…` | — | Set password from invitation (token after `#`, never in the path) |
+| `/forgot-password` · `/reset-password#token=…` | — | Password reset (token after `#`) |
 | `/` | any | Redirect to the role's home |
 | `/admin/users` · `/admin/users/:userId` | Admin | Users |
 | `/admin/users/import` | Admin | CSV import (S) |
@@ -200,6 +200,11 @@ Header outside the exam screen: institution name, notifications bell (S), user m
 Email and password. On `INVALID_CREDENTIALS`: "Email or password is incorrect." On `ACCOUNT_LOCKED`: the
 time it unlocks. On `INSTITUTION_REQUIRED`: a list of the institutions from the error's `details`; picking
 one repeats the login with that `institution_id`. After login, go to the role's home.
+
+Activation (`/activate`): read the token from the `#` part, call `POST /auth/invite/inspect` to show
+"Welcome, Ravi Kumar (ABC College)", then a new-password form (`/auth/invite/accept`). Weak-password
+errors appear under the field and the link stays usable. `INVALID_TOKEN`: "This link is invalid or has
+expired. Ask your admin for a new invitation." Password reset pages work the same way.
 
 ### 5.1 Admin
 

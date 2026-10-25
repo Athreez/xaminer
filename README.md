@@ -10,7 +10,7 @@ AI-assisted webcam proctoring where the AI only flags and a teacher decides.
 | Epic | Progress |
 |---|---|
 | E00 Foundation | ✅ Done: repo layout and checks, Docker Compose stack, FastAPI skeleton, database layer with automatic institution filter, language catalogue and `platform-admin`, Celery workers, frontend skeleton with typed API client, CI |
-| E01 Authentication | In progress. Done: user and token tables, password hashing and rules, `create-admin` (TCK-0101, 0102); login, logout, logout everywhere, `/auth/me` API (TCK-0103); refresh-token rotation with theft detection (TCK-0104) |
+| E01 Authentication | In progress. Done: user and token tables, password hashing and rules, `create-admin` (TCK-0101, 0102); login, logout, logout everywhere, `/auth/me` API (TCK-0103); refresh-token rotation with theft detection (TCK-0104); invitations and password reset with emails (TCK-0105, 0201) |
 
 `exec-worker` and `inference-worker` are placeholders until their tickets. The design lives in
 [`docs/`](docs/):
@@ -132,9 +132,14 @@ make create-institution NAME="ABC College"                     # timezone defaul
 make create-institution NAME="XYZ School" TIMEZONE=Europe/London
 make create-admin INSTITUTION="ABC College" EMAIL=admin@abc.edu NAME="Asha Rao"
 #   asks for the password twice (hidden); it is never passed on the command line
+make invite-user INSTITUTION="ABC College" EMAIL=ravi@abc.edu NAME="Ravi Kumar" ROLE=STUDENT ROLL_NO=CSE-042
+#   emails an activation link (ROLE: ADMIN, TEACHER or STUDENT; ROLL_NO optional); run again to re-send
 make list-institutions
 make list-languages
 ```
+
+Emails in development go to Mailpit (http://localhost:8025); nothing is really sent. For real email, set
+the `SMTP_*` and `PUBLIC_BASE_URL` values in `deploy/.env` (see `.env.example`).
 
 Services: `web`, `api`, `app-worker`, `scheduler`, `exec-worker`, `sandbox-docker`, `inference-worker`,
 `postgres`, `redis`, `storage` (+ one-off `storage-init` that creates the buckets), `mailpit`. See

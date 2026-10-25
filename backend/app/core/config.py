@@ -31,6 +31,12 @@ class Settings(BaseSettings):
 
     smtp_host: str = "localhost"
     smtp_port: int = 1025
+    smtp_username: str = ""
+    smtp_password: SecretStr = SecretStr("")
+    smtp_starttls: bool = False  # turn on for a real SMTP server (e.g. port 587)
+    mail_from: str = "Xaminer <no-reply@xaminer.local>"
+    # Where users open the app; used to build links in emails.
+    public_base_url: str = "http://localhost:8080"
 
     # Login tokens (SECURITY_AND_ACCESS.md § 2.2). The secret signs access tokens: keep it private,
     # at least 32 characters. Changing it logs everyone out.
