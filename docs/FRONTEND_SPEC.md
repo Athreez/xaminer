@@ -31,17 +31,21 @@ come from `PRD.md`; API and data from `TECHNICAL_ARCHITECTURE.md`; permissions f
 
 ### 2.1 Stack
 
-Vite + React 19 + TypeScript · React Router · TanStack Query · Zustand · `idb` (IndexedDB) · Tailwind CSS +
-shadcn/ui (Radix-based) · CodeMirror 6 · MediaPipe Tasks Vision · `react-markdown` + sanitiser · API client
-generated from the backend's OpenAPI spec.
+Vite + React 19 + TypeScript 5.9 · React Router 7 · TanStack Query · Zustand · `idb` (IndexedDB) ·
+Tailwind CSS 4 + shadcn/ui (Radix-based; `cn()` = `clsx` + `tailwind-merge`) · CodeMirror 6 · MediaPipe
+Tasks Vision · `react-markdown` + sanitiser · `openapi-fetch` client typed from the backend's OpenAPI spec
+(`make api-client`).
+
+Imports use the `@/` alias for `src/`. shadcn components live in `src/components/ui/` and are added with
+`npx shadcn@4.22.1 add <name>` (version pinned: the unpinned `npx shadcn@latest` hits an npm 11.6 bug).
 
 ### 2.2 Folder structure
 
 ```
 /frontend/src
-  api/            Generated client + small fetch wrapper (auth header, refresh, errors)
+  api/            openapi.json + schema.d.ts (generated), client.ts (typed client, error type)
   auth/           Login state, token refresh, role-based route guard
-  components/     Shared UI (Button, Table, StatusPill, Countdown, ...)
+  components/     Shared UI: ui/ (shadcn), layout/ (AppShell), StatusPill, Countdown, ...
   features/
     admin/        Users, groups, audit log, settings
     questions/    Question bank and editors
@@ -49,6 +53,7 @@ generated from the backend's OpenAPI spec.
     review/       Proctoring review
     student/      Dashboard, instructions, pre-check, results
     runner/       The exam screen (see § 6)
+    system/       Home, error pages, placeholders
     proctoring/   Camera, MediaPipe worker, detectors, uploader
   lib/            Markdown renderer, time sync, IndexedDB outbox
   routes.tsx

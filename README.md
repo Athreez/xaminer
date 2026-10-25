@@ -8,7 +8,7 @@ AI-assisted webcam proctoring where the AI only flags and a teacher decides.
 Building **E00 Foundation**. Done: TCK-0001 (repository layout and code checks), TCK-0002 (Docker
 Compose stack), TCK-0003 (FastAPI skeleton: settings, JSON logs, error format, request IDs, health),
 TCK-0004 (database: SQLAlchemy + Alembic, `migrator`/`app` users, automatic institution filter),
-TCK-0005 (language catalogue, `platform-admin` command), TCK-0006 (Celery worker and scheduler).
+TCK-0005 (language catalogue, `platform-admin` command), TCK-0006 (Celery worker and scheduler), TCK-0007 (frontend skeleton: routing, layouts, typed API client).
 `exec-worker` and `inference-worker` are still placeholders until their tickets. The design lives in
 [`docs/`](docs/):
 
@@ -66,6 +66,18 @@ make format                # auto-format everything
 
 Some tests use the running stack (Postgres database `xaminer_test`, Redis database 15), so run
 `make up` first; without it they are skipped (in CI, `REQUIRE_SERVICES=1` makes them fail instead).
+
+**Frontend development** (hot reload; the stack must be up for the API):
+
+```sh
+cd frontend && npm run dev     # http://localhost:5173, /api is proxied to localhost:8080
+```
+
+After changing backend endpoints, regenerate the typed client and commit both generated files:
+
+```sh
+make api-client                # writes frontend/src/api/openapi.json and schema.d.ts
+```
 
 **Database migrations** (from `backend/`, with the stack running):
 

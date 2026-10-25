@@ -46,12 +46,12 @@ These are the rules the whole design is built around. Every later section follow
 
 | Layer | Choice |
 |---|---|
-| Frontend | Vite + React 19 + TypeScript, React Router, TanStack Query, Zustand, `idb` (IndexedDB), Tailwind CSS + shadcn/ui |
+| Frontend | Vite + React 19 + TypeScript 5.9 (not 6: tools like `openapi-typescript` don't support it yet), React Router 7, TanStack Query, Zustand, `idb` (IndexedDB), Tailwind CSS 4 + shadcn/ui (Radix) |
 | Code editor | CodeMirror 6 (lighter than Monaco, which matters while proctoring models also run in the browser) |
 | Browser AI | MediaPipe Tasks Vision (face landmarks, head pose), a WebRTC-style voice activity detector |
 | Backend API | Python 3.12, FastAPI, Pydantic v2 |
 | Database access | SQLAlchemy 2 (async) + Alembic migrations |
-| API types for frontend | FastAPI's OpenAPI spec → `openapi-typescript` generated client |
+| API types for frontend | `make api-client`: backend writes `frontend/src/api/openapi.json` → `openapi-typescript` writes `schema.d.ts` → `openapi-fetch` client. Both files are committed; a wrong path or body fails `tsc` |
 | Auth | Argon2 password hashing, JWT access tokens (15 min), rotating refresh token in an httpOnly cookie |
 | Background jobs | Celery + Redis, Celery Beat for scheduled jobs |
 | Code sandbox | Docker containers (one per test case) on a Docker-in-Docker engine; gVisor `runsc` optional |

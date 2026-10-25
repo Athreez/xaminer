@@ -1,7 +1,12 @@
 # Run from the repository root. Requires uv (backend) and npm (frontend).
 .PHONY: setup check lint typecheck test format \
         backend-lint backend-typecheck backend-test frontend-lint frontend-typecheck \
-        up down ps logs platform-admin
+        up down ps logs platform-admin api-client
+
+# Regenerate the frontend's typed API client after changing backend endpoints. Commit the result.
+api-client:
+	cd backend && uv run python -m app.export_openapi ../frontend/src/api/openapi.json
+	cd frontend && npm run api:types
 
 COMPOSE = docker compose -f deploy/docker-compose.yml
 
