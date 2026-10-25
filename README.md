@@ -1,5 +1,7 @@
 # Xaminer
 
+[![CI](https://github.com/Athreez/xaminer/actions/workflows/ci.yml/badge.svg)](https://github.com/Athreez/xaminer/actions/workflows/ci.yml)
+
 A computer-based testing platform for colleges, with automated evaluation of coding questions and
 AI-assisted webcam proctoring where the AI only flags and a teacher decides.
 
@@ -8,7 +10,7 @@ AI-assisted webcam proctoring where the AI only flags and a teacher decides.
 Building **E00 Foundation**. Done: TCK-0001 (repository layout and code checks), TCK-0002 (Docker
 Compose stack), TCK-0003 (FastAPI skeleton: settings, JSON logs, error format, request IDs, health),
 TCK-0004 (database: SQLAlchemy + Alembic, `migrator`/`app` users, automatic institution filter),
-TCK-0005 (language catalogue, `platform-admin` command), TCK-0006 (Celery worker and scheduler), TCK-0007 (frontend skeleton: routing, layouts, typed API client).
+TCK-0005 (language catalogue, `platform-admin` command), TCK-0006 (Celery worker and scheduler), TCK-0007 (frontend skeleton: routing, layouts, typed API client), TCK-0008 (CI).
 `exec-worker` and `inference-worker` are still placeholders until their tickets. The design lives in
 [`docs/`](docs/):
 
@@ -88,6 +90,16 @@ make up                                                      # the `migrate` ser
 
 For `alembic` commands on the host, export `POSTGRES_HOST=127.0.0.1`, `POSTGRES_PORT=15432` and
 `DB_MIGRATOR_PASSWORD` from `deploy/.env` first.
+
+## Continuous integration
+
+Every push to `main` and every pull request runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml):
+
+| Job | Checks |
+|---|---|
+| Backend | ruff, mypy, pytest against real Postgres and Redis (`REQUIRE_SERVICES=1`: nothing is skipped) |
+| Frontend | oxlint, Prettier, type check, production build, and that `make api-client` output is committed |
+| Docker images | every service image builds |
 
 ## Running the full stack
 
