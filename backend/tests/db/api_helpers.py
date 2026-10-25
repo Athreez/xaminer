@@ -21,6 +21,8 @@ def make_settings(**overrides: object) -> Settings:
         "jwt_secret": SECRET,
         "cookie_secure": False,  # the test client talks plain http
         "public_base_url": "http://xaminer.test",
+        # Every test request comes from the same fake address; the limit test sets its own.
+        "login_rate_per_minute": 10_000,
     }
     values.update(overrides)
     return Settings(**values)  # type: ignore[arg-type]

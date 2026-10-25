@@ -23,6 +23,7 @@ from app.auth.schemas import (
 from app.auth.tokens import create_access_token
 from app.core.config import Settings
 from app.core.errors import AppError
+from app.core.rate_limit import hit, rate_limited
 from app.db.session import SessionFactory
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -87,8 +88,13 @@ async def login(
     response: Response,
     factory: Factory,
     settings: AppSettings,
+    redis: RedisClient,
 ) -> LoginResponse:
     """Log in with email and password. Returns an access token; sets the refresh cookie."""
+    ip = request.client.host if request.client else "unknown"
+    limit = await hit(redis, f"login-ip:{ip}", settings.login_rate_per_minute, 60)
+    if not limit.allowed:
+        raise rate_limited(limit.retry_after)
     result = await service.login(
         factory,
         email=body.email,

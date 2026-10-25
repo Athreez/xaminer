@@ -45,6 +45,8 @@ class Settings(BaseSettings):
     refresh_token_days: int = 7
     # Send the refresh cookie only over HTTPS. Browsers treat http://localhost as secure too.
     cookie_secure: bool = True
+    # Login attempts allowed per IP address per minute (PRD AUTH-06).
+    login_rate_per_minute: int = 10
 
     @property
     def docs_enabled(self) -> bool:

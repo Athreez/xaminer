@@ -43,7 +43,7 @@ Two decisions define the security of the whole system:
 | First admin | Created with `platform-admin create-admin`; the password is typed at a hidden prompt (or piped with `--password-stdin`), never passed as an argument, so it never lands in shell history |
 | Password reset | Same token rules, expires in 1 h. Response is identical whether the email exists or not (and over the rate limit). A reset logs out all sessions and clears any lockout. A person with accounts in several institutions gets one link per account |
 | Links in emails | Tokens go after `#` (`/activate#token=…`, `/reset-password#token=…`). Browsers never send that part to the server, and the API takes tokens in the request body, never the URL, so tokens can't reach nginx or API logs (checked). Every bad link (unknown, used, expired, wrong kind) gets the same `INVALID_TOKEN` |
-| Lockout | 5 wrong passwords → locked 15 min. "Account locked" is only shown when the password was correct, so it can't be used to discover accounts |
+| Lockout | 5 wrong passwords in a row → locked 15 min; a success resets the count, and the count restarts when it locks. Counted in one atomic UPDATE. Guesses while locked don't extend the lock. If the same email has accounts in several institutions, only a total miss counts. "Account locked" is only shown when the password was correct, so it can't be used to discover accounts. Trade-off: anyone who knows an email can lock it for 15 min; the per-IP limit slows this, and an admin unlock comes with the admin user tools |
 | Login errors | Wrong email and wrong password return the same error (`INVALID_CREDENTIALS`) with similar timing |
 
 ### 2.2 Tokens
@@ -221,7 +221,11 @@ Stored in Redis so they apply across all API processes.
 | Proctoring event upload | 6 per minute per attempt; max 30 events with images per attempt |
 | Spot check | 1 per 15 s per attempt |
 
-`429` responses always include `Retry-After`.
+`429` responses always include `Retry-After` (seconds).
+
+The per-IP limit only works if the IP can't be faked: nginx **overwrites** `X-Forwarded-For` with the
+real connecting address instead of appending to it, so a client-sent header is ignored (tested: 12
+requests with 12 fake addresses are still limited as one).
 
 ### 5.4 File uploads
 

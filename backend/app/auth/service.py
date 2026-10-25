@@ -1,10 +1,11 @@
 """Login and logout (PRD AUTH-01, AUTH-04). HTTP details live in router.py."""
 
 import uuid
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import ColumnElement, select, update
+from sqlalchemy import ColumnElement, Row, case, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.models import RefreshToken
@@ -16,6 +17,10 @@ from app.core.ids import uuid7
 from app.db.session import SessionFactory, system_session
 from app.platform.models import Institution
 from app.users.models import User
+
+# Lockout (PRD AUTH-06): this many wrong passwords in a row lock the account for LOCK_TIME.
+MAX_FAILED_LOGINS = 5
+LOCK_TIME = timedelta(minutes=15)
 
 # Checked when no account matches, so "no such email" takes as long as "wrong password".
 _DUMMY_HASH = hash_password("timing-equaliser-not-a-real-password")
@@ -69,6 +74,7 @@ async def login(
             and institution.status == "ACTIVE"
         ]
         if not matches:
+            await _count_failure(session, candidates, now)
             raise invalid_credentials()
         if len(matches) > 1:
             # Shown only after a correct password, so it can't be used to find accounts.
@@ -118,6 +124,33 @@ async def login(
             principal=Principal(user.id, user.institution_id, user.role),
             refresh_token=raw,
         )
+
+
+async def _count_failure(
+    session: AsyncSession, candidates: Sequence[Row[User, Institution]], now: datetime
+) -> None:
+    """Count a wrong password against active, unlocked accounts; lock at the limit.
+
+    Done in one UPDATE so simultaneous wrong guesses can't slip past the limit. When an account
+    locks, its count starts again, so after the lock ends the user gets the full number of tries.
+    """
+    ids = [
+        user.id
+        for user, _ in candidates
+        if user.status == "ACTIVE" and (user.locked_until is None or user.locked_until <= now)
+    ]
+    if not ids:
+        return
+    reaches_limit = User.failed_logins + 1 >= MAX_FAILED_LOGINS
+    await session.execute(
+        update(User)
+        .where(User.id.in_(ids))
+        .values(
+            failed_logins=case((reaches_limit, 0), else_=User.failed_logins + 1),
+            locked_until=case((reaches_limit, now + LOCK_TIME), else_=User.locked_until),
+        )
+    )
+    await session.commit()
 
 
 async def logout(factory: SessionFactory, raw_refresh_token: str | None) -> None:

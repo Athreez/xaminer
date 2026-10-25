@@ -12,7 +12,7 @@ from app.auth.passwords import WeakPasswordError, check_policy, hash_password
 from app.auth.schemas import InvitationInfo
 from app.auth.tokens import hash_token, new_opaque_token
 from app.core.errors import AppError
-from app.core.rate_limit import allow
+from app.core.rate_limit import hit
 from app.db.session import SessionFactory, system_session
 from app.notifications.emails import (
     INVITE_DAYS,
@@ -140,7 +140,7 @@ async def request_password_reset(
 ) -> None:
     """Email a reset link if an active account exists. The caller always answers the same way."""
     email = email.strip()
-    if not await allow(redis, f"reset:{email.lower()}", RESET_REQUESTS_PER_HOUR, 3600):
+    if not (await hit(redis, f"reset:{email.lower()}", RESET_REQUESTS_PER_HOUR, 3600)).allowed:
         return  # over the limit: silently do nothing, so the answer still reveals nothing
 
     now = datetime.now(UTC)
