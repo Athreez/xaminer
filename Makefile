@@ -11,6 +11,9 @@ api-client:
 
 COMPOSE = docker compose -f deploy/docker-compose.yml
 
+# Hide Docker Desktop's "What's next: Debug this with Gordon" advert after failed commands.
+export DOCKER_CLI_HINTS = false
+
 ADMIN_CLI = $(COMPOSE) run --rm --no-deps api python -m cli
 
 # platform-admin shortcuts (stack must be up). Values go in variables, which works the same in

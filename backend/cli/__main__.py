@@ -114,6 +114,9 @@ def main(argv: list[str] | None = None) -> int:
     except commands.CommandError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1
+    except KeyboardInterrupt:
+        print("\nCancelled.", file=sys.stderr)
+        return 130
     return 0
 
 
