@@ -18,6 +18,7 @@ x-backend-env: &backend-env
   S3_SECRET_KEY: ${S3_SECRET_KEY}
   SMTP_HOST: mailpit
   SMTP_PORT: "1025"
+  JWT_SECRET: ${JWT_SECRET}
 
 # Untrusted-input workers get Redis only. No database or storage credentials (SECURITY § 5.5).
 x-untrusted-env: &untrusted-env

@@ -32,9 +32,26 @@ class Settings(BaseSettings):
     smtp_host: str = "localhost"
     smtp_port: int = 1025
 
+    # Login tokens (SECURITY_AND_ACCESS.md § 2.2). The secret signs access tokens: keep it private,
+    # at least 32 characters. Changing it logs everyone out.
+    jwt_secret: SecretStr = SecretStr("")
+    access_token_minutes: int = 15
+    refresh_token_days: int = 7
+    # Send the refresh cookie only over HTTPS. Browsers treat http://localhost as secure too.
+    cookie_secure: bool = True
+
     @property
     def docs_enabled(self) -> bool:
         return self.environment != "production"
+
+    def check_secrets(self) -> None:
+        """Refuse to start with a missing or weak signing secret (called when the API starts)."""
+        secret = self.jwt_secret.get_secret_value()
+        if len(secret) < 32 or secret.startswith("change-me"):
+            raise RuntimeError(
+                "JWT_SECRET must be a random value of at least 32 characters "
+                "(not the placeholder from .env.example)."
+            )
 
     def database_url(self, role: Literal["app", "migrator"] = "app") -> URL:
         user, password = (

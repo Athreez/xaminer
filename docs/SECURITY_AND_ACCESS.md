@@ -49,11 +49,18 @@ Two decisions define the security of the whole system:
 
 | Token | Form | Lifetime | Stored where | Notes |
 |---|---|---|---|---|
-| Access token | JWT (HS256): user id, role, institution id | 15 min | Browser memory only (not localStorage) | Sent as `Authorization: Bearer` |
-| Refresh token | Random opaque string, stored hashed | 7 days | `HttpOnly`, `Secure`, `SameSite=Strict` cookie, path `/api/v1/auth` | Rotated on every use. Using an already-used token revokes the whole session family (it means the token was stolen) |
+| Access token | JWT (HS256, algorithm pinned on decode): user id, role, institution id, type | 15 min | Browser memory only (not localStorage) | Sent as `Authorization: Bearer`. Signed with `JWT_SECRET`; the API refuses to start if it is missing, under 32 characters or still the example placeholder |
+| Refresh token | Random 256-bit string, stored as SHA-256 | 7 days | `xaminer_refresh` cookie: `HttpOnly`, `Secure`, `SameSite=Strict`, path `/api/v1/auth` | Rotated on every use. Using an already-used token revokes the whole session family (it means the token was stolen) |
 | Attempt token | JWT with scope `proctoring-upload`, one attempt id | 10 min, renewed by heartbeat; usable for uploads up to 30 min after the attempt ends | Browser memory | Only accepted by the two proctoring upload endpoints, and only for that attempt |
 
 Changing a user's role, email or password, or deactivating them, revokes all their refresh tokens.
+A deactivated user's still-valid access token stops working at once on `/auth/me`, which checks the
+account is active.
+
+**Login does the same work whatever the outcome.** An unknown email still runs a full password check
+against a dummy hash, so response time doesn't reveal which emails have accounts. Unknown email, wrong
+password, invited (no password yet) and deactivated accounts all get the identical
+`INVALID_CREDENTIALS` answer.
 
 ---
 

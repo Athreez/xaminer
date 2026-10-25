@@ -195,6 +195,12 @@ Header outside the exam screen: institution name, notifications bell (S), user m
 
 ## 5. Pages
 
+### 5.0 Login
+
+Email and password. On `INVALID_CREDENTIALS`: "Email or password is incorrect." On `ACCOUNT_LOCKED`: the
+time it unlocks. On `INSTITUTION_REQUIRED`: a list of the institutions from the error's `details`; picking
+one repeats the login with that `institution_id`. After login, go to the role's home.
+
 ### 5.1 Admin
 
 | Page | Contents |

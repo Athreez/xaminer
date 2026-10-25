@@ -329,7 +329,8 @@ REST + JSON under `/api/v1`.
 
 | Topic | Rule |
 |---|---|
-| Auth | `Authorization: Bearer <access token>`; refresh token in an httpOnly cookie. Proctoring uploads use a short-lived **attempt token** |
+| Auth | `Authorization: Bearer <access token>`; refresh token in the `xaminer_refresh` cookie (httpOnly, path `/api/v1/auth`). Proctoring uploads use a short-lived **attempt token** |
+| Login across institutions | Login sends email + password (+ optional `institution_id`). If the same email and password match accounts in several institutions, the API answers `409 INSTITUTION_REQUIRED` with the institutions to choose from (only after a correct password), and the client repeats the login with `institution_id` |
 | Tenancy | Never sent by the client; always taken from the token |
 | IDs | UUIDs in paths |
 | Lists | Cursor pagination: `?limit=&cursor=` → `{data, next_cursor}` |
@@ -340,7 +341,7 @@ REST + JSON under `/api/v1`.
 | Not found vs forbidden | Another tenant's or another user's resource returns `404`, so its existence is not revealed |
 | Time | Attempt responses include `server_time` |
 
-Main error codes: `UNAUTHENTICATED`, `INVALID_CREDENTIALS`, `ACCOUNT_LOCKED`, `FORBIDDEN`, `NOT_FOUND`,
+Main error codes: `UNAUTHENTICATED`, `INVALID_CREDENTIALS`, `ACCOUNT_LOCKED`, `INSTITUTION_REQUIRED`, `FORBIDDEN`, `NOT_FOUND`,
 `NOT_ASSIGNED`, `VALIDATION_FAILED`, `ATTEMPT_NOT_ACTIVE`, `EXAM_NOT_OPEN`, `ATTEMPT_LIMIT_REACHED`,
 `CONSENT_REQUIRED`, `PUBLISH_BLOCKED`, `SUBMISSION_LIMIT_REACHED`, `RUN_CODE_DISABLED`, `RATE_LIMITED`.
 
@@ -350,7 +351,7 @@ Main error codes: `UNAUTHENTICATED`, `INVALID_CREDENTIALS`, `ACCOUNT_LOCKED`, `F
 
 | Area | Endpoints | Who |
 |---|---|---|
-| Auth | `POST /auth/login` · `/auth/refresh` · `/auth/logout` · `/auth/invite/accept` · `/auth/password-reset/request` · `/auth/password-reset/confirm` · `GET /auth/me` | all |
+| Auth | `POST /auth/login` · `/auth/refresh` · `/auth/logout` · `/auth/logout-all` · `/auth/invite/accept` · `/auth/password-reset/request` · `/auth/password-reset/confirm` · `GET /auth/me` | all |
 | Users | `GET/POST /users` · `GET/PATCH /users/{id}` · `POST /users/{id}/deactivate` · `POST /users/import` (CSV) · `GET/POST /groups` · `POST/DELETE /groups/{id}/members` | Admin |
 | Audit, settings | `GET /audit-logs` · `GET/PATCH /institution/settings` (includes overdue-deletion count) · `GET /admin/exams` (metadata only) | Admin |
 | Questions | `GET/POST /questions` · `GET/PATCH /questions/{id}` · `POST /questions/{id}/archive` · `GET /questions/{id}/preview` (student view) · `POST /uploads/images` | Teacher |
