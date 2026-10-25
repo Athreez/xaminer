@@ -39,7 +39,8 @@ Two decisions define the security of the whole system:
 |---|---|
 | Account creation | Only by an admin (or the `platform-admin` CLI for the first admin). No self-sign-up |
 | Invitation | Random 256-bit token, stored hashed, single use, expires in 7 days. Re-sending cancels the old one |
-| Password | ≥ 10 characters, checked against a common-password list. Hashed with Argon2id |
+| Password | 10–128 characters (the cap stops very long inputs being used to slow the server); not on the common-password list (`backend/app/auth/common_passwords.txt`); not mostly one repeated character; must not contain the user's email name or a name part of 4+ letters. Hashed with Argon2id; re-hashed at login if the parameters get stronger |
+| First admin | Created with `platform-admin create-admin`; the password is typed at a hidden prompt (or piped with `--password-stdin`), never passed as an argument, so it never lands in shell history |
 | Password reset | Same token rules, expires in 1 h. Response is identical whether the email exists or not. A reset logs out all sessions |
 | Lockout | 5 wrong passwords → locked 15 min. "Account locked" is only shown when the password was correct, so it can't be used to discover accounts |
 | Login errors | Wrong email and wrong password return the same error (`INVALID_CREDENTIALS`) with similar timing |

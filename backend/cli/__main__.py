@@ -1,6 +1,7 @@
 """platform-admin: set-up commands for the people running the platform (not a user role).
 
     python -m cli create-institution --name "ABC College" [--timezone Asia/Kolkata]
+    python -m cli create-admin --institution "ABC College" --email a@abc.edu --name "Asha Rao"
     python -m cli list-institutions
     python -m cli list-languages
 
@@ -9,6 +10,7 @@ In Docker:  docker compose -f deploy/docker-compose.yml run --rm api python -m c
 
 import argparse
 import asyncio
+import getpass
 import sys
 from collections.abc import Awaitable, Callable
 
@@ -25,6 +27,19 @@ def _parser() -> argparse.ArgumentParser:
     create.add_argument("--name", required=True)
     create.add_argument("--timezone", default=commands.DEFAULT_TIMEZONE)
 
+    admin = sub.add_parser(
+        "create-admin",
+        help="Create the first admin of an institution. Asks for the password (hidden).",
+    )
+    admin.add_argument("--institution", required=True, help="Institution id or exact name")
+    admin.add_argument("--email", required=True)
+    admin.add_argument("--name", required=True, help="Full name")
+    admin.add_argument(
+        "--password-stdin",
+        action="store_true",
+        help="Read the password from standard input instead of prompting (for scripts)",
+    )
+
     sub.add_parser("list-institutions", help="List all institutions.")
     sub.add_parser("list-languages", help="List the programming language catalogue.")
     return parser
@@ -35,6 +50,7 @@ async def _run(args: argparse.Namespace) -> None:
     factory = create_session_factory(engine)
     handlers: dict[str, Callable[[SessionFactory, argparse.Namespace], Awaitable[None]]] = {
         "create-institution": _create_institution,
+        "create-admin": _create_admin,
         "list-institutions": _list_institutions,
         "list-languages": _list_languages,
     }
@@ -49,6 +65,24 @@ async def _create_institution(factory: SessionFactory, args: argparse.Namespace)
     print(f"Created institution {institution.name!r}")
     print(f"  id:       {institution.id}")
     print(f"  timezone: {institution.timezone}")
+
+
+def _read_password(from_stdin: bool) -> str:
+    """Never take a password as an argument: it would end up in shell history."""
+    if from_stdin:
+        return sys.stdin.readline().rstrip("\r\n")
+    first = getpass.getpass("Password (hidden): ")
+    if getpass.getpass("Repeat password: ") != first:
+        raise commands.CommandError("Passwords don't match.")
+    return first
+
+
+async def _create_admin(factory: SessionFactory, args: argparse.Namespace) -> None:
+    admin = await commands.create_admin(
+        factory, args.institution, args.email, args.name, args.password
+    )
+    print(f"Created admin {admin.full_name} <{admin.email}>  (id {admin.id})")
+    print("They can log in once the login page exists (TCK-0110).")
 
 
 async def _list_institutions(factory: SessionFactory, _: argparse.Namespace) -> None:
@@ -68,6 +102,9 @@ async def _list_languages(factory: SessionFactory, _: argparse.Namespace) -> Non
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
+        if args.command == "create-admin":
+            # Asked before connecting, so a typo doesn't leave a half-open database connection.
+            args.password = _read_password(args.password_stdin)
         asyncio.run(_run(args))
     except commands.CommandError as exc:
         print(f"Error: {exc}", file=sys.stderr)

@@ -1,11 +1,16 @@
 """platform-admin commands as plain functions (easy to test). __main__.py wires up the CLI."""
 
+import uuid
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+from email_validator import EmailNotValidError, validate_email
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 
-from app.db.session import SessionFactory, system_session
+from app.auth.passwords import WeakPasswordError, check_policy, hash_password
+from app.db.session import SessionFactory, system_session, tenant_session
 from app.platform.models import Institution, Language
+from app.users.models import User
 
 DEFAULT_TIMEZONE = "Asia/Kolkata"
 
@@ -46,3 +51,57 @@ async def list_institutions(factory: SessionFactory) -> list[Institution]:
 async def list_languages(factory: SessionFactory) -> list[Language]:
     async with system_session(factory) as session:
         return list(await session.scalars(select(Language).order_by(Language.key)))
+
+
+async def find_institution(factory: SessionFactory, id_or_name: str) -> Institution:
+    """Look up an institution by its id, or by its exact name (case-insensitive)."""
+    async with system_session(factory) as session:
+        try:
+            found = await session.get(Institution, uuid.UUID(id_or_name))
+        except ValueError:
+            found = await session.scalar(
+                select(Institution).where(
+                    func.lower(Institution.name) == id_or_name.strip().lower()
+                )
+            )
+    if found is None:
+        raise CommandError(f"No institution {id_or_name!r}. See: list-institutions")
+    return found
+
+
+async def create_admin(
+    factory: SessionFactory, institution: str, email: str, full_name: str, password: str
+) -> User:
+    """Create an ACTIVE admin with a password: the first account of a new institution."""
+    target = await find_institution(factory, institution)
+    if target.status != "ACTIVE":
+        raise CommandError(f"Institution {target.name!r} is {target.status}.")
+
+    full_name = full_name.strip()
+    if not full_name or len(full_name) > 200:
+        raise CommandError("Name must be 1-200 characters.")
+    try:
+        email = validate_email(email.strip(), check_deliverability=False).normalized
+    except EmailNotValidError as exc:
+        raise CommandError(f"Invalid email: {exc}") from exc
+    try:
+        check_policy(password, email=email, full_name=full_name)
+    except WeakPasswordError as exc:
+        raise CommandError(str(exc)) from exc
+
+    async with tenant_session(factory, target.id) as session:
+        if await session.scalar(select(User.id).where(User.email == email)):
+            raise CommandError(f"{email} already has an account in {target.name!r}.")
+        admin = User(
+            email=email,
+            full_name=full_name,
+            role="ADMIN",
+            status="ACTIVE",
+            password_hash=hash_password(password),
+        )
+        session.add(admin)
+        try:
+            await session.commit()
+        except IntegrityError as exc:  # another command created the same email at the same time
+            raise CommandError(f"{email} already has an account in {target.name!r}.") from exc
+        return admin

@@ -76,7 +76,7 @@ After M1, four people (or pairs) can work mostly in parallel:
 | ID | Ticket | Done when | Area | Size | Needs | P | PRD |
 |---|---|---|---|---|---|---|---|
 | TCK-0101 | `user`, `refresh_token`, `auth_token` tables; `platform-admin create-admin` (first admin of an institution, moved here from 0005) | Migrations applied; unique `(institution_id, email)`; CLI creates an admin | DB | S | 0005 | M | USR-01 |
-| TCK-0102 | Argon2 hashing, password policy (≥ 10 chars, common-password list) | Weak passwords rejected; hashes verify | BE | S | 0101 | M | AUTH-07 |
+| TCK-0102 | Argon2 hashing, password policy (≥ 10 chars, common-password list). **Done together with TCK-0101** (`create-admin` needed it) | Weak passwords rejected; hashes verify | BE | S | 0101 | M | AUTH-07 |
 | TCK-0103 | Login, logout, logout-everywhere; JWT access token; refresh cookie | Same error for wrong email and wrong password; logout revokes | BE | M | 0102 | M | AUTH-01, AUTH-04 |
 | TCK-0104 | Refresh rotation with reuse detection (family revocation) | Re-using an old refresh token logs out the whole family (test) | BE | S | 0103 | M | AUTH-03 |
 | TCK-0105 | Invitation accept and password reset flows (tokens hashed, single-use, expiry) | Token works once; expired token fails; reset revokes sessions | BE | M | 0103 | M | AUTH-02, AUTH-05 |

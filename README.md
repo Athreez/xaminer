@@ -11,6 +11,8 @@ Building **E00 Foundation**. Done: TCK-0001 (repository layout and code checks),
 Compose stack), TCK-0003 (FastAPI skeleton: settings, JSON logs, error format, request IDs, health),
 TCK-0004 (database: SQLAlchemy + Alembic, `migrator`/`app` users, automatic institution filter),
 TCK-0005 (language catalogue, `platform-admin` command), TCK-0006 (Celery worker and scheduler), TCK-0007 (frontend skeleton: routing, layouts, typed API client), TCK-0008 (CI).
+
+Building **E01 Authentication**. Done: TCK-0101 + TCK-0102 (user and token tables, password hashing and rules, `create-admin`).
 `exec-worker` and `inference-worker` are still placeholders until their tickets. The design lives in
 [`docs/`](docs/):
 
@@ -128,6 +130,8 @@ Set-up tasks for whoever runs the platform (not an in-app role). The stack must 
 ```sh
 make platform-admin ARGS='create-institution --name "ABC College"'   # timezone defaults to Asia/Kolkata
 make platform-admin ARGS='create-institution --name "XYZ" --timezone Europe/London'
+make platform-admin ARGS='create-admin --institution "ABC College" --email admin@abc.edu --name "Asha Rao"'
+#   asks for the password twice (hidden); it is never passed on the command line
 make platform-admin ARGS='list-institutions'
 make platform-admin ARGS='list-languages'
 ```
