@@ -556,12 +556,24 @@ as cheating.
 Every job is safe to run twice: it checks the current state (by job id, attempt id or event id) before
 changing anything, because Celery may deliver a job more than once.
 
+**Celery setup** (`backend/workers/`):
+
+| Topic | Rule |
+|---|---|
+| Queue names | Defined once in `workers/queues.py`. `app-worker` consumes `default`, `grading`, `exec.results`, `inference.results`, `maintenance`, `notify`; `exec-worker` consumes `exec.validation`, `exec.submit`, `exec.run`; `inference-worker` consumes `inference.verify` |
+| Sending | The API sends tasks **by name** (`send_task`), so it never imports worker code |
+| Format | JSON only, never pickle (untrusted workers share Redis, and pickle can run code) |
+| Delivery | Acknowledged after the task finishes; a crashed worker's job is redelivered |
+| Logging | Task arguments and return values are never logged (they will carry answers and code) |
+| Scheduler | Exactly one `scheduler` (Celery Beat). Schedules live in `workers/app_worker/__init__.py` |
+
 ---
 
 ## 11. Deployment
 
 - **Development:** `make up` (Docker Desktop, WSL 2 engine) using `deploy/docker-compose.yml`. App at
-  `localhost:8080`, Mailpit at `localhost:8025`, S3 API at `localhost:8333`, Postgres at `localhost:15432`
+  `localhost:8080`, Mailpit at `localhost:8025`, S3 API at `localhost:8333`, Redis at `localhost:16379`
+  (tests use its database 15), Postgres at `localhost:15432`
   (avoids a locally installed Postgres). A one-off `storage-init` service creates the buckets `evidence`,
   `bundles`, `images`. The inference worker can run with a lightweight stub model on machines without a GPU.
 - **Demo / college server:** the same Compose file on one Linux machine, with real SMTP settings and HTTPS

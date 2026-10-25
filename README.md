@@ -8,8 +8,8 @@ AI-assisted webcam proctoring where the AI only flags and a teacher decides.
 Building **E00 Foundation**. Done: TCK-0001 (repository layout and code checks), TCK-0002 (Docker
 Compose stack), TCK-0003 (FastAPI skeleton: settings, JSON logs, error format, request IDs, health),
 TCK-0004 (database: SQLAlchemy + Alembic, `migrator`/`app` users, automatic institution filter),
-TCK-0005 (language catalogue, `platform-admin` command).
-Workers are still placeholders until their tickets. The design lives in
+TCK-0005 (language catalogue, `platform-admin` command), TCK-0006 (Celery worker and scheduler).
+`exec-worker` and `inference-worker` are still placeholders until their tickets. The design lives in
 [`docs/`](docs/):
 
 | Document | What it covers |
@@ -64,8 +64,8 @@ make check                 # lint + type-check + tests, backend and frontend
 make format                # auto-format everything
 ```
 
-Database tests use the `xaminer_test` database of the running stack, so run `make up` first; without it
-they are skipped (in CI, `REQUIRE_DB=1` makes them fail instead).
+Some tests use the running stack (Postgres database `xaminer_test`, Redis database 15), so run
+`make up` first; without it they are skipped (in CI, `REQUIRE_SERVICES=1` makes them fail instead).
 
 **Database migrations** (from `backend/`, with the stack running):
 
@@ -95,6 +95,7 @@ make down                             # stop (data volumes are kept)
 | http://localhost:8025 | Mailpit — emails sent in development |
 | `localhost:8333` | Object storage S3 API (SeaweedFS) |
 | `localhost:15432` | PostgreSQL, for local DB tools |
+| `localhost:16379` | Redis, for local tools and tests |
 
 ### Platform admin commands
 

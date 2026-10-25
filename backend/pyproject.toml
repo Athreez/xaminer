@@ -6,6 +6,7 @@ requires-python = ">=3.12,<3.13"
 dependencies = [
     "alembic>=1.20.1",
     "asyncpg>=0.32.0",
+    "celery[redis]>=5.4",
     "fastapi>=0.162.0",
     "pydantic-settings>=2.16.1",
     "sqlalchemy[asyncio]>=2.0",
@@ -52,6 +53,15 @@ known-third-party = ["alembic"]
 python_version = "3.12"
 strict = true
 packages = ["app", "domain_core", "workers", "cli"]
+
+# Celery has no type information. Treat it as untyped and allow its decorators in worker code.
+[[tool.mypy.overrides]]
+module = ["celery", "celery.*", "kombu", "kombu.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["workers.*"]
+disable_error_code = ["untyped-decorator"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

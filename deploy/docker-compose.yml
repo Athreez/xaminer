@@ -58,8 +58,16 @@ services:
 
   app-worker:
     build: { context: ../backend, target: app }
-    # TODO(TCK-0006): replace with the Celery worker.
-    command: ["sleep", "infinity"]
+    command:
+      ["celery", "-A", "workers.app_worker", "worker", "--hostname=app-worker@%h",
+       "--queues=default,grading,exec.results,inference.results,maintenance,notify",
+       "--concurrency=4", "--loglevel=INFO"]
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A workers.app_worker inspect ping -d app-worker@$$HOSTNAME --timeout 5 | grep -q pong"]
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 20s
     environment: *backend-env
     depends_on:
       migrate: { condition: service_completed_successfully }
@@ -69,8 +77,8 @@ services:
 
   scheduler:
     build: { context: ../backend, target: app }
-    # TODO(TCK-0006): replace with Celery Beat.
-    command: ["sleep", "infinity"]
+    # Only one scheduler may run, or scheduled jobs would be queued twice.
+    command: ["celery", "-A", "workers.app_worker", "beat", "--schedule=/tmp/celerybeat-schedule", "--loglevel=INFO"]
     environment: *backend-env
     depends_on:
       redis: { condition: service_healthy }
@@ -182,6 +190,8 @@ services:
     command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
     volumes:
       - redis-data:/data
+    ports:
+      - "127.0.0.1:${REDIS_HOST_PORT:-16379}:6379" # local dev tools and tests only
     healthcheck:
       test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" --no-auth-warning ping | grep PONG"]
       interval: 5s

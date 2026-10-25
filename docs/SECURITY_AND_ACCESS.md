@@ -229,6 +229,9 @@ Stored in Redis so they apply across all API processes.
 - `exec-worker` and `inference-worker` receive **no** database or storage credentials — only Redis access and
   short-lived pre-signed URLs inside each job.
 - Logs never contain passwords, tokens, answers, source code, test case data or evidence file names.
+  The API logs paths without query strings; Celery's task arguments and return values are stripped from
+  worker logs (tested).
+- Celery accepts JSON messages only, never pickle, because the untrusted workers can write to Redis.
 
 ### 5.6 Database permissions
 

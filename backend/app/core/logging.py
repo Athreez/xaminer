@@ -28,7 +28,12 @@ class JsonFormatter(logging.Formatter):
         request_id = current_request_id()
         if request_id:
             entry["request_id"] = request_id
-        entry.update({k: v for k, v in vars(record).items() if k not in _STANDARD_ATTRS})
+        extras = {k: v for k, v in vars(record).items() if k not in _STANDARD_ATTRS}
+        if record.name.startswith("celery"):
+            # Celery attaches task arguments and return values as `data`. Those will carry
+            # answers, source code and evidence keys, which must never reach the logs.
+            extras.pop("data", None)
+        entry.update(extras)
         if record.exc_info:
             entry["exception"] = self.formatException(record.exc_info)
         return json.dumps(entry, default=str)
