@@ -119,6 +119,10 @@ services:
     volumes:
       - sandbox-certs:/certs/client
       - sandbox-data:/var/lib/docker
+    # In memory, so a stale containerd pid file from an unclean shutdown can't survive a restart
+    # (otherwise the engine waits forever for a containerd that isn't running).
+    tmpfs:
+      - /var/run
     healthcheck:
       test: ["CMD", "docker", "info"]
       interval: 5s
