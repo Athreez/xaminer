@@ -5,7 +5,6 @@ from redis.asyncio import Redis
 
 from app.auth import accounts, service
 from app.auth.dependencies import (
-    CurrentPrincipal,
     TenantDB,
     redis_of,
     session_factory_of,
@@ -20,7 +19,9 @@ from app.auth.schemas import (
     TokenRequest,
     UserView,
 )
-from app.auth.tokens import create_access_token
+from app.auth.tokens import Principal, create_access_token
+from app.authz.guards import PUBLIC, require
+from app.authz.permissions import P
 from app.core.config import Settings
 from app.core.errors import AppError
 from app.core.rate_limit import hit, rate_limited
@@ -81,7 +82,7 @@ def _clear_refresh_cookie(response: Response, settings: Settings) -> None:
     )
 
 
-@router.post("/login")
+@router.post("/login", dependencies=[PUBLIC])
 async def login(
     body: LoginRequest,
     request: Request,
@@ -107,7 +108,7 @@ async def login(
     return _issue(result, response, settings)
 
 
-@router.post("/refresh")
+@router.post("/refresh", dependencies=[PUBLIC])
 async def refresh(
     request: Request,
     response: Response,
@@ -131,7 +132,7 @@ async def refresh(
     return _issue(result, response, settings)
 
 
-@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+@router.post("/logout", dependencies=[PUBLIC], status_code=status.HTTP_204_NO_CONTENT)
 async def logout(
     response: Response,
     factory: Factory,
@@ -145,7 +146,10 @@ async def logout(
 
 @router.post("/logout-all", status_code=status.HTTP_204_NO_CONTENT)
 async def logout_all(
-    principal: CurrentPrincipal, db: TenantDB, response: Response, settings: AppSettings
+    principal: Annotated[Principal, Depends(require(P.ACCOUNT_SELF))],
+    db: TenantDB,
+    response: Response,
+    settings: AppSettings,
 ) -> None:
     """End every session of the current user, on every device."""
     await service.logout_everywhere(db, principal.user_id)
@@ -153,24 +157,26 @@ async def logout_all(
 
 
 @router.get("/me")
-async def me(principal: CurrentPrincipal, db: TenantDB) -> UserView:
+async def me(
+    principal: Annotated[Principal, Depends(require(P.ACCOUNT_SELF))], db: TenantDB
+) -> UserView:
     """The logged-in user."""
     return await service.current_user(db, principal)
 
 
-@router.post("/invite/inspect")
+@router.post("/invite/inspect", dependencies=[PUBLIC])
 async def inspect_invitation(body: TokenRequest, factory: Factory) -> InvitationInfo:
     """Who an invitation link is for (the activation page shows it). Doesn't use up the link."""
     return await accounts.inspect_invitation(factory, body.token)
 
 
-@router.post("/invite/accept", status_code=status.HTTP_204_NO_CONTENT)
+@router.post("/invite/accept", dependencies=[PUBLIC], status_code=status.HTTP_204_NO_CONTENT)
 async def accept_invitation(body: SetPasswordRequest, factory: Factory) -> None:
     """Set the first password from an invitation link. The account becomes active."""
     await accounts.accept_invitation(factory, body.token, body.password)
 
 
-@router.post("/password-reset/request", status_code=status.HTTP_202_ACCEPTED)
+@router.post("/password-reset/request", dependencies=[PUBLIC], status_code=status.HTTP_202_ACCEPTED)
 async def request_password_reset(
     body: PasswordResetRequest, factory: Factory, redis: RedisClient, settings: AppSettings
 ) -> dict[str, str]:
@@ -179,7 +185,9 @@ async def request_password_reset(
     return {"message": "If an account exists for that email, a reset link has been sent."}
 
 
-@router.post("/password-reset/confirm", status_code=status.HTTP_204_NO_CONTENT)
+@router.post(
+    "/password-reset/confirm", dependencies=[PUBLIC], status_code=status.HTTP_204_NO_CONTENT
+)
 async def confirm_password_reset(body: SetPasswordRequest, factory: Factory) -> None:
     """Set a new password from a reset link. Every session of the account is logged out."""
     await accounts.confirm_password_reset(factory, body.token, body.password)

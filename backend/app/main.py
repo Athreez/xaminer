@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from redis.asyncio import Redis
 
 from app.auth.router import router as auth_router
+from app.authz.guards import assert_routes_declared
 from app.core import health
 from app.core.config import Settings, get_settings
 from app.core.errors import UnhandledErrorMiddleware, register_error_handlers
@@ -50,6 +51,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.include_router(health.router, prefix=API_PREFIX)
     app.include_router(auth_router, prefix=API_PREFIX)
+    # Refuse to start if any route forgot to declare who may call it (SECURITY § 3.1).
+    assert_routes_declared(app)
     return app
 
 

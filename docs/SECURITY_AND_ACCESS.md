@@ -70,9 +70,13 @@ password, invited (no password yet) and deactivated accounts all get the identic
 ### 3.1 Model
 
 - Three fixed roles: `ADMIN`, `TEACHER`, `STUDENT`. One role per user. No custom roles.
-- Permissions are named `resource:action` and mapped to roles **in code**, not in a database table.
-- Every route declares the permission it needs. **A route with no declared permission makes the app refuse
-  to start**, so a forgotten check is caught before it ships.
+- Permissions are named `resource:action` and mapped to roles **in code** (`backend/app/authz/permissions.py`),
+  not in a database table.
+- Every route declares the permission it needs (`require(P.…)`) or that it is deliberately open (`PUBLIC`).
+  **A route with no declaration makes the app refuse to start**, so a forgotten check is caught before it
+  ships. The check also refuses to start if it finds no routes at all, so it can't pass by checking
+  nothing (FastAPI 0.162 stores included routers nested; the check walks them with
+  `iter_route_contexts`). A missing permission answers `403 FORBIDDEN`; no or bad login, `401`.
 - A permission alone is never enough: after loading the item, an **ownership check** confirms this user may
   act on this particular item (§ 4).
 - Role and institution always come from the verified token, never from the request.
@@ -137,7 +141,8 @@ password, invited (no password yet) and deactivated accounts all get the identic
 | `consent:read` | — | own exams (accepted or not, when) | own |
 | `integrity-outcome:read` | — | own exams | own, released result only |
 
-**Notifications**: every user reads and marks only their own.
+**Own account and notifications** (`account:self`, `notification:read`): every role; each user reaches
+only their own (`/auth/me`, log out everywhere, own notifications).
 
 **Why the admin is kept out of academic content.** The admin manages accounts, not exams. An admin who can
 read answer keys, hidden tests, student answers or evidence is one account whose theft ruins every exam

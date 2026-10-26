@@ -168,7 +168,7 @@ through their service functions.
 | `platform` | `institution`, `language` | Institutions are created with the `platform-admin` CLI, not in the UI |
 | `auth` | `refresh_token`, `auth_token` | Login, refresh, logout, invitations, password reset, lockout |
 | `users` | `user`, `user_group`, `user_group_member` | User CRUD, groups, CSV import |
-| `authz` | — | Permission checks, ownership checks. Every route must declare a permission or the app refuses to start |
+| `authz` | — | Role table in code; routes declare `require(P.…)` or `PUBLIC`, or the app refuses to start; ownership checks |
 | `questions` | `question`, `question_version`, `question_option`, `coding_config`, `test_case`, `reference_solution` | Has a separate student view that can never include hidden tests or correct answers |
 | `exams` | `exam`, `exam_question`, `exam_version`, `exam_assignment` | Create, configure, publish (freeze), assign |
 | `attempts` | `exam_attempt`, `attempt_question`, `answer`, `code_draft` | Start, heartbeat, autosave, submit, timer |
