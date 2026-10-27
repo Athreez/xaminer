@@ -11,10 +11,14 @@ from app.auth.tokens import Principal
 from app.authz.guards import require
 from app.authz.permissions import P
 from app.core.config import Settings
-from app.users import service
+from app.users import groups, service
 from app.users.schemas import (
+    AddMembersRequest,
     AdminUserView,
     CreateUserRequest,
+    GroupDetail,
+    GroupRequest,
+    GroupView,
     RoleName,
     StatusName,
     UpdateUserRequest,
@@ -99,3 +103,61 @@ async def send_password_reset(
 async def unlock_user(user_id: uuid.UUID, principal: Admin, db: TenantDB) -> AdminUserView:
     """Clear a lockout caused by too many failed logins."""
     return service.view(await service.unlock_user(db, principal, user_id))
+
+
+# ----------------------------------------------------------------------------- groups (USR-02)
+
+groups_router = APIRouter(prefix="/groups", tags=["groups"])
+
+GroupReader = Annotated[Principal, Depends(require(P.GROUP_READ))]
+GroupWriter = Annotated[Principal, Depends(require(P.GROUP_WRITE))]
+
+
+@groups_router.get("")
+async def list_groups(
+    principal: GroupReader,
+    db: TenantDB,
+    q: Annotated[str | None, Query(max_length=100, description="Search by name")] = None,
+) -> list[GroupView]:
+    """All groups of the institution, by name. Admins and teachers."""
+    return await groups.list_groups(db, q)
+
+
+@groups_router.post("", status_code=status.HTTP_201_CREATED)
+async def create_group(body: GroupRequest, principal: GroupWriter, db: TenantDB) -> GroupDetail:
+    return await groups.detail(db, await groups.create_group(db, principal, body.name))
+
+
+@groups_router.get("/{group_id}")
+async def get_group(group_id: uuid.UUID, principal: GroupReader, db: TenantDB) -> GroupDetail:
+    """The group with its members. Admins and teachers."""
+    return await groups.detail(db, await groups.get_group(db, principal, group_id))
+
+
+@groups_router.patch("/{group_id}")
+async def rename_group(
+    group_id: uuid.UUID, body: GroupRequest, principal: GroupWriter, db: TenantDB
+) -> GroupDetail:
+    return await groups.detail(db, await groups.rename_group(db, principal, group_id, body.name))
+
+
+@groups_router.delete("/{group_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_group(group_id: uuid.UUID, principal: GroupWriter, db: TenantDB) -> None:
+    """Delete the group. The students in it are not affected."""
+    await groups.delete_group(db, principal, group_id)
+
+
+@groups_router.post("/{group_id}/members")
+async def add_members(
+    group_id: uuid.UUID, body: AddMembersRequest, principal: GroupWriter, db: TenantDB
+) -> GroupDetail:
+    """Add students (ones already in the group are skipped). Nothing is added if any id is not an
+    active or invited student of the institution."""
+    return await groups.detail(db, await groups.add_members(db, principal, group_id, body.user_ids))
+
+
+@groups_router.delete("/{group_id}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_member(
+    group_id: uuid.UUID, user_id: uuid.UUID, principal: GroupWriter, db: TenantDB
+) -> None:
+    await groups.remove_member(db, principal, group_id, user_id)

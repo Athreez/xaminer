@@ -202,6 +202,8 @@ async def test_create_rejects_bad_input(client: TestClient, world: World) -> Non
     headers = as_user(world.admin)
     bad_email = {"email": "not-an-email", "full_name": "X", "role": "STUDENT"}
     assert client.post(USERS, json=bad_email, headers=headers).status_code == 422
+    blank = {"email": "a@abc.edu", "full_name": "   ", "role": "STUDENT"}
+    assert client.post(USERS, json=blank, headers=headers).status_code == 422
     extra = {"email": "a@abc.edu", "full_name": "X", "role": "STUDENT", "password": "x"}
     assert client.post(USERS, json=extra, headers=headers).status_code == 422
     taken_roll = {"email": "b@abc.edu", "full_name": "X", "role": "STUDENT", "roll_no": "CSE-042"}

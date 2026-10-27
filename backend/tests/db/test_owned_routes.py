@@ -12,6 +12,9 @@ Admin routes over the whole institution (like `/users/{user_id}`) use `scope="in
 there the neighbour (another admin of the same institution) is allowed too, and only the outsider
 gets 404.
 
+`per_caller=True` runs `setup` again before each caller, for routes that only work once (DELETE).
+`make_body`, if given, builds a fresh request body for each call.
+
 `test_every_id_route_is_registered` fails the build if an id route is missing here, so the check
 can't be skipped as routes are added.
 """
@@ -37,7 +40,7 @@ from app.db.session import SessionFactory, create_session_factory, system_sessio
 from app.main import create_app
 from app.platform.models import Institution
 from app.users import service as users_service
-from app.users.models import User
+from app.users.models import User, UserGroup, UserGroupMember
 from cli import commands
 from tests.db.api_helpers import SECRET, make_settings
 
@@ -57,6 +60,8 @@ class OwnedRoute:
     setup: Callable[[World], Awaitable[str]]  # creates the owner's item, returns the real URL
     body: dict[str, Any] | None = field(default=None)
     scope: str = "owner"  # "owner": only the owner; "institution": anyone of that role there
+    per_caller: bool = False
+    make_body: Callable[[World], Awaitable[dict[str, Any]]] | None = None
 
 
 async def _target(world: World, status: str = "INVITED") -> User:
@@ -81,7 +86,40 @@ def _user_url(suffix: str = "", status: str = "INVITED") -> Callable[[World], Aw
     return setup
 
 
+async def _group(world: World, member: User | None = None) -> UserGroup:
+    async with tenant_session(world.factory, world.owner.institution_id) as s:
+        group = UserGroup(name=f"Group {uuid.uuid4().hex[:8]}")
+        s.add(group)
+        await s.flush()
+        if member:
+            s.add(UserGroupMember(group_id=group.id, user_id=member.id))
+        await s.commit()
+        return group
+
+
+def _group_url(suffix: str = "") -> Callable[[World], Awaitable[str]]:
+    async def setup(world: World) -> str:
+        return f"/api/v1/groups/{(await _group(world)).id}{suffix}"
+
+    return setup
+
+
+async def _new_student_body(world: World) -> dict[str, Any]:
+    return {"user_ids": [str((await _target(world)).id)]}
+
+
+async def _new_name_body(world: World) -> dict[str, Any]:
+    return {"name": f"Renamed {uuid.uuid4().hex[:8]}"}
+
+
+async def _member_url(world: World) -> str:
+    student = await _target(world)
+    group = await _group(world, member=student)
+    return f"/api/v1/groups/{group.id}/members/{student.id}"
+
+
 USERS = "/api/v1/users/{user_id}"
+GROUPS = "/api/v1/groups/{group_id}"
 
 
 # Add one entry per id route as tickets introduce them.
@@ -102,6 +140,30 @@ OWNED_ROUTES: list[OwnedRoute] = [
         scope="institution",
     ),
     OwnedRoute(f"POST {USERS}/unlock", "ADMIN", _user_url("/unlock"), scope="institution"),
+    OwnedRoute(f"GET {GROUPS}", "TEACHER", _group_url(), scope="institution"),
+    OwnedRoute(
+        f"PATCH {GROUPS}",
+        "ADMIN",
+        _group_url(),
+        scope="institution",
+        per_caller=True,
+        make_body=_new_name_body,
+    ),
+    OwnedRoute(f"DELETE {GROUPS}", "ADMIN", _group_url(), scope="institution", per_caller=True),
+    OwnedRoute(
+        f"POST {GROUPS}/members",
+        "ADMIN",
+        _group_url("/members"),
+        scope="institution",
+        make_body=_new_student_body,
+    ),
+    OwnedRoute(
+        f"DELETE {GROUPS}/members/{{user_id}}",
+        "ADMIN",
+        _member_url,
+        scope="institution",
+        per_caller=True,
+    ),
 ]
 
 
@@ -140,7 +202,7 @@ async def factory(app_engine: AsyncEngine) -> AsyncIterator[SessionFactory]:
     yield factory
     async with system_session(factory) as s:
         ids = select(Institution.id).where(Institution.name.like("Owned routes test%"))
-        for model in (AuthToken, RefreshToken, User):
+        for model in (AuthToken, RefreshToken, UserGroupMember, UserGroup, User):
             await s.execute(delete(model).where(model.institution_id.in_(ids)))
         await s.execute(delete(Institution).where(Institution.name.like("Owned routes test%")))
         await s.commit()
@@ -169,12 +231,15 @@ async def statuses(case: OwnedRoute, client: TestClient, factory: SessionFactory
         neighbour=await _user(factory, home, case.role),
         outsider=await _user(factory, away, case.role),
     )
-    url = await case.setup(world)
     method = case.route.split(" ", 1)[0]
-    return [
-        client.request(method, url, json=case.body, headers=_bearer(user)).status_code
-        for user in (world.owner, world.neighbour, world.outsider)
-    ]
+    url = await case.setup(world)
+    codes = []
+    for user in (world.owner, world.neighbour, world.outsider):
+        if case.per_caller and user is not world.owner:
+            url = await case.setup(world)
+        body = await case.make_body(world) if case.make_body else case.body
+        codes.append(client.request(method, url, json=body, headers=_bearer(user)).status_code)
+    return codes
 
 
 def only_owner_allowed(codes: list[int]) -> bool:

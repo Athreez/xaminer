@@ -1,6 +1,16 @@
+import uuid
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, Index, SmallInteger, String, UniqueConstraint, text
+from sqlalchemy import (
+    CheckConstraint,
+    ForeignKey,
+    Index,
+    SmallInteger,
+    String,
+    UniqueConstraint,
+    func,
+    text,
+)
 from sqlalchemy.dialects.postgresql import CITEXT
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -43,3 +53,24 @@ class User(IdMixin, TenantMixin, TimestampMixin, Base):
     locked_until: Mapped[datetime | None]
     last_login_at: Mapped[datetime | None]
     deactivated_at: Mapped[datetime | None]
+
+
+class UserGroup(IdMixin, TenantMixin, TimestampMixin, Base):
+    """A named set of students, e.g. "CSE-A 2026", so an exam can be assigned to all of them."""
+
+    __tablename__ = "user_group"
+    __table_args__ = (UniqueConstraint("institution_id", "name"),)
+
+    name: Mapped[str] = mapped_column(CITEXT)  # case-insensitive, like emails
+
+
+class UserGroupMember(TenantMixin, Base):
+    __tablename__ = "user_group_member"
+
+    group_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("user_group.id", ondelete="CASCADE"), primary_key=True
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("user.id", ondelete="CASCADE"), primary_key=True, index=True
+    )
+    added_at: Mapped[datetime] = mapped_column(server_default=func.now())
