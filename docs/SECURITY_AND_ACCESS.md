@@ -163,7 +163,8 @@ released result.
 | Tenant isolation | Every table has `institution_id`; repository helpers add the filter automatically from the token |
 | No guessing | IDs are UUIDs, not counting numbers |
 | Hide existence | Another institution's item, another teacher's exam or another student's attempt returns `404`, not `403` |
-| Load, then check | Ownership is checked on the loaded item, never on the ID alone |
+| Load, then check | Ownership is checked on the loaded item, never on the ID alone: `get_owned()` (`backend/app/authz/ownership.py`). It also re-compares the institution, because SQLAlchemy can return an item from session memory without a query (bypassing the automatic filter) |
+| Every ID route is tested | Each route with an ID in its path must be registered in `tests/db/test_owned_routes.py`; the test calls it as the owner (works), a same-institution neighbour (404) and an outsider (404). An unregistered ID route fails the build |
 | No protected fields from the client | Request schemas reject unknown fields. No endpoint accepts `score`, `role`, `institution_id`, `deadline_at`, `severity` or `owner_id` |
 | Student views | Student responses are built from separate "student view" types field by field. Fields are never removed from a full object, because a forgotten removal is a leak |
 
