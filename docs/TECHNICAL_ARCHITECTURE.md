@@ -318,7 +318,7 @@ and mixing them is how hidden tests leak or debug runs get graded.
 
 | Table | Key columns | Notes |
 |---|---|---|
-| `audit_log` | actor_id, action, target_type, target_id, changes `jsonb`, ip, created_at | App DB user has INSERT/SELECT only, no UPDATE/DELETE |
+| `audit_log` | actor_id, actor_role, action, target_type, target_id, changes `jsonb`, ip, user_agent, request_id, created_at | App DB user has INSERT/SELECT only, no UPDATE/DELETE/TRUNCATE. **No foreign keys** (the log must outlive what it describes and never block a deletion); still filtered by institution |
 | `notification` | user_id, type, title, body, link, read_at | In-app list |
 
 ---

@@ -8,6 +8,7 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy import ColumnElement, Row, case, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.audit.service import record
 from app.auth.models import RefreshToken
 from app.auth.passwords import hash_password, needs_rehash, verify_password
 from app.auth.schemas import InstitutionChoice, UserView
@@ -102,6 +103,15 @@ async def login(
         user.last_login_at = now
         user.failed_logins = 0
         user.locked_until = None
+        record(
+            session,
+            "auth.login",
+            institution_id=user.institution_id,
+            actor_id=user.id,
+            actor_role=user.role,
+            target_type="user",
+            target_id=user.id,
+        )
         if user.password_hash is not None and needs_rehash(user.password_hash):
             user.password_hash = hash_password(password)
 
@@ -142,14 +152,24 @@ async def _count_failure(
     if not ids:
         return
     reaches_limit = User.failed_logins + 1 >= MAX_FAILED_LOGINS
-    await session.execute(
+    updated = await session.execute(
         update(User)
         .where(User.id.in_(ids))
         .values(
             failed_logins=case((reaches_limit, 0), else_=User.failed_logins + 1),
             locked_until=case((reaches_limit, now + LOCK_TIME), else_=User.locked_until),
         )
+        .returning(User.id, User.institution_id, User.locked_until)
     )
+    for user_id, institution_id, locked_until in updated.all():
+        locked = locked_until is not None and locked_until > now
+        record(
+            session,
+            "auth.account_locked" if locked else "auth.login_failed",
+            institution_id=institution_id,
+            target_type="user",
+            target_id=user_id,
+        )
     await session.commit()
 
 
@@ -163,6 +183,14 @@ async def logout(factory: SessionFactory, raw_refresh_token: str | None) -> None
         )
         if token is not None:
             await _revoke(session, RefreshToken.family_id == token.family_id)
+            record(
+                session,
+                "auth.logout",
+                institution_id=token.institution_id,
+                actor_id=token.user_id,
+                target_type="user",
+                target_id=token.user_id,
+            )
             await session.commit()
 
 
@@ -210,6 +238,13 @@ async def refresh(
                     status_code=401,
                 )
             await _revoke(session, RefreshToken.family_id == token.family_id)
+            record(
+                session,
+                "auth.token_reuse_detected",
+                institution_id=token.institution_id,
+                target_type="user",
+                target_id=token.user_id,
+            )
             await session.commit()
             raise AppError(
                 "TOKEN_REUSE_DETECTED",
@@ -251,9 +286,18 @@ async def refresh(
         )
 
 
-async def logout_everywhere(session: AsyncSession, user_id: uuid.UUID) -> None:
+async def logout_everywhere(session: AsyncSession, principal: Principal) -> None:
     """Revoke every session of the user (PRD AUTH-04). `session` is the user's tenant session."""
-    await _revoke(session, RefreshToken.user_id == user_id)
+    await _revoke(session, RefreshToken.user_id == principal.user_id)
+    record(
+        session,
+        "auth.logout_all",
+        institution_id=principal.institution_id,
+        actor_id=principal.user_id,
+        actor_role=principal.role,
+        target_type="user",
+        target_id=principal.user_id,
+    )
     await session.commit()
 
 

@@ -7,6 +7,7 @@ from redis.asyncio import Redis
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.audit.service import record
 from app.auth.models import AuthToken, RefreshToken
 from app.auth.passwords import WeakPasswordError, check_policy, hash_password
 from app.auth.schemas import InvitationInfo
@@ -132,6 +133,16 @@ async def accept_invitation(factory: SessionFactory, raw: str, password: str) ->
         user.password_hash = hash_password(password)
         user.status = "ACTIVE"
         token.used_at = now
+        record(
+            session,
+            "auth.invitation_accepted",
+            institution_id=user.institution_id,
+            actor_id=user.id,
+            actor_role=user.role,
+            target_type="user",
+            target_id=user.id,
+            changes={"status": {"old": "INVITED", "new": "ACTIVE"}},
+        )
         await session.commit()
 
 
@@ -203,5 +214,14 @@ async def confirm_password_reset(factory: SessionFactory, raw: str, password: st
             update(RefreshToken)
             .where(RefreshToken.user_id == user.id, RefreshToken.revoked_at.is_(None))
             .values(revoked_at=now)
+        )
+        record(
+            session,
+            "auth.password_reset",
+            institution_id=user.institution_id,
+            actor_id=user.id,
+            actor_role=user.role,
+            target_type="user",
+            target_id=user.id,
         )
         await session.commit()

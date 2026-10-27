@@ -152,7 +152,7 @@ async def logout_all(
     settings: AppSettings,
 ) -> None:
     """End every session of the current user, on every device."""
-    await service.logout_everywhere(db, principal.user_id)
+    await service.logout_everywhere(db, principal)
     _clear_refresh_cookie(response, settings)
 
 

@@ -10,7 +10,7 @@ AI-assisted webcam proctoring where the AI only flags and a teacher decides.
 | Epic | Progress |
 |---|---|
 | E00 Foundation | ✅ Done: repo layout and checks, Docker Compose stack, FastAPI skeleton, database layer with automatic institution filter, language catalogue and `platform-admin`, Celery workers, frontend skeleton with typed API client, CI |
-| E01 Authentication | In progress. Done: user and token tables, password hashing and rules, `create-admin` (TCK-0101, 0102); login, logout, logout everywhere, `/auth/me` API (TCK-0103); refresh-token rotation with theft detection (TCK-0104); invitations and password reset with emails (TCK-0105, 0201); account lockout and login rate limit (TCK-0106); permission system, every route must declare access (TCK-0107); ownership checks with 404 for anything not yours (TCK-0108) |
+| E01 Authentication | In progress. Done: user and token tables, password hashing and rules, `create-admin` (TCK-0101, 0102); login, logout, logout everywhere, `/auth/me` API (TCK-0103); refresh-token rotation with theft detection (TCK-0104); invitations and password reset with emails (TCK-0105, 0201); account lockout and login rate limit (TCK-0106); permission system, every route must declare access (TCK-0107); ownership checks with 404 for anything not yours (TCK-0108); append-only audit log (TCK-0109) |
 
 `exec-worker` and `inference-worker` are placeholders until their tickets. The design lives in
 [`docs/`](docs/):

@@ -7,6 +7,7 @@ from email_validator import EmailNotValidError, validate_email
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 
+from app.audit.service import record
 from app.auth.accounts import create_invitation
 from app.auth.passwords import WeakPasswordError, check_policy, hash_password
 from app.db.session import SessionFactory, system_session, tenant_session
@@ -15,6 +16,8 @@ from app.platform.models import Institution, Language
 from app.users.models import ROLES, User
 
 DEFAULT_TIMEZONE = "Asia/Kolkata"
+# Audit actor for platform-admin commands: an operator at a terminal, not an in-app user.
+PLATFORM = "PLATFORM"
 
 
 class CommandError(Exception):
@@ -40,6 +43,19 @@ async def create_institution(
             raise CommandError(f"An institution named {name!r} already exists ({existing}).")
         institution = Institution(name=name, timezone=timezone)
         session.add(institution)
+        await session.flush()
+        record(
+            session,
+            "institution.created",
+            institution_id=institution.id,
+            actor_role=PLATFORM,
+            target_type="institution",
+            target_id=institution.id,
+            changes={
+                "name": {"old": None, "new": name},
+                "timezone": {"old": None, "new": timezone},
+            },
+        )
         await session.commit()
         await session.refresh(institution)
         return institution
@@ -102,6 +118,19 @@ async def create_admin(
             password_hash=hash_password(password),
         )
         session.add(admin)
+        await session.flush()
+        record(
+            session,
+            "user.created",
+            institution_id=target.id,
+            actor_role=PLATFORM,
+            target_type="user",
+            target_id=admin.id,
+            changes={
+                "role": {"old": None, "new": "ADMIN"},
+                "status": {"old": None, "new": "ACTIVE"},
+            },
+        )
         try:
             await session.commit()
         except IntegrityError as exc:  # another command created the same email at the same time
@@ -151,6 +180,15 @@ async def invite_user(
         elif user.status != "INVITED":
             raise CommandError(f"{email} is already {user.status} in {target.name!r}.")
         message = await create_invitation(session, user, target.name, base_url)
+        record(
+            session,
+            "user.invited" if created else "user.invitation_resent",
+            institution_id=target.id,
+            actor_role=PLATFORM,
+            target_type="user",
+            target_id=user.id,
+            changes={"role": {"old": None, "new": role}} if created else None,
+        )
         try:
             await session.commit()
         except IntegrityError as exc:

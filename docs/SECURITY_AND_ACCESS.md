@@ -446,11 +446,11 @@ The cleanup job counts overdue items; anything overdue is shown as an error on t
 
 | Property | Rule |
 |---|---|
-| Append-only | The `app` DB user can't update or delete rows (§ 5.6) |
-| Same transaction | The audit row is written in the same database transaction as the change, so a change can't happen without its record |
-| Content | Who (user and role), what (action), which item, when, IP, browser, and changed fields (old → new) |
-| No sensitive content | Never stores answers, code, passwords, tokens or evidence — only IDs and changed-field summaries |
-| Actions | The list in `PRD.md` AUD-02 |
+| Append-only | The `app` DB user can't update, delete or truncate rows (§ 5.6; revoked in migration 0004, tested) |
+| Same transaction | `audit.record()` adds the row to the same transaction as the change, so a change can't happen without its record and a failed change leaves none (tested) |
+| Content | Who (user and role; `PLATFORM` for `platform-admin` commands; none for a failed login), what (action), which item, when, IP, browser, request ID, and changed fields (`{"field": {"old", "new"}}`) |
+| No sensitive content | Never stores answers, code, passwords, tokens or evidence — only IDs and changed-field summaries. Password and token fields are dropped by `record()` even if passed |
+| Actions | The list in `PRD.md` AUD-02. Recorded so far: `auth.login`, `auth.login_failed`, `auth.account_locked`, `auth.logout`, `auth.logout_all`, `auth.token_reuse_detected`, `auth.invitation_accepted`, `auth.password_reset`, `institution.created`, `user.created`, `user.invited`, `user.invitation_resent`. Failed logins for unknown emails have no institution to file under, so they aren't recorded (the per-IP limit covers them) |
 | Access | Admin only, searchable |
 
 ---
