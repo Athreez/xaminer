@@ -4,7 +4,10 @@ import { createRoot } from "react-dom/client";
 import { RouterProvider } from "react-router";
 
 import "./index.css";
+import { applyTheme } from "./lib/theme";
 import { router } from "./routes";
+
+applyTheme(); // also starts following device light/dark changes
 
 const queryClient = new QueryClient({
   defaultOptions: {

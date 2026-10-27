@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router";
 
 import { api } from "@/api/client";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
 
 /** Temporary landing page until login exists (TCK-0110 redirects `/` to the user's home). */
@@ -23,7 +24,10 @@ export function HomePage() {
 
   return (
     <main className="mx-auto flex min-h-svh max-w-xl flex-col justify-center gap-6 px-4">
-      <h1 className="text-3xl font-semibold">Xaminer</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-brand-gradient text-4xl font-bold">Xaminer</h1>
+        <ThemeToggle />
+      </div>
       <p className="text-muted-foreground">
         Computer-based testing with automated coding evaluation and AI-assisted proctoring.
       </p>
@@ -42,6 +46,9 @@ export function HomePage() {
         </Button>
         <Button asChild variant="outline">
           <Link to="/student">Student area</Link>
+        </Button>
+        <Button asChild variant="ghost">
+          <Link to="/theme">Theme preview</Link>
         </Button>
       </nav>
     </main>

@@ -2,9 +2,21 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/*
+ * Xaminer theme (FRONTEND_SPEC.md § 3.1). Dark-first navy surfaces, an emerald -> cyan brand
+ * gradient, blue for "selected", status colours with tinted backgrounds.
+ * Every text/background pair is checked for WCAG AA contrast (see the spec).
+ * Dark mode = the `dark` class on <html> (src/lib/theme.ts).
+ */
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --font-sans:
+    system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  --font-mono:
+    ui-monospace, "Cascadia Code", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -12,6 +24,7 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -30,6 +43,17 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+
+  /* Xaminer additions */
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger-soft: var(--danger-soft);
+  --color-selection: var(--selection);
+  --color-selection-soft: var(--selection-soft);
+  --color-selection-foreground: var(--selection-foreground);
+
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -45,73 +69,145 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* ------------------------------------------------------------------ light */
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --radius: 0.75rem;
+
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --muted: #f1f5f9;
+  --muted-foreground: #475569; /* 7.6:1 on white */
+  --secondary: #f1f5f9;
+  --secondary-foreground: #0f172a;
+  --accent: #eef2f7;
+  --accent-foreground: #0f172a;
+  --border: #e2e8f0;
+  --input: #cbd5e1;
+  --ring: #0e7490;
+
+  /* Brand: deeper emerald/cyan so white text passes (5.4:1). */
+  --brand-from: #047857;
+  --brand-to: #0e7490;
+  --primary: #047857;
+  --primary-foreground: #ffffff;
+  --brand-text-from: #047857;
+  --brand-text-to: #0e7490;
+  --glow: 0 6px 20px -8px rgb(4 120 87 / 0.45);
+
+  --success: #047857; /* 5.5:1 on white */
+  --success-soft: #ecfdf5;
+  --warning: #b45309;
+  --warning-soft: #fffbeb;
+  --destructive: #dc2626; /* 4.8:1 on white */
+  --danger-soft: #fef2f2;
+
+  /* Selected answer / current question */
+  --selection: #2563eb;
+  --selection-soft: #eff6ff;
+  --selection-foreground: #1e3a8a;
+  --progress-from: #2563eb;
+  --progress-to: #7c3aed;
+
+  --page-glow: none;
+
+  --chart-1: #047857;
+  --chart-2: #0e7490;
+  --chart-3: #2563eb;
+  --chart-4: #7c3aed;
+  --chart-5: #b45309;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #0f172a;
+  --sidebar-primary: #047857;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eef2f7;
+  --sidebar-accent-foreground: #0f172a;
+  --sidebar-border: #e2e8f0;
+  --sidebar-ring: #0e7490;
 }
 
+/* ------------------------------------------------------------------- dark */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: #0b1221;
+  --foreground: #f1f5f9; /* 17:1 */
+  --card: #121b2f;
+  --card-foreground: #f1f5f9;
+  --popover: #141e33;
+  --popover-foreground: #f1f5f9;
+  --muted: #1a2438;
+  --muted-foreground: #94a3b8; /* 6.7:1 on card */
+  --secondary: #1e293b;
+  --secondary-foreground: #f1f5f9;
+  --accent: #1c2740;
+  --accent-foreground: #f1f5f9;
+  --border: #2a3650;
+  --input: #2f3c57;
+  --ring: #22d3ee;
+
+  /* Brand: the screenshots' bright emerald -> cyan. White text fails here (2.5:1), so text on
+     brand buttons is near-black (6:1). */
+  --brand-from: #10b981;
+  --brand-to: #06b6d4;
+  --primary: #10b981;
+  --primary-foreground: #022c22;
+  --brand-text-from: #34d399;
+  --brand-text-to: #22d3ee;
+  --glow: 0 8px 24px -10px rgb(16 185 129 / 0.55);
+
+  --success: #34d399; /* 8.9:1 on card */
+  --success-soft: rgb(16 185 129 / 0.12);
+  --warning: #fbbf24;
+  --warning-soft: rgb(251 191 36 / 0.12);
+  --destructive: #f87171; /* 6.2:1 on card */
+  --danger-soft: rgb(248 113 113 / 0.12);
+
+  --selection: #3b82f6; /* border 4.7:1 on card */
+  --selection-soft: rgb(59 130 246 / 0.16);
+  --selection-foreground: #dbeafe;
+  /* Same deep blue -> violet as light: white text on #3B82F6 would fail (3.7:1). */
+  --progress-from: #2563eb;
+  --progress-to: #7c3aed;
+
+  /* The faint violet glow in one corner of the page. */
+  --page-glow: radial-gradient(60rem 40rem at 100% 100%, rgb(124 58 237 / 0.1), transparent 60%);
+
+  --chart-1: #34d399;
+  --chart-2: #22d3ee;
+  --chart-3: #60a5fa;
+  --chart-4: #a78bfa;
+  --chart-5: #fbbf24;
+  --sidebar: #0e1628;
+  --sidebar-foreground: #f1f5f9;
+  --sidebar-primary: #10b981;
+  --sidebar-primary-foreground: #022c22;
+  --sidebar-accent: #1c2740;
+  --sidebar-accent-foreground: #f1f5f9;
+  --sidebar-border: #2a3650;
+  --sidebar-ring: #22d3ee;
+}
+
+/* ---------------------------------------------------------------- helpers */
+@utility bg-brand-gradient {
+  background-image: linear-gradient(90deg, var(--brand-from), var(--brand-to));
+}
+
+/* Gradient headings ("My Certificates", "Create Quiz"). */
+@utility text-brand-gradient {
+  background-image: linear-gradient(90deg, var(--brand-text-from), var(--brand-text-to));
+  background-clip: text;
+  color: transparent;
+}
+
+/* Progress bars and the "Next" button. */
+@utility bg-progress-gradient {
+  background-image: linear-gradient(90deg, var(--progress-from), var(--progress-to));
+}
+
+@utility shadow-glow {
+  box-shadow: var(--glow);
 }
 
 @layer base {
@@ -119,6 +215,16 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    background-image: var(--page-glow);
+    background-attachment: fixed;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+    }
   }
 }

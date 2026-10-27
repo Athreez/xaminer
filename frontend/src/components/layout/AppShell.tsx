@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from "react-router";
 
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { cn } from "@/lib/utils";
 
 export interface NavItem {
@@ -36,7 +37,7 @@ export function AppShell({ roleLabel, nav, layout }: AppShellProps) {
 
   const brand = (
     <div className="flex items-baseline gap-2">
-      <span className="text-lg font-semibold">Xaminer</span>
+      <span className="text-brand-gradient text-xl font-bold">Xaminer</span>
       <span className="text-muted-foreground text-xs uppercase tracking-wide">{roleLabel}</span>
     </div>
   );
@@ -47,12 +48,15 @@ export function AppShell({ roleLabel, nav, layout }: AppShellProps) {
         <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:p-2">
           Skip to content
         </a>
-        <header className="border-b">
+        <header className="bg-card/60 border-b backdrop-blur">
           <div className="mx-auto flex max-w-5xl items-center gap-6 px-4 py-3">
             {brand}
             <nav aria-label="Main" className="flex gap-1">
               {links}
             </nav>
+            <div className="ml-auto">
+              <ThemeToggle />
+            </div>
           </div>
         </header>
         <main id="main" className="mx-auto max-w-5xl px-4 py-6">
@@ -72,6 +76,9 @@ export function AppShell({ roleLabel, nav, layout }: AppShellProps) {
         <nav aria-label="Main" className="flex flex-col gap-1">
           {links}
         </nav>
+        <div className="mt-6 px-1">
+          <ThemeToggle />
+        </div>
       </aside>
       <main id="main" className="flex-1 px-6 py-6">
         <Outlet />

@@ -117,6 +117,7 @@ make down                             # stop (data volumes are kept)
 | http://localhost:8080 | The app (nginx → React; `/api/` → FastAPI) |
 | http://localhost:8080/api/v1/health | API health check |
 | http://localhost:8080/api/v1/docs | Interactive API docs (not in production) |
+| http://localhost:8080/theme | Theme preview: every colour and component, light and dark |
 | http://localhost:8025 | Mailpit — emails sent in development |
 | `localhost:8333` | Object storage S3 API (SeaweedFS) |
 | `localhost:15432` | PostgreSQL, for local DB tools |

@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from "react-router";
 
 import { AppShell, type NavItem } from "@/components/layout/AppShell";
 import { ForbiddenPage, HomePage, NotFoundPage, PlaceholderPage } from "@/features/system/pages";
+import { ThemePreviewPage } from "@/features/system/ThemePreviewPage";
 
 // Routes and navigation follow FRONTEND_SPEC.md § 4. Role guards come with login (TCK-0110).
 
@@ -26,6 +27,7 @@ const studentNav: NavItem[] = [
 
 export const router = createBrowserRouter([
   { path: "/", element: <HomePage /> },
+  { path: "/theme", element: <ThemePreviewPage /> },
   { path: "/login", element: <PlaceholderPage title="Log in" ticket="TCK-0110" /> },
   {
     path: "/admin",

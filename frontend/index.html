@@ -5,6 +5,11 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Xaminer</title>
+    <meta name="theme-color" content="#0b1221" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f8fafc" media="(prefers-color-scheme: light)" />
+    <!-- Applies the saved theme before the page draws (no white flash). A file, not an inline
+         script, so it works under the Content Security Policy (script-src 'self'). -->
+    <script src="/theme-init.js"></script>
   </head>
   <body>
     <div id="root"></div>

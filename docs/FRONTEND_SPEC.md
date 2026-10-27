@@ -77,17 +77,43 @@ Imports use the `@/` alias for `src/`. shadcn components live in `src/components
 
 ## 3. Design system
 
-### 3.1 Basics
+### 3.1 Theme
 
-shadcn/ui components on Tailwind. Light theme required; dark theme optional.
+Decided 2026-10-27 from reference screenshots the team supplied: **dark-first navy surfaces, an emerald
+→ cyan brand gradient, blue for "selected", tinted status colours, large rounded cards.** Calm and
+clean, no decoration. The palette lives in `frontend/src/index.css`; the live style guide is at
+**`/theme`**.
 
 | Item | Rule |
 |---|---|
-| Fonts | System font stack; monospace for code, timer and scores |
+| Light / dark | Both. Follows the device setting, with a toggle (device → light → dark) saved per browser. **Proctored exam screens are always light**: in a dim room the screen lights the student's face, and a dark screen causes false "face not visible" events (`forceLightTheme()` in `src/lib/theme.ts`) |
+| Font | System font stack (Segoe UI / San Francisco / Roboto): nothing to download on weak connections. Monospace for code, timer and scores |
+| Shape | Radius 12 px; cards 16 px; buttons 10 px. Thin borders, soft shadows; brand elements get a soft glow |
 | Spacing | Tailwind's 4 px scale only |
-| Colours | Semantic roles only (`primary`, `success`, `warning`, `danger`, `muted`), all with AA contrast |
 | Focus | Visible focus ring on every interactive element, never removed |
 | Motion | Minimal; disabled under `prefers-reduced-motion` |
+
+**Palette** (every text/background pair checked against WCAG AA):
+
+| Role | Dark | Light | Used for |
+|---|---|---|---|
+| Background | `#0B1221` + faint violet corner glow | `#F8FAFC` | Page |
+| Card | `#121B2F`, border `#2A3650` | `#FFFFFF`, border `#E2E8F0` | Cards, rows, panels |
+| Text / muted text | `#F1F5F9` / `#94A3B8` | `#0F172A` / `#475569` | |
+| **Brand** | gradient `#10B981 → #06B6D4`, **near-black text** `#022C22` | gradient `#047857 → #0E7490`, white text | Main buttons, gradient headings, icon tiles |
+| **Selection** | `#3B82F6` border on blue tint | `#2563EB` border on `#EFF6FF` | Chosen answer, current question |
+| Progress | gradient `#2563EB → #7C3AED`, white text | same | Progress bars, "Next" |
+| Success | `#34D399` on green tint | `#047857` on `#ECFDF5` | Passed, answered |
+| Warning | `#FBBF24` on amber tint | `#B45309` on `#FFFBEB` | Warnings |
+| Danger | `#F87171` on red tint | `#DC2626` on `#FEF2F2` | Failed, errors, destructive actions |
+
+**Changed from the screenshots on purpose:**
+
+- *White text on the bright green/cyan buttons* reads at about 2.5:1 (AA needs 4.5:1). Dark mode keeps
+  the bright gradient with near-black text (6:1); light mode uses deeper shades with white text (5.4:1).
+- *The pop-up "Warning 2/8: Suspicious hand gesture detected"* is not copied: students are never told
+  about detections during the exam (§ 8.2, PRD PRC-09), and a modal pop-up would interrupt the exam.
+- *Status by colour only* (e.g. green/blue/grey question numbers) gets shapes and text as well (§ 6.4).
 
 ### 3.2 Shared components
 
