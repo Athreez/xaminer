@@ -76,7 +76,7 @@ export function ThemePreviewPage() {
         <h2 id="exam" className="text-lg font-semibold">
           Exam screen pieces (always light during proctored exams)
         </h2>
-        <div className="bg-card space-y-5 rounded-2xl border p-6">
+        <div className="bg-card shadow-card space-y-5 rounded-2xl border p-6">
           <div className="flex items-center justify-between">
             <p className="text-lg font-semibold">Question 4 of 5</p>
             <p className="bg-background flex items-center gap-2 rounded-xl border px-4 py-2 font-mono">
@@ -146,7 +146,7 @@ export function ThemePreviewPage() {
         <h2 id="form" className="text-lg font-semibold">
           Form
         </h2>
-        <form className="bg-card max-w-md space-y-4 rounded-2xl border p-6">
+        <form className="bg-card shadow-card max-w-md space-y-4 rounded-2xl border p-6">
           <h3 className="text-brand-gradient text-xl font-bold">Create exam</h3>
           <Field label="Title" placeholder="e.g. Mid-term: Data Structures" />
           <Field label="Duration (minutes)" placeholder="60" />
@@ -178,7 +178,7 @@ function StatCard({
   return (
     <div
       className={cn(
-        "rounded-2xl border p-6 text-center",
+        "shadow-card rounded-2xl border p-6 text-center",
         tone === "success" && "bg-success-soft border-success/40",
         tone === "danger" && "bg-danger-soft border-destructive/40",
         !tone && "bg-card",
@@ -209,7 +209,7 @@ function ResultRow(props: {
   return (
     <div
       className={cn(
-        "bg-card flex items-center gap-4 rounded-2xl border p-5",
+        "bg-card shadow-card flex items-center gap-4 rounded-2xl border p-5",
         passed && "border-success/40",
       )}
     >

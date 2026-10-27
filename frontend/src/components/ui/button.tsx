@@ -14,8 +14,9 @@ const buttonVariants = cva(
           "bg-brand-gradient text-primary-foreground font-semibold shadow-glow hover:brightness-110",
         // Blue -> violet, as on "Next" in the exam screen.
         progress: "bg-progress-gradient text-white font-semibold hover:brightness-110",
+        // Solid red in both themes; white text passes (4.8:1).
         destructive:
-          "bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:bg-destructive/60 dark:focus-visible:ring-destructive/40",
+          "bg-destructive-solid text-white hover:brightness-110 focus-visible:ring-destructive/30",
         outline:
           "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",

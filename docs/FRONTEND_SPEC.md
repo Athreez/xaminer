@@ -88,7 +88,7 @@ clean, no decoration. The palette lives in `frontend/src/index.css`; the live st
 |---|---|
 | Light / dark | Both. Follows the device setting, with a toggle (device → light → dark) saved per browser. **Proctored exam screens are always light**: in a dim room the screen lights the student's face, and a dark screen causes false "face not visible" events (`forceLightTheme()` in `src/lib/theme.ts`) |
 | Font | System font stack (Segoe UI / San Francisco / Roboto): nothing to download on weak connections. Monospace for code, timer and scores |
-| Shape | Radius 12 px; cards 16 px; buttons 10 px. Thin borders, soft shadows; brand elements get a soft glow |
+| Shape | Radius 12 px; cards 16 px; buttons 10 px. Thin borders plus `shadow-card` (light: soft drop shadow; dark: faint top highlight + deep shadow); brand elements get a soft glow (`shadow-glow`) |
 | Spacing | Tailwind's 4 px scale only |
 | Focus | Visible focus ring on every interactive element, never removed |
 | Motion | Minimal; disabled under `prefers-reduced-motion` |
@@ -97,15 +97,16 @@ clean, no decoration. The palette lives in `frontend/src/index.css`; the live st
 
 | Role | Dark | Light | Used for |
 |---|---|---|---|
-| Background | `#0B1221` + faint violet corner glow | `#F8FAFC` | Page |
-| Card | `#121B2F`, border `#2A3650` | `#FFFFFF`, border `#E2E8F0` | Cards, rows, panels |
+| Background | `#0B1221` + violet (bottom-right) and faint emerald (top-left) glows | `#F3F6FB` + faint emerald and sky glows | Page |
+| Card | `#121B2F`, border `#2A3650` | `#FFFFFF`, border `#E3E8F0` | Cards, rows, panels |
 | Text / muted text | `#F1F5F9` / `#94A3B8` | `#0F172A` / `#475569` | |
-| **Brand** | gradient `#10B981 → #06B6D4`, **near-black text** `#022C22` | gradient `#047857 → #0E7490`, white text | Main buttons, gradient headings, icon tiles |
+| **Brand** | gradient `#10B981 → #06B6D4`, **near-black text** `#022C22` | gradient `#047857 → #0369A1` (emerald → sky), white text | Main buttons, icon tiles |
+| Brand headings | gradient `#34D399 → #22D3EE` | gradient `#059669 → #0284C7` | `text-brand-gradient`, **large headings only** (light shades pass 3:1 for large text, not 4.5:1 for body text) |
 | **Selection** | `#3B82F6` border on blue tint | `#2563EB` border on `#EFF6FF` | Chosen answer, current question |
 | Progress | gradient `#2563EB → #7C3AED`, white text | same | Progress bars, "Next" |
 | Success | `#34D399` on green tint | `#047857` on `#ECFDF5` | Passed, answered |
 | Warning | `#FBBF24` on amber tint | `#B45309` on `#FFFBEB` | Warnings |
-| Danger | `#F87171` on red tint | `#DC2626` on `#FEF2F2` | Failed, errors, destructive actions |
+| Danger | text `#F87171` on red tint; buttons solid `#DC2626` | `#DC2626` on `#FEF2F2`; buttons solid `#DC2626` | Failed, errors; destructive buttons always solid red with white text (4.8:1) |
 
 **Changed from the screenshots on purpose:**
 
