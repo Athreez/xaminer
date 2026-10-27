@@ -1,59 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router";
 
-import { api } from "@/api/client";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
-
-/** Temporary landing page until login exists (TCK-0110 redirects `/` to the user's home). */
-export function HomePage() {
-  const health = useQuery({
-    queryKey: ["health"],
-    queryFn: async () => {
-      const { data, error } = await api.GET("/api/v1/health");
-      if (error || !data) throw new Error("API did not answer");
-      return data;
-    },
-  });
-
-  const status = health.isPending
-    ? "Checking…"
-    : health.isError
-      ? "Not reachable"
-      : `OK (${health.data.status})`;
-
-  return (
-    <main className="mx-auto flex min-h-svh max-w-xl flex-col justify-center gap-6 px-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-brand-gradient text-4xl font-bold">Xaminer</h1>
-        <ThemeToggle />
-      </div>
-      <p className="text-muted-foreground">
-        Computer-based testing with automated coding evaluation and AI-assisted proctoring.
-      </p>
-      <p>
-        API status: <strong data-testid="api-status">{status}</strong>
-      </p>
-      <nav aria-label="Areas" className="flex flex-wrap gap-2">
-        <Button asChild>
-          <Link to="/login">Log in</Link>
-        </Button>
-        <Button asChild variant="outline">
-          <Link to="/admin/users">Admin area</Link>
-        </Button>
-        <Button asChild variant="outline">
-          <Link to="/teacher">Teacher area</Link>
-        </Button>
-        <Button asChild variant="outline">
-          <Link to="/student">Student area</Link>
-        </Button>
-        <Button asChild variant="ghost">
-          <Link to="/theme">Theme preview</Link>
-        </Button>
-      </nav>
-    </main>
-  );
-}
 
 /** Stand-in for pages that later tickets build. */
 export function PlaceholderPage({ title, ticket }: { title: string; ticket: string }) {
@@ -73,7 +20,7 @@ function ErrorPage({ code, title, message }: { code: string; title: string; mess
       <p className="text-muted-foreground">{message}</p>
       <div>
         <Button asChild>
-          <Link to="/">Go to home</Link>
+          <Link to="/">Go to my home page</Link>
         </Button>
       </div>
     </main>

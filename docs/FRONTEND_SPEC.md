@@ -64,7 +64,7 @@ Imports use the `@/` alias for `src/`. shadcn components live in `src/components
 | Mechanism | How |
 |---|---|
 | Server data | TanStack Query for all fetching and polling. Polling interval comes from the server's `poll_after_ms` |
-| Auth | Access token kept in memory. On `401` the wrapper calls `/auth/refresh` (the cookie is sent automatically) and retries the request. Only one refresh runs at a time across all tabs (Web Locks API, `navigator.locks`); on `TOKEN_ALREADY_ROTATED` it retries the refresh once. Any other refresh failure → `SESSION_EXPIRED` |
+| Auth | Access token kept in memory. On `401` the wrapper calls `/auth/refresh` (the cookie is sent automatically) and retries the request. Only one refresh runs at a time across all tabs (Web Locks API, `navigator.locks`); on `TOKEN_ALREADY_ROTATED` it retries the refresh once. Any other refresh failure → `SESSION_EXPIRED`. After a page reload the session is restored from the refresh cookie (`src/auth/session.ts`). Areas are wrapped in `RequireRole`: not logged in → `/login?next=…`, then back; wrong role → `/403`. `next` must be a path on this site, or it's ignored (open-redirect protection, unit-tested) |
 | Route guards | Each route declares its role; wrong role → `/403`. The server checks again anyway |
 | Exam state | Zustand store for the runner: answers, current question, flags, timer offset, connection status |
 | Outbox | IndexedDB queue of unsent answers, drafts and proctoring uploads. Survives reload and crash. One uploader sends in priority order: answers/drafts → heartbeat → code run/submit → proctoring events → spot checks |
@@ -224,11 +224,14 @@ Header outside the exam screen: institution name, notifications bell (S), user m
 
 ### 5.0 Login
 
-Email and password. On `INVALID_CREDENTIALS`: "Email or password is incorrect." On `ACCOUNT_LOCKED`: the
-time it unlocks. On `INSTITUTION_REQUIRED`: a list of the institutions from the error's `details`; picking
-one repeats the login with that `institution_id`. After login, go to the role's home.
+Email and password (with a show/hide button); the button is enabled once both are filled. On
+`INVALID_CREDENTIALS`: "Email or password is incorrect." On `ACCOUNT_LOCKED`: the time it unlocks. On
+`RATE_LIMITED`: wait a minute. On `INSTITUTION_REQUIRED`: a list of the institutions from the error's
+`details`; picking one repeats the login with that `institution_id`. After login, go to `next` (if safe)
+or the role's home. The user menu (sidebar or top bar) shows name and institution, **Log out**, and **Log
+out everywhere** (asks to confirm).
 
-Activation (`/activate`): read the token from the `#` part, call `POST /auth/invite/inspect` to show
+Activation (`/activate`): read the token from the `#` part (then remove it from the address bar), call `POST /auth/invite/inspect` to show
 "Welcome, Ravi Kumar (ABC College)", then a new-password form (`/auth/invite/accept`). Weak-password
 errors appear under the field and the link stays usable. `INVALID_TOKEN`: "This link is invalid or has
 expired. Ask your admin for a new invitation." Password reset pages work the same way.

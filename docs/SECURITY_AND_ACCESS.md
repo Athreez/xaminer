@@ -196,6 +196,7 @@ and score, not the correct answer.
 |---|---|
 | HTTPS | Required in deployment (nginx); HSTS on |
 | CSRF | API calls use the `Authorization` header, so they are not exposed to CSRF. The refresh cookie is `SameSite=Strict`, POST-only, and the server checks the `Origin` header |
+| Open redirect | After login the app only follows `?next=` if it is a path on this site; full URLs, `//host`, backslash and control-character tricks are ignored (unit-tested) |
 | CORS | Not needed: the app and API share one origin through nginx. Cross-origin requests are refused |
 | Content Security Policy | `default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; img-src 'self' blob: data: <storage-origin>; connect-src 'self'; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'` |
 | Other headers | `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy: camera=(self), microphone=(self), geolocation=()` |

@@ -1,10 +1,19 @@
-import { createBrowserRouter, Navigate } from "react-router";
+import { createBrowserRouter, Navigate, Outlet } from "react-router";
+
+import { AuthProvider, RequireRole, RootRedirect } from "@/auth/AuthProvider";
 
 import { AppShell, type NavItem } from "@/components/layout/AppShell";
-import { ForbiddenPage, HomePage, NotFoundPage, PlaceholderPage } from "@/features/system/pages";
+import { LoginPage } from "@/features/auth/LoginPage";
+import {
+  ActivatePage,
+  ForgotPasswordPage,
+  ResetPasswordPage,
+} from "@/features/auth/SetPasswordPages";
+import { ForbiddenPage, NotFoundPage, PlaceholderPage } from "@/features/system/pages";
 import { ThemePreviewPage } from "@/features/system/ThemePreviewPage";
 
-// Routes and navigation follow FRONTEND_SPEC.md § 4. Role guards come with login (TCK-0110).
+// Routes and navigation follow FRONTEND_SPEC.md § 4. Role areas are guarded by RequireRole; the
+// server checks every request regardless.
 
 const adminNav: NavItem[] = [
   { to: "/admin/users", label: "Users" },
@@ -26,38 +35,63 @@ const studentNav: NavItem[] = [
 ];
 
 export const router = createBrowserRouter([
-  { path: "/", element: <HomePage /> },
-  { path: "/theme", element: <ThemePreviewPage /> },
-  { path: "/login", element: <PlaceholderPage title="Log in" ticket="TCK-0110" /> },
   {
-    path: "/admin",
-    element: <AppShell roleLabel="Admin" nav={adminNav} layout="sidebar" />,
+    // Every page sits inside the AuthProvider, which restores the session after a reload.
+    element: (
+      <AuthProvider>
+        <Outlet />
+      </AuthProvider>
+    ),
     children: [
-      { index: true, element: <Navigate to="users" replace /> },
-      { path: "users", element: <PlaceholderPage title="Users" ticket="TCK-0305" /> },
-      { path: "groups", element: <PlaceholderPage title="Groups" ticket="TCK-0305" /> },
-      { path: "exams", element: <PlaceholderPage title="Exams" ticket="TCK-0305" /> },
-      { path: "settings", element: <PlaceholderPage title="Settings" ticket="TCK-0305" /> },
-      { path: "audit", element: <PlaceholderPage title="Audit log" ticket="TCK-0305" /> },
+      { path: "/", element: <RootRedirect /> },
+      { path: "/theme", element: <ThemePreviewPage /> },
+      { path: "/login", element: <LoginPage /> },
+      { path: "/activate", element: <ActivatePage /> },
+      { path: "/forgot-password", element: <ForgotPasswordPage /> },
+      { path: "/reset-password", element: <ResetPasswordPage /> },
+      {
+        path: "/admin",
+        element: (
+          <RequireRole role="ADMIN">
+            <AppShell roleLabel="Admin" nav={adminNav} layout="sidebar" />
+          </RequireRole>
+        ),
+        children: [
+          { index: true, element: <Navigate to="users" replace /> },
+          { path: "users", element: <PlaceholderPage title="Users" ticket="TCK-0305" /> },
+          { path: "groups", element: <PlaceholderPage title="Groups" ticket="TCK-0305" /> },
+          { path: "exams", element: <PlaceholderPage title="Exams" ticket="TCK-0305" /> },
+          { path: "settings", element: <PlaceholderPage title="Settings" ticket="TCK-0305" /> },
+          { path: "audit", element: <PlaceholderPage title="Audit log" ticket="TCK-0305" /> },
+        ],
+      },
+      {
+        path: "/teacher",
+        element: (
+          <RequireRole role="TEACHER">
+            <AppShell roleLabel="Teacher" nav={teacherNav} layout="sidebar" />
+          </RequireRole>
+        ),
+        children: [
+          { index: true, element: <PlaceholderPage title="Dashboard" ticket="TCK-0507" /> },
+          { path: "questions", element: <PlaceholderPage title="Questions" ticket="TCK-0408" /> },
+          { path: "exams", element: <PlaceholderPage title="Exams" ticket="TCK-0507" /> },
+        ],
+      },
+      {
+        path: "/student",
+        element: (
+          <RequireRole role="STUDENT">
+            <AppShell roleLabel="Student" nav={studentNav} layout="topbar" />
+          </RequireRole>
+        ),
+        children: [
+          { index: true, element: <PlaceholderPage title="Dashboard" ticket="TCK-0613" /> },
+          { path: "results", element: <PlaceholderPage title="Results" ticket="TCK-0910" /> },
+        ],
+      },
+      { path: "/403", element: <ForbiddenPage /> },
+      { path: "*", element: <NotFoundPage /> },
     ],
   },
-  {
-    path: "/teacher",
-    element: <AppShell roleLabel="Teacher" nav={teacherNav} layout="sidebar" />,
-    children: [
-      { index: true, element: <PlaceholderPage title="Dashboard" ticket="TCK-0507" /> },
-      { path: "questions", element: <PlaceholderPage title="Questions" ticket="TCK-0408" /> },
-      { path: "exams", element: <PlaceholderPage title="Exams" ticket="TCK-0507" /> },
-    ],
-  },
-  {
-    path: "/student",
-    element: <AppShell roleLabel="Student" nav={studentNav} layout="topbar" />,
-    children: [
-      { index: true, element: <PlaceholderPage title="Dashboard" ticket="TCK-0613" /> },
-      { path: "results", element: <PlaceholderPage title="Results" ticket="TCK-0910" /> },
-    ],
-  },
-  { path: "/403", element: <ForbiddenPage /> },
-  { path: "*", element: <NotFoundPage /> },
 ]);

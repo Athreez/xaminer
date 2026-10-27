@@ -1,6 +1,6 @@
 # Run from the repository root. Requires uv (backend) and npm (frontend).
 .PHONY: setup check lint typecheck test format \
-        backend-lint backend-typecheck backend-test frontend-lint frontend-typecheck \
+        backend-lint backend-typecheck backend-test frontend-lint frontend-typecheck frontend-test \
         up down ps logs platform-admin api-client \
         create-institution create-admin invite-user list-institutions list-languages
 
@@ -58,7 +58,7 @@ check: lint typecheck test
 
 lint: backend-lint frontend-lint
 typecheck: backend-typecheck frontend-typecheck
-test: backend-test
+test: backend-test frontend-test
 
 backend-lint:
 	cd backend && uv run ruff check . && uv run ruff format --check .
@@ -74,6 +74,9 @@ frontend-lint:
 
 frontend-typecheck:
 	cd frontend && npm run typecheck
+
+frontend-test:
+	cd frontend && npm test
 
 format:
 	cd backend && uv run ruff format . && uv run ruff check --fix .

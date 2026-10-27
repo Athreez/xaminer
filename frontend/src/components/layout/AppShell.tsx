@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from "react-router";
 
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { UserMenu } from "@/components/layout/UserMenu";
 import { cn } from "@/lib/utils";
 
 export interface NavItem {
@@ -54,7 +55,8 @@ export function AppShell({ roleLabel, nav, layout }: AppShellProps) {
             <nav aria-label="Main" className="flex gap-1">
               {links}
             </nav>
-            <div className="ml-auto">
+            <div className="ml-auto flex items-center gap-2">
+              <UserMenu compact />
               <ThemeToggle />
             </div>
           </div>
@@ -71,13 +73,16 @@ export function AppShell({ roleLabel, nav, layout }: AppShellProps) {
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:p-2">
         Skip to content
       </a>
-      <aside className="bg-sidebar w-56 shrink-0 border-r px-3 py-4">
+      <aside className="bg-sidebar flex w-60 shrink-0 flex-col border-r px-3 py-4">
         <div className="mb-6 px-3">{brand}</div>
         <nav aria-label="Main" className="flex flex-col gap-1">
           {links}
         </nav>
-        <div className="mt-6 px-1">
-          <ThemeToggle />
+        <div className="mt-8 space-y-3 border-t pt-4">
+          <UserMenu />
+          <div className="px-1">
+            <ThemeToggle />
+          </div>
         </div>
       </aside>
       <main id="main" className="flex-1 px-6 py-6">
