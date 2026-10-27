@@ -14,6 +14,7 @@ from app.core.errors import UnhandledErrorMiddleware, register_error_handlers
 from app.core.logging import AccessLogMiddleware, configure_logging
 from app.core.request_id import RequestIdMiddleware
 from app.db.session import create_engine, create_session_factory
+from app.platform.settings import router as settings_router
 from app.users.router import groups_router
 from app.users.router import router as users_router
 
@@ -55,6 +56,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(auth_router, prefix=API_PREFIX)
     app.include_router(users_router, prefix=API_PREFIX)
     app.include_router(groups_router, prefix=API_PREFIX)
+    app.include_router(settings_router, prefix=API_PREFIX)
     # Refuse to start if any route forgot to declare who may call it (SECURITY § 3.1).
     assert_routes_declared(app)
     return app

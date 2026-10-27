@@ -353,7 +353,7 @@ Main error codes: `UNAUTHENTICATED`, `INVALID_CREDENTIALS`, `ACCOUNT_LOCKED`, `I
 |---|---|---|
 | Auth | `POST /auth/login` · `/auth/refresh` · `/auth/logout` · `/auth/logout-all` · `/auth/invite/inspect` · `/auth/invite/accept` · `/auth/password-reset/request` · `/auth/password-reset/confirm` · `GET /auth/me` | all |
 | Users | `GET/POST /users` (list: `role`, `status`, `q`, `cursor`) · `GET/PATCH /users/{id}` · `POST /users/{id}/deactivate`, `/reactivate`, `/resend-invite`, `/password-reset`, `/unlock` · `POST /users/import` (CSV) · `GET/POST /groups` · `GET/PATCH/DELETE /groups/{id}` · `POST /groups/{id}/members` · `DELETE /groups/{id}/members/{user_id}` | Admin (teachers can read groups) |
-| Audit, settings | `GET /audit-logs` · `GET/PATCH /institution/settings` (includes overdue-deletion count) · `GET /admin/exams` (metadata only) | Admin |
+| Audit, settings | `GET /audit-logs` · `GET/PATCH /institution/settings` (retention days, default consent text; the overdue-deletion count is added with the retention job, TCK-1107) · `GET /admin/exams` (metadata only) | Admin |
 | Questions | `GET/POST /questions` · `GET/PATCH /questions/{id}` · `POST /questions/{id}/archive` · `GET /questions/{id}/preview` (student view) · `POST /uploads/images` | Teacher |
 | Coding | `PUT /questions/{id}/coding` · `GET/POST /questions/{id}/test-cases` · `PATCH/DELETE /questions/{id}/test-cases/{caseId}` · `PUT /questions/{id}/reference-solutions/{lang}` · `POST /questions/{id}/validate` · `GET /languages` | Teacher |
 | Exams | `GET/POST /exams` · `GET/PATCH/DELETE /exams/{id}` · `PUT /exams/{id}/questions` · `GET/POST/DELETE /exams/{id}/assignments` · `GET /exams/{id}/publish-check` · `POST /exams/{id}/publish` · `POST /exams/{id}/archive` | Teacher |

@@ -304,6 +304,43 @@
         "title": "HealthResponse",
         "type": "object"
       },
+      "InstitutionSettings": {
+        "properties": {
+          "default_consent_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Shown before proctored exams unless the exam sets its own",
+            "title": "Default Consent Text"
+          },
+          "evidence_retention_days": {
+            "description": "Evidence images are deleted this many days after the exam closes",
+            "title": "Evidence Retention Days",
+            "type": "integer"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "timezone": {
+            "title": "Timezone",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "timezone",
+          "evidence_retention_days",
+          "default_consent_text"
+        ],
+        "title": "InstitutionSettings",
+        "type": "object"
+      },
       "InvitationInfo": {
         "properties": {
           "email": {
@@ -440,6 +477,40 @@
           "token"
         ],
         "title": "TokenRequest",
+        "type": "object"
+      },
+      "UpdateSettingsRequest": {
+        "additionalProperties": false,
+        "description": "Only the fields sent are changed. Send `default_consent_text: null` to clear it.",
+        "properties": {
+          "default_consent_text": {
+            "anyOf": [
+              {
+                "maxLength": 5000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Consent Text"
+          },
+          "evidence_retention_days": {
+            "anyOf": [
+              {
+                "maximum": 90.0,
+                "minimum": 7.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Retention Days"
+          }
+        },
+        "title": "UpdateSettingsRequest",
         "type": "object"
       },
       "UpdateUserRequest": {
@@ -1347,6 +1418,77 @@
         "summary": "Health",
         "tags": [
           "health"
+        ]
+      }
+    },
+    "/api/v1/institution/settings": {
+      "get": {
+        "operationId": "get_settings_api_v1_institution_settings_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstitutionSettings"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Settings",
+        "tags": [
+          "institution"
+        ]
+      },
+      "patch": {
+        "description": "Change evidence retention (7 to 90 days) or the default consent text. Audit-logged.",
+        "operationId": "patch_settings_api_v1_institution_settings_patch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstitutionSettings"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Patch Settings",
+        "tags": [
+          "institution"
         ]
       }
     },

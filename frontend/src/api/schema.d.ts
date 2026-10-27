@@ -288,6 +288,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/institution/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Settings */
+        get: operations["get_settings_api_v1_institution_settings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Patch Settings
+         * @description Change evidence retention (7 to 90 days) or the default consent text. Audit-logged.
+         */
+        patch: operations["patch_settings_api_v1_institution_settings_patch"];
+        trace?: never;
+    };
     "/api/v1/users": {
         parameters: {
             query?: never;
@@ -565,6 +586,23 @@ export interface components {
             /** Status */
             status: string;
         };
+        /** InstitutionSettings */
+        InstitutionSettings: {
+            /**
+             * Default Consent Text
+             * @description Shown before proctored exams unless the exam sets its own
+             */
+            default_consent_text: string | null;
+            /**
+             * Evidence Retention Days
+             * @description Evidence images are deleted this many days after the exam closes
+             */
+            evidence_retention_days: number;
+            /** Name */
+            name: string;
+            /** Timezone */
+            timezone: string;
+        };
         /** InvitationInfo */
         InvitationInfo: {
             /** Email */
@@ -618,6 +656,16 @@ export interface components {
         TokenRequest: {
             /** Token */
             token: string;
+        };
+        /**
+         * UpdateSettingsRequest
+         * @description Only the fields sent are changed. Send `default_consent_text: null` to clear it.
+         */
+        UpdateSettingsRequest: {
+            /** Default Consent Text */
+            default_consent_text?: string | null;
+            /** Evidence Retention Days */
+            evidence_retention_days?: number | null;
         };
         /**
          * UpdateUserRequest
@@ -1191,6 +1239,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HealthResponse"];
+                };
+            };
+        };
+    };
+    get_settings_api_v1_institution_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstitutionSettings"];
+                };
+            };
+        };
+    };
+    patch_settings_api_v1_institution_settings_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateSettingsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InstitutionSettings"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
