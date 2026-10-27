@@ -58,6 +58,11 @@ Changing a user's role, email or password, or deactivating them, revokes all the
 A deactivated user's still-valid access token stops working at once on `/auth/me`, which checks the
 account is active.
 
+Admins can't deactivate themselves or change their own role, and the last active admin of an
+institution can't be deactivated or demoted (the admin rows are locked while checked, so two admins
+can't remove each other at once). Admins can unlock a locked account and send reset or invitation
+emails, but never see or set a password.
+
 **Login does the same work whatever the outcome.** An unknown email still runs a full password check
 against a dummy hash, so response time doesn't reveal which emails have accounts. Unknown email, wrong
 password, invited (no password yet) and deactivated accounts all get the identical

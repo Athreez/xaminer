@@ -58,6 +58,38 @@ async def _cancel_open_tokens(
     )
 
 
+async def create_password_reset(
+    session: AsyncSession, user: User, institution_name: str, base_url: str
+) -> Email:
+    """Add a fresh reset token (cancelling older ones). Caller commits, then queues the email."""
+    now = datetime.now(UTC)
+    await _cancel_open_tokens(session, user.id, "RESET", now)
+    raw, hashed = new_opaque_token()
+    session.add(
+        AuthToken(
+            institution_id=user.institution_id,
+            user_id=user.id,
+            purpose="RESET",
+            token_hash=hashed,
+            expires_at=now + timedelta(hours=RESET_HOURS),
+        )
+    )
+    return password_reset_email(
+        to=user.email,
+        full_name=user.full_name,
+        institution_name=institution_name,
+        token=raw,
+        base_url=base_url,
+    )
+
+
+async def cancel_all_links(session: AsyncSession, user_id: uuid.UUID) -> None:
+    """Make every open invitation and reset link of the user stop working (e.g. on deactivation)."""
+    now = datetime.now(UTC)
+    for purpose in ("INVITE", "RESET"):
+        await _cancel_open_tokens(session, user_id, purpose, now)
+
+
 async def create_invitation(
     session: AsyncSession, user: User, institution_name: str, base_url: str
 ) -> Email:
@@ -154,7 +186,6 @@ async def request_password_reset(
     if not (await hit(redis, f"reset:{email.lower()}", RESET_REQUESTS_PER_HOUR, 3600)).allowed:
         return  # over the limit: silently do nothing, so the answer still reveals nothing
 
-    now = datetime.now(UTC)
     emails: list[Email] = []
     async with system_session(factory) as session:
         rows = (
@@ -170,26 +201,7 @@ async def request_password_reset(
         ).all()
         # The same person can have an account in more than one institution: one link each.
         for user, institution in rows:
-            await _cancel_open_tokens(session, user.id, "RESET", now)
-            raw, hashed = new_opaque_token()
-            session.add(
-                AuthToken(
-                    institution_id=user.institution_id,
-                    user_id=user.id,
-                    purpose="RESET",
-                    token_hash=hashed,
-                    expires_at=now + timedelta(hours=RESET_HOURS),
-                )
-            )
-            emails.append(
-                password_reset_email(
-                    to=user.email,
-                    full_name=user.full_name,
-                    institution_name=institution.name,
-                    token=raw,
-                    base_url=base_url,
-                )
-            )
+            emails.append(await create_password_reset(session, user, institution.name, base_url))
         await session.commit()
     for message in emails:
         queue_email(message)

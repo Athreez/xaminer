@@ -352,7 +352,7 @@ Main error codes: `UNAUTHENTICATED`, `INVALID_CREDENTIALS`, `ACCOUNT_LOCKED`, `I
 | Area | Endpoints | Who |
 |---|---|---|
 | Auth | `POST /auth/login` · `/auth/refresh` · `/auth/logout` · `/auth/logout-all` · `/auth/invite/inspect` · `/auth/invite/accept` · `/auth/password-reset/request` · `/auth/password-reset/confirm` · `GET /auth/me` | all |
-| Users | `GET/POST /users` · `GET/PATCH /users/{id}` · `POST /users/{id}/deactivate` · `POST /users/import` (CSV) · `GET/POST /groups` · `POST/DELETE /groups/{id}/members` | Admin |
+| Users | `GET/POST /users` (list: `role`, `status`, `q`, `cursor`) · `GET/PATCH /users/{id}` · `POST /users/{id}/deactivate`, `/reactivate`, `/resend-invite`, `/password-reset`, `/unlock` · `POST /users/import` (CSV) · `GET/POST /groups` · `POST/DELETE /groups/{id}/members` | Admin |
 | Audit, settings | `GET /audit-logs` · `GET/PATCH /institution/settings` (includes overdue-deletion count) · `GET /admin/exams` (metadata only) | Admin |
 | Questions | `GET/POST /questions` · `GET/PATCH /questions/{id}` · `POST /questions/{id}/archive` · `GET /questions/{id}/preview` (student view) · `POST /uploads/images` | Teacher |
 | Coding | `PUT /questions/{id}/coding` · `GET/POST /questions/{id}/test-cases` · `PATCH/DELETE /questions/{id}/test-cases/{caseId}` · `PUT /questions/{id}/reference-solutions/{lang}` · `POST /questions/{id}/validate` · `GET /languages` | Teacher |

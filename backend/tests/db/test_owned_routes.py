@@ -8,6 +8,10 @@ The test then checks:
 - another user of the same role in the same institution gets 404,
 - a user of the same role in another institution gets 404.
 
+Admin routes over the whole institution (like `/users/{user_id}`) use `scope="institution"`:
+there the neighbour (another admin of the same institution) is allowed too, and only the outsider
+gets 404.
+
 `test_every_id_route_is_registered` fails the build if an id route is missing here, so the check
 can't be skipped as routes are added.
 """
@@ -24,6 +28,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from app.auth.dependencies import CurrentPrincipal, TenantDB
+from app.auth.models import AuthToken, RefreshToken
 from app.auth.tokens import Principal, create_access_token
 from app.authz.guards import access_table, require
 from app.authz.ownership import get_owned, not_found
@@ -31,6 +36,7 @@ from app.authz.permissions import P
 from app.db.session import SessionFactory, create_session_factory, system_session, tenant_session
 from app.main import create_app
 from app.platform.models import Institution
+from app.users import service as users_service
 from app.users.models import User
 from cli import commands
 from tests.db.api_helpers import SECRET, make_settings
@@ -50,10 +56,53 @@ class OwnedRoute:
     role: str  # role of the owner (and of the two other callers)
     setup: Callable[[World], Awaitable[str]]  # creates the owner's item, returns the real URL
     body: dict[str, Any] | None = field(default=None)
+    scope: str = "owner"  # "owner": only the owner; "institution": anyone of that role there
+
+
+async def _target(world: World, status: str = "INVITED") -> User:
+    """A student in the owner's institution, for the admin user-management routes."""
+    async with tenant_session(world.factory, world.owner.institution_id) as s:
+        user = User(
+            email=f"{uuid.uuid4().hex[:8]}@x.edu",
+            full_name="Tar Get",
+            role="STUDENT",
+            status=status,
+            password_hash="not-a-real-hash" if status == "ACTIVE" else None,
+        )
+        s.add(user)
+        await s.commit()
+        return user
+
+
+def _user_url(suffix: str = "", status: str = "INVITED") -> Callable[[World], Awaitable[str]]:
+    async def setup(world: World) -> str:
+        return f"/api/v1/users/{(await _target(world, status)).id}{suffix}"
+
+    return setup
+
+
+USERS = "/api/v1/users/{user_id}"
 
 
 # Add one entry per id route as tickets introduce them.
-OWNED_ROUTES: list[OwnedRoute] = []
+OWNED_ROUTES: list[OwnedRoute] = [
+    OwnedRoute(f"GET {USERS}", "ADMIN", _user_url(), scope="institution"),
+    OwnedRoute(
+        f"PATCH {USERS}", "ADMIN", _user_url(), body={"full_name": "New Name"}, scope="institution"
+    ),
+    OwnedRoute(f"POST {USERS}/deactivate", "ADMIN", _user_url("/deactivate"), scope="institution"),
+    OwnedRoute(f"POST {USERS}/reactivate", "ADMIN", _user_url("/reactivate"), scope="institution"),
+    OwnedRoute(
+        f"POST {USERS}/resend-invite", "ADMIN", _user_url("/resend-invite"), scope="institution"
+    ),
+    OwnedRoute(
+        f"POST {USERS}/password-reset",
+        "ADMIN",
+        _user_url("/password-reset", "ACTIVE"),
+        scope="institution",
+    ),
+    OwnedRoute(f"POST {USERS}/unlock", "ADMIN", _user_url("/unlock"), scope="institution"),
+]
 
 
 def id_routes() -> list[str]:
@@ -91,7 +140,8 @@ async def factory(app_engine: AsyncEngine) -> AsyncIterator[SessionFactory]:
     yield factory
     async with system_session(factory) as s:
         ids = select(Institution.id).where(Institution.name.like("Owned routes test%"))
-        await s.execute(delete(User).where(User.institution_id.in_(ids)))
+        for model in (AuthToken, RefreshToken, User):
+            await s.execute(delete(model).where(model.institution_id.in_(ids)))
         await s.execute(delete(Institution).where(Institution.name.like("Owned routes test%")))
         await s.commit()
 
@@ -132,12 +182,22 @@ def only_owner_allowed(codes: list[int]) -> bool:
     return owner < 400 and neighbour == 404 and outsider == 404
 
 
+def only_institution_allowed(codes: list[int]) -> bool:
+    owner, neighbour, outsider = codes
+    return owner < 400 and neighbour < 400 and outsider == 404
+
+
 @pytest.mark.parametrize("case", OWNED_ROUTES, ids=lambda c: c.route)
 async def test_only_the_owner_can_reach_it(
-    case: OwnedRoute, client: TestClient, factory: SessionFactory
+    case: OwnedRoute,
+    client: TestClient,
+    factory: SessionFactory,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    monkeypatch.setattr(users_service, "queue_email", lambda email: None)
     codes = await statuses(case, client, factory)
-    assert only_owner_allowed(codes), f"{case.route}: owner/neighbour/outsider got {codes}"
+    check = only_institution_allowed if case.scope == "institution" else only_owner_allowed
+    assert check(codes), f"{case.route} ({case.scope}): owner/neighbour/outsider got {codes}"
 
 
 # ----------------------------------------------------------------------------- the checker works
