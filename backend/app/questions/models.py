@@ -3,7 +3,6 @@ from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import (
-    ARRAY,
     CheckConstraint,
     ForeignKey,
     Index,
@@ -16,6 +15,7 @@ from sqlalchemy import (
     func,
     text,
 )
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, IdMixin, TenantMixin, TimestampMixin
@@ -62,6 +62,12 @@ class QuestionVersion(IdMixin, TenantMixin, Base):
         CheckConstraint(
             "max_answer_length IS NULL OR max_answer_length BETWEEN 1 AND 20000",
             name="max_answer_length_range",
+        ),
+        # Full-text search of the question bank (PRD QB-01). "simple": no stemming, any language.
+        Index(
+            "ix_question_version_body_fts",
+            text("to_tsvector('simple', body)"),
+            postgresql_using="gin",
         ),
     )
 

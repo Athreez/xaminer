@@ -9,7 +9,7 @@ from collections.abc import AsyncIterator
 from decimal import Decimal
 
 import pytest
-from sqlalchemy import delete, text, update
+from sqlalchemy import delete, update
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
@@ -18,6 +18,7 @@ from app.platform.models import Institution
 from app.questions.models import Question, QuestionOption, QuestionVersion
 from app.users.models import User
 from cli import commands
+from tests.db.question_helpers import purge_institutions
 
 
 @pytest.fixture
@@ -55,28 +56,7 @@ async def world(factory: SessionFactory, migrator_engine: AsyncEngine) -> AsyncI
         question.current_version_id = version.id
         await s.commit()
     yield college, question.id, version.id
-    # Locked rows can't be deleted, by design. The table owner switches the triggers off inside
-    # this one transaction to clean up; DDL is transactional, so they are never off for others.
-    async with migrator_engine.begin() as conn:
-        await conn.execute(
-            text("ALTER TABLE question_version DISABLE TRIGGER question_version_locked")
-        )
-        await conn.execute(
-            text("ALTER TABLE question_option DISABLE TRIGGER question_option_locked")
-        )
-        await conn.execute(
-            text("UPDATE question SET current_version_id = NULL WHERE institution_id = :i"),
-            {"i": college.id},
-        )
-        for model in (QuestionOption, QuestionVersion, Question, User):
-            await conn.execute(delete(model).where(model.institution_id == college.id))
-        await conn.execute(delete(Institution).where(Institution.id == college.id))
-        await conn.execute(
-            text("ALTER TABLE question_option ENABLE TRIGGER question_option_locked")
-        )
-        await conn.execute(
-            text("ALTER TABLE question_version ENABLE TRIGGER question_version_locked")
-        )
+    await purge_institutions(migrator_engine, [college.id])
 
 
 async def lock(factory: SessionFactory, college: Institution, version_id: uuid.UUID) -> None:

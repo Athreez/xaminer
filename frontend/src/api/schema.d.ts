@@ -349,6 +349,109 @@ export interface paths {
         patch: operations["patch_settings_api_v1_institution_settings_patch"];
         trace?: never;
     };
+    "/api/v1/questions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Questions
+         * @description The question bank, newest first.
+         */
+        get: operations["list_questions_api_v1_questions_get"];
+        put?: never;
+        /** Create Question */
+        post: operations["create_question_api_v1_questions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/questions/{question_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Question
+         * @description The full question with answer keys and rubric (teachers only).
+         */
+        get: operations["get_question_api_v1_questions__question_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Question
+         * @description Edit your question. If it's used by a published exam, content changes create a new version
+         *     (the `X-New-Version: true` header says so); the exam keeps the old one.
+         */
+        patch: operations["update_question_api_v1_questions__question_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/questions/{question_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Archive Question
+         * @description Hide it from the bank. Exams that already use it are not affected.
+         */
+        post: operations["archive_question_api_v1_questions__question_id__archive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/questions/{question_id}/copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Copy Question
+         * @description Make your own private copy of a question you can see.
+         */
+        post: operations["copy_question_api_v1_questions__question_id__copy_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/questions/{question_id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore Question */
+        post: operations["restore_question_api_v1_questions__question_id__restore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users": {
         parameters: {
             query?: never;
@@ -818,10 +921,199 @@ export interface components {
             token_type: string;
             user: components["schemas"]["UserView"];
         };
+        /** OptionIn */
+        OptionIn: {
+            /** Is Correct */
+            is_correct: boolean;
+            /** Label */
+            label: string;
+        };
+        /** OptionView */
+        OptionView: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Correct */
+            is_correct: boolean;
+            /** Label */
+            label: string;
+            /** Order Index */
+            order_index: number;
+        };
+        /** Owner */
+        Owner: {
+            /** Full Name */
+            full_name: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+        };
         /** PasswordResetRequest */
         PasswordResetRequest: {
             /** Email */
             email: string;
+        };
+        /** QuestionCreate */
+        QuestionCreate: {
+            /**
+             * Body
+             * @description Markdown
+             */
+            body: string;
+            /** Max Answer Length */
+            max_answer_length?: number | null;
+            /** Msq Scoring */
+            msq_scoring?: ("ALL_OR_NOTHING" | "PARTIAL") | null;
+            /**
+             * Negative Marks
+             * @default 0
+             */
+            negative_marks: number | string;
+            /**
+             * Options
+             * @description In display order
+             * @default []
+             */
+            options: components["schemas"]["OptionIn"][];
+            /** Points */
+            points: number | string;
+            /** Rubric */
+            rubric?: string | null;
+            /**
+             * Tags
+             * @default []
+             */
+            tags: string[];
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "MCQ" | "MSQ" | "TRUE_FALSE" | "DESCRIPTIVE" | "CODING";
+            /**
+             * Visibility
+             * @default PRIVATE
+             * @enum {string}
+             */
+            visibility: "PRIVATE" | "INSTITUTION";
+        };
+        /** QuestionPage */
+        QuestionPage: {
+            /** Data */
+            data: components["schemas"]["QuestionSummary"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** QuestionSummary */
+        QuestionSummary: {
+            /** Archived At */
+            archived_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Locked */
+            is_locked: boolean;
+            /** Is Mine */
+            is_mine: boolean;
+            owner: components["schemas"]["Owner"];
+            /** Points */
+            points: string;
+            /** Tags */
+            tags: string[];
+            /**
+             * Title
+             * @description First line of the text, without Markdown, shortened
+             */
+            title: string;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "MCQ" | "MSQ" | "TRUE_FALSE" | "DESCRIPTIVE" | "CODING";
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version No */
+            version_no: number;
+            /**
+             * Visibility
+             * @enum {string}
+             */
+            visibility: "PRIVATE" | "INSTITUTION";
+        };
+        /**
+         * QuestionUpdate
+         * @description Only the fields sent change. `options`, when sent, replaces the whole list.
+         *
+         *     The type can't change. If the current version is locked (used by a published exam), a content
+         *     change creates a new version; published exams keep the old one (PRD QB-07).
+         */
+        QuestionUpdate: {
+            /** Body */
+            body?: string | null;
+            /** Max Answer Length */
+            max_answer_length?: number | null;
+            /** Msq Scoring */
+            msq_scoring?: ("ALL_OR_NOTHING" | "PARTIAL") | null;
+            /** Negative Marks */
+            negative_marks?: number | string | null;
+            /** Options */
+            options?: components["schemas"]["OptionIn"][] | null;
+            /** Points */
+            points?: number | string | null;
+            /** Rubric */
+            rubric?: string | null;
+            /** Tags */
+            tags?: string[] | null;
+            /** Visibility */
+            visibility?: ("PRIVATE" | "INSTITUTION") | null;
+        };
+        /**
+         * QuestionView
+         * @description The teacher's full view, including answer keys and rubric. Never sent to students.
+         */
+        QuestionView: {
+            /** Archived At */
+            archived_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Mine */
+            is_mine: boolean;
+            owner: components["schemas"]["Owner"];
+            /** Tags */
+            tags: string[];
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "MCQ" | "MSQ" | "TRUE_FALSE" | "DESCRIPTIVE" | "CODING";
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** @description The current version */
+            version: components["schemas"]["VersionView"];
+            /**
+             * Visibility
+             * @enum {string}
+             */
+            visibility: "PRIVATE" | "INSTITUTION";
         };
         /** SetPasswordRequest */
         SetPasswordRequest: {
@@ -908,6 +1200,40 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+        };
+        /** VersionView */
+        VersionView: {
+            /** Body */
+            body: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Is Locked
+             * @description Used by a published exam: edits make a new version
+             */
+            is_locked: boolean;
+            /** Max Answer Length */
+            max_answer_length: number | null;
+            /** Msq Scoring */
+            msq_scoring: ("ALL_OR_NOTHING" | "PARTIAL") | null;
+            /** Negative Marks */
+            negative_marks: string;
+            /** Options */
+            options: components["schemas"]["OptionView"][];
+            /** Points */
+            points: string;
+            /** Rubric */
+            rubric: string | null;
+            /** Version No */
+            version_no: number;
         };
     };
     responses: never;
@@ -1528,6 +1854,238 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InstitutionSettings"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_questions_api_v1_questions_get: {
+        parameters: {
+            query?: {
+                /** @description Search the text and tags */
+                q?: string | null;
+                type?: ("MCQ" | "MSQ" | "TRUE_FALSE" | "DESCRIPTIVE" | "CODING") | null;
+                tag?: string | null;
+                /** @description mine, shared by others in the institution, or both */
+                owner?: "mine" | "shared" | "all";
+                /** @description Show archived questions instead */
+                archived?: boolean;
+                limit?: number;
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuestionPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_question_api_v1_questions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuestionCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuestionView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_question_api_v1_questions__question_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                question_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuestionView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_question_api_v1_questions__question_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                question_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuestionUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuestionView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    archive_question_api_v1_questions__question_id__archive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                question_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuestionView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    copy_question_api_v1_questions__question_id__copy_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                question_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuestionView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    restore_question_api_v1_questions__question_id__restore_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                question_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuestionView"];
                 };
             };
             /** @description Validation Error */

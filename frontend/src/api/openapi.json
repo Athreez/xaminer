@@ -732,6 +732,75 @@
         "title": "LoginResponse",
         "type": "object"
       },
+      "OptionIn": {
+        "additionalProperties": false,
+        "properties": {
+          "is_correct": {
+            "title": "Is Correct",
+            "type": "boolean"
+          },
+          "label": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "is_correct"
+        ],
+        "title": "OptionIn",
+        "type": "object"
+      },
+      "OptionView": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_correct": {
+            "title": "Is Correct",
+            "type": "boolean"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "order_index": {
+            "title": "Order Index",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "is_correct",
+          "order_index"
+        ],
+        "title": "OptionView",
+        "type": "object"
+      },
+      "Owner": {
+        "properties": {
+          "full_name": {
+            "title": "Full Name",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "full_name"
+        ],
+        "title": "Owner",
+        "type": "object"
+      },
       "PasswordResetRequest": {
         "additionalProperties": false,
         "properties": {
@@ -745,6 +814,476 @@
           "email"
         ],
         "title": "PasswordResetRequest",
+        "type": "object"
+      },
+      "QuestionCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "description": "Markdown",
+            "maxLength": 20000,
+            "minLength": 1,
+            "title": "Body",
+            "type": "string"
+          },
+          "max_answer_length": {
+            "anyOf": [
+              {
+                "maximum": 20000.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Answer Length"
+          },
+          "msq_scoring": {
+            "anyOf": [
+              {
+                "enum": [
+                  "ALL_OR_NOTHING",
+                  "PARTIAL"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Msq Scoring"
+          },
+          "negative_marks": {
+            "anyOf": [
+              {
+                "maximum": 1000.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "default": "0",
+            "title": "Negative Marks"
+          },
+          "options": {
+            "default": [],
+            "description": "In display order",
+            "items": {
+              "$ref": "#/components/schemas/OptionIn"
+            },
+            "maxItems": 10,
+            "title": "Options",
+            "type": "array"
+          },
+          "points": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "maximum": 1000.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Points"
+          },
+          "rubric": {
+            "anyOf": [
+              {
+                "maxLength": 10000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rubric"
+          },
+          "tags": {
+            "default": [],
+            "items": {
+              "maxLength": 50,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Tags",
+            "type": "array"
+          },
+          "type": {
+            "enum": [
+              "MCQ",
+              "MSQ",
+              "TRUE_FALSE",
+              "DESCRIPTIVE",
+              "CODING"
+            ],
+            "title": "Type",
+            "type": "string"
+          },
+          "visibility": {
+            "default": "PRIVATE",
+            "enum": [
+              "PRIVATE",
+              "INSTITUTION"
+            ],
+            "title": "Visibility",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "body",
+          "points"
+        ],
+        "title": "QuestionCreate",
+        "type": "object"
+      },
+      "QuestionPage": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/QuestionSummary"
+            },
+            "title": "Data",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "data",
+          "next_cursor"
+        ],
+        "title": "QuestionPage",
+        "type": "object"
+      },
+      "QuestionSummary": {
+        "properties": {
+          "archived_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Archived At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_locked": {
+            "title": "Is Locked",
+            "type": "boolean"
+          },
+          "is_mine": {
+            "title": "Is Mine",
+            "type": "boolean"
+          },
+          "owner": {
+            "$ref": "#/components/schemas/Owner"
+          },
+          "points": {
+            "title": "Points",
+            "type": "string"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          },
+          "title": {
+            "description": "First line of the text, without Markdown, shortened",
+            "title": "Title",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "MCQ",
+              "MSQ",
+              "TRUE_FALSE",
+              "DESCRIPTIVE",
+              "CODING"
+            ],
+            "title": "Type",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version_no": {
+            "title": "Version No",
+            "type": "integer"
+          },
+          "visibility": {
+            "enum": [
+              "PRIVATE",
+              "INSTITUTION"
+            ],
+            "title": "Visibility",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "visibility",
+          "tags",
+          "owner",
+          "is_mine",
+          "title",
+          "points",
+          "version_no",
+          "is_locked",
+          "archived_at",
+          "updated_at"
+        ],
+        "title": "QuestionSummary",
+        "type": "object"
+      },
+      "QuestionUpdate": {
+        "additionalProperties": false,
+        "description": "Only the fields sent change. `options`, when sent, replaces the whole list.\n\nThe type can't change. If the current version is locked (used by a published exam), a content\nchange creates a new version; published exams keep the old one (PRD QB-07).",
+        "properties": {
+          "body": {
+            "anyOf": [
+              {
+                "maxLength": 20000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Body"
+          },
+          "max_answer_length": {
+            "anyOf": [
+              {
+                "maximum": 20000.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Answer Length"
+          },
+          "msq_scoring": {
+            "anyOf": [
+              {
+                "enum": [
+                  "ALL_OR_NOTHING",
+                  "PARTIAL"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Msq Scoring"
+          },
+          "negative_marks": {
+            "anyOf": [
+              {
+                "maximum": 1000.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Negative Marks"
+          },
+          "options": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/OptionIn"
+                },
+                "maxItems": 10,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Options"
+          },
+          "points": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "maximum": 1000.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Points"
+          },
+          "rubric": {
+            "anyOf": [
+              {
+                "maxLength": 10000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rubric"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "items": {
+                  "maxLength": 50,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "maxItems": 20,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tags"
+          },
+          "visibility": {
+            "anyOf": [
+              {
+                "enum": [
+                  "PRIVATE",
+                  "INSTITUTION"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Visibility"
+          }
+        },
+        "title": "QuestionUpdate",
+        "type": "object"
+      },
+      "QuestionView": {
+        "description": "The teacher's full view, including answer keys and rubric. Never sent to students.",
+        "properties": {
+          "archived_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Archived At"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_mine": {
+            "title": "Is Mine",
+            "type": "boolean"
+          },
+          "owner": {
+            "$ref": "#/components/schemas/Owner"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tags",
+            "type": "array"
+          },
+          "type": {
+            "enum": [
+              "MCQ",
+              "MSQ",
+              "TRUE_FALSE",
+              "DESCRIPTIVE",
+              "CODING"
+            ],
+            "title": "Type",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "$ref": "#/components/schemas/VersionView",
+            "description": "The current version"
+          },
+          "visibility": {
+            "enum": [
+              "PRIVATE",
+              "INSTITUTION"
+            ],
+            "title": "Visibility",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "visibility",
+          "tags",
+          "owner",
+          "is_mine",
+          "archived_at",
+          "created_at",
+          "updated_at",
+          "version"
+        ],
+        "title": "QuestionView",
         "type": "object"
       },
       "SetPasswordRequest": {
@@ -989,6 +1528,100 @@
           "type"
         ],
         "title": "ValidationError",
+        "type": "object"
+      },
+      "VersionView": {
+        "properties": {
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_locked": {
+            "description": "Used by a published exam: edits make a new version",
+            "title": "Is Locked",
+            "type": "boolean"
+          },
+          "max_answer_length": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Answer Length"
+          },
+          "msq_scoring": {
+            "anyOf": [
+              {
+                "enum": [
+                  "ALL_OR_NOTHING",
+                  "PARTIAL"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Msq Scoring"
+          },
+          "negative_marks": {
+            "title": "Negative Marks",
+            "type": "string"
+          },
+          "options": {
+            "items": {
+              "$ref": "#/components/schemas/OptionView"
+            },
+            "title": "Options",
+            "type": "array"
+          },
+          "points": {
+            "title": "Points",
+            "type": "string"
+          },
+          "rubric": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rubric"
+          },
+          "version_no": {
+            "title": "Version No",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "version_no",
+          "body",
+          "points",
+          "negative_marks",
+          "msq_scoring",
+          "max_answer_length",
+          "rubric",
+          "is_locked",
+          "created_at",
+          "options"
+        ],
+        "title": "VersionView",
         "type": "object"
       }
     },
@@ -2008,6 +2641,457 @@
         "summary": "Patch Settings",
         "tags": [
           "institution"
+        ]
+      }
+    },
+    "/api/v1/questions": {
+      "get": {
+        "description": "The question bank, newest first.",
+        "operationId": "list_questions_api_v1_questions_get",
+        "parameters": [
+          {
+            "description": "Search the text and tags",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Search the text and tags",
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "MCQ",
+                    "MSQ",
+                    "TRUE_FALSE",
+                    "DESCRIPTIVE",
+                    "CODING"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "tag",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 50,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Tag"
+            }
+          },
+          {
+            "description": "mine, shared by others in the institution, or both",
+            "in": "query",
+            "name": "owner",
+            "required": false,
+            "schema": {
+              "default": "all",
+              "description": "mine, shared by others in the institution, or both",
+              "enum": [
+                "mine",
+                "shared",
+                "all"
+              ],
+              "title": "Owner",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Show archived questions instead",
+            "in": "query",
+            "name": "archived",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "Show archived questions instead",
+              "title": "Archived",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestionPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Questions",
+        "tags": [
+          "questions"
+        ]
+      },
+      "post": {
+        "operationId": "create_question_api_v1_questions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuestionCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestionView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Question",
+        "tags": [
+          "questions"
+        ]
+      }
+    },
+    "/api/v1/questions/{question_id}": {
+      "get": {
+        "description": "The full question with answer keys and rubric (teachers only).",
+        "operationId": "get_question_api_v1_questions__question_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "question_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Question Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestionView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Question",
+        "tags": [
+          "questions"
+        ]
+      },
+      "patch": {
+        "description": "Edit your question. If it's used by a published exam, content changes create a new version\n(the `X-New-Version: true` header says so); the exam keeps the old one.",
+        "operationId": "update_question_api_v1_questions__question_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "question_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Question Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuestionUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestionView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Question",
+        "tags": [
+          "questions"
+        ]
+      }
+    },
+    "/api/v1/questions/{question_id}/archive": {
+      "post": {
+        "description": "Hide it from the bank. Exams that already use it are not affected.",
+        "operationId": "archive_question_api_v1_questions__question_id__archive_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "question_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Question Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestionView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Archive Question",
+        "tags": [
+          "questions"
+        ]
+      }
+    },
+    "/api/v1/questions/{question_id}/copy": {
+      "post": {
+        "description": "Make your own private copy of a question you can see.",
+        "operationId": "copy_question_api_v1_questions__question_id__copy_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "question_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Question Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestionView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Copy Question",
+        "tags": [
+          "questions"
+        ]
+      }
+    },
+    "/api/v1/questions/{question_id}/restore": {
+      "post": {
+        "operationId": "restore_question_api_v1_questions__question_id__restore_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "question_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Question Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestionView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Restore Question",
+        "tags": [
+          "questions"
         ]
       }
     },

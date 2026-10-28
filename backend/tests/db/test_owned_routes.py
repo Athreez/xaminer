@@ -39,6 +39,7 @@ from app.authz.permissions import P
 from app.db.session import SessionFactory, create_session_factory, system_session, tenant_session
 from app.main import create_app
 from app.platform.models import Institution
+from app.questions.models import Question, QuestionVersion
 from app.users import service as users_service
 from app.users.models import User, UserGroup, UserGroupMember
 from cli import commands
@@ -118,7 +119,35 @@ async def _member_url(world: World) -> str:
     return f"/api/v1/groups/{group.id}/members/{student.id}"
 
 
+async def _question(world: World) -> Question:
+    """A private MCQ owned by `world.owner`."""
+    async with tenant_session(world.factory, world.owner.institution_id) as s:
+        question = Question(owner_id=world.owner.id, type="DESCRIPTIVE")
+        s.add(question)
+        await s.flush()
+        version = QuestionVersion(
+            question_id=question.id,
+            version_no=1,
+            body="Explain.",
+            points=1,
+            created_by=world.owner.id,
+        )
+        s.add(version)
+        await s.flush()
+        question.current_version_id = version.id
+        await s.commit()
+        return question
+
+
+def _question_url(suffix: str = "") -> Callable[[World], Awaitable[str]]:
+    async def setup(world: World) -> str:
+        return f"/api/v1/questions/{(await _question(world)).id}{suffix}"
+
+    return setup
+
+
 USERS = "/api/v1/users/{user_id}"
+QUESTIONS = "/api/v1/questions/{question_id}"
 GROUPS = "/api/v1/groups/{group_id}"
 
 
@@ -140,6 +169,11 @@ OWNED_ROUTES: list[OwnedRoute] = [
         scope="institution",
     ),
     OwnedRoute(f"POST {USERS}/unlock", "ADMIN", _user_url("/unlock"), scope="institution"),
+    OwnedRoute(f"GET {QUESTIONS}", "TEACHER", _question_url()),
+    OwnedRoute(f"PATCH {QUESTIONS}", "TEACHER", _question_url(), body={"body": "Explain why."}),
+    OwnedRoute(f"POST {QUESTIONS}/copy", "TEACHER", _question_url("/copy")),
+    OwnedRoute(f"POST {QUESTIONS}/archive", "TEACHER", _question_url("/archive")),
+    OwnedRoute(f"POST {QUESTIONS}/restore", "TEACHER", _question_url("/restore")),
     OwnedRoute(f"GET {GROUPS}", "TEACHER", _group_url(), scope="institution"),
     OwnedRoute(
         f"PATCH {GROUPS}",
@@ -202,7 +236,8 @@ async def factory(app_engine: AsyncEngine) -> AsyncIterator[SessionFactory]:
     yield factory
     async with system_session(factory) as s:
         ids = select(Institution.id).where(Institution.name.like("Owned routes test%"))
-        for model in (AuthToken, RefreshToken, UserGroupMember, UserGroup, User):
+        # Deleting a question removes its versions and options too.
+        for model in (AuthToken, RefreshToken, UserGroupMember, UserGroup, Question, User):
             await s.execute(delete(model).where(model.institution_id.in_(ids)))
         await s.execute(delete(Institution).where(Institution.name.like("Owned routes test%")))
         await s.commit()
