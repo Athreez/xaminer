@@ -18,6 +18,7 @@ from app.auth.tokens import Principal
 from app.authz.ownership import get_owned
 from app.core.errors import AppError
 from app.core.pagination import MAX_PAGE, decode_cursor, encode_cursor, like_pattern
+from app.questions import rules
 from app.questions.models import Question, QuestionOption, QuestionVersion
 from app.questions.schemas import (
     OptionIn,
@@ -258,14 +259,16 @@ async def _new_question(
 async def create_question(
     session: AsyncSession, principal: Principal, body: QuestionCreate
 ) -> Question:
+    content = {field: getattr(body, field) for field in CONTENT_FIELDS}
+    options = rules.check(body.type, content, body.options)
     question = await _new_question(
         session,
         principal,
         type=body.type,
         visibility=body.visibility,
         tags=body.tags,
-        content={field: getattr(body, field) for field in CONTENT_FIELDS},
-        options=body.options,
+        content=content,
+        options=options,
     )
     _audit(session, principal, "question.created", question, {"type": body.type})
     await session.commit()
@@ -298,21 +301,26 @@ async def update_question(
             changes["tags"] = {"old": question.tags, "new": tags}
             question.tags = tags
 
-    content = {field: getattr(version, field) for field in CONTENT_FIELDS}
+    current = {field: getattr(version, field) for field in CONTENT_FIELDS}
+    content = dict(current)
     for field in CONTENT_FIELDS:
-        if field in sent and (
-            field in ("msq_scoring", "max_answer_length", "rubric")
-            or getattr(body, field) is not None
-        ):
-            new = getattr(body, field)
-            if new != content[field]:
-                changes[field] = {"old": _jsonable(content[field]), "new": _jsonable(new)}
-                content[field] = new
-    old_options = await _options(session, version.id)
-    options = [OptionIn(label=o.label, is_correct=o.is_correct) for o in old_options]
-    if "options" in sent and body.options is not None and body.options != options:
-        changes["options"] = {"old": len(options), "new": len(body.options)}
+        nullable = field in ("msq_scoring", "max_answer_length", "rubric")
+        if field in sent and (nullable or getattr(body, field) is not None):
+            content[field] = getattr(body, field)
+    old_options = [
+        OptionIn(label=o.label, is_correct=o.is_correct)
+        for o in await _options(session, version.id)
+    ]
+    options = old_options
+    if "options" in sent and body.options is not None:
         options = body.options
+    # Check the version as it will be saved, then record only what really differs.
+    options = rules.check(question.type, content, options)
+    for field in CONTENT_FIELDS:
+        if content[field] != current[field]:
+            changes[field] = {"old": _jsonable(current[field]), "new": _jsonable(content[field])}
+    if options != old_options:
+        changes["options"] = {"old": len(old_options), "new": len(options)}
 
     if not changes:
         return question, False

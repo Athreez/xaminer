@@ -206,13 +206,16 @@ async def test_edit_unlocked_changes_version_in_place(client: TestClient, world:
     url = f"{URL}/{q['id']}"
     changed = client.patch(
         url,
-        json={"body": "New text", "options": [{"label": "A", "is_correct": True}]},
+        json={
+            "body": "New text",
+            "options": [{"label": "A", "is_correct": True}, {"label": "B", "is_correct": False}],
+        },
         headers=me,
     )
     assert changed.status_code == 200 and "X-New-Version" not in changed.headers
     version = changed.json()["version"]
     assert version["version_no"] == 1 and version["id"] == q["version"]["id"]
-    assert version["body"] == "New text" and [o["label"] for o in version["options"]] == ["A"]
+    assert version["body"] == "New text" and [o["label"] for o in version["options"]] == ["A", "B"]
     (row,) = await world.audit("question.updated")
     assert row.changes is not None and row.changes["body"]["new"] == "New text"
 
@@ -311,3 +314,106 @@ def test_title_of() -> None:
     assert title_of("## Arrays\nmore") == "Arrays"
     assert title_of("\n\n  **Bold** and `code` [link](http://x)") == "Bold and code link"
     assert title_of("x" * 200).endswith("…") and len(title_of("x" * 200)) == 120
+
+
+# ------------------------------------------------------------------------ type rules (QB-02..05)
+
+TF = [{"label": "true", "is_correct": False}, {"label": "FALSE", "is_correct": True}]
+
+
+def opts(*correct: bool) -> list[dict[str, Any]]:
+    return [{"label": f"Option {i}", "is_correct": c} for i, c in enumerate(correct)]
+
+
+@pytest.mark.parametrize(
+    ("body", "field", "message"),
+    [
+        ({"options": opts(True)}, "options", "between 2 and 10"),
+        ({"options": opts(True, True)}, "options", "exactly one"),
+        ({"options": opts(False, False)}, "options", "exactly one"),
+        (
+            {
+                "options": [
+                    {"label": "Yes", "is_correct": True},
+                    {"label": " yes ", "is_correct": False},
+                ]
+            },
+            "options.1.label",
+            "same as option 1",
+        ),
+        ({"msq_scoring": "PARTIAL"}, "msq_scoring", "Only multiple-select"),
+        ({"rubric": "Look for X"}, "rubric", "Only descriptive"),
+        ({"max_answer_length": 100}, "max_answer_length", "Only descriptive"),
+        (
+            {"points": "1", "negative_marks": "2"},
+            "negative_marks",
+            "more than the question's points",
+        ),
+        ({"type": "MSQ", "options": opts(False, False)}, "options", "at least one"),
+        ({"type": "TRUE_FALSE", "options": opts(True, False)}, "options", '"True", then "False"'),
+        (
+            {"type": "TRUE_FALSE", "options": [*TF[:1], {"label": "false", "is_correct": False}]},
+            "options",
+            "either True or False",
+        ),
+        ({"type": "DESCRIPTIVE"}, "options", "has no options"),
+        ({"type": "CODING"}, "options", "has no options"),
+    ],
+    ids=[
+        "mcq-one-option",
+        "mcq-two-correct",
+        "mcq-none-correct",
+        "duplicate-labels",
+        "mcq-scoring",
+        "mcq-rubric",
+        "mcq-max-length",
+        "negative-over-points",
+        "msq-none-correct",
+        "tf-wrong-labels",
+        "tf-none-correct",
+        "descriptive-options",
+        "coding-options",
+    ],
+)
+async def test_type_rules(
+    client: TestClient, world: World, body: dict[str, Any], field: str, message: str
+) -> None:
+    response = client.post(URL, json=mcq(**body), headers=await world.user())
+    assert response.status_code == 422, response.text
+    error = response.json()["error"]
+    assert error["code"] == "VALIDATION_FAILED"
+    assert any(d["field"] == field and message in d["message"] for d in error["details"]), error
+
+
+async def test_valid_shapes(client: TestClient, world: World) -> None:
+    me = await world.user()
+    msq = create(client, me, type="MSQ", options=opts(True, True, False))
+    assert msq["version"]["msq_scoring"] == "ALL_OR_NOTHING"  # the default
+    partial = create(client, me, type="MSQ", options=opts(True, False), msq_scoring="PARTIAL")
+    assert partial["version"]["msq_scoring"] == "PARTIAL"
+    tf = create(client, me, type="TRUE_FALSE", options=TF)
+    assert [(o["label"], o["is_correct"]) for o in tf["version"]["options"]] == [
+        ("True", False),
+        ("False", True),
+    ]  # fixed spelling
+    essay = create(
+        client, me, type="DESCRIPTIVE", options=[], rubric="Key points", max_answer_length=800
+    )
+    assert essay["version"]["rubric"] == "Key points"
+    create(client, me, type="CODING", options=[])
+    create(client, me, options=opts(*([False] * 9), True))  # 10 options
+
+
+async def test_edits_are_checked_too(client: TestClient, world: World) -> None:
+    me = await world.user()
+    q = create(client, me, type="MSQ", options=opts(True, False), msq_scoring="PARTIAL")
+    url = f"{URL}/{q['id']}"
+    none_correct = client.patch(url, json={"options": opts(False, False)}, headers=me)
+    assert none_correct.status_code == 422
+    over = client.patch(url, json={"negative_marks": "5"}, headers=me)  # points are 2
+    assert over.status_code == 422
+    # Clearing the scoring mode falls back to the default instead of leaving it empty.
+    reset = client.patch(url, json={"msq_scoring": None}, headers=me).json()
+    assert reset["version"]["msq_scoring"] == "ALL_OR_NOTHING"
+    (row,) = await world.audit("question.updated")
+    assert row.changes == {"msq_scoring": {"old": "PARTIAL", "new": "ALL_OR_NOTHING"}}
