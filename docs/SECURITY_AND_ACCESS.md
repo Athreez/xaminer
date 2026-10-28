@@ -215,7 +215,7 @@ own server, not a CDN.
 |---|---|
 | Validation | Every request body is validated by a Pydantic schema on the server; unknown fields are rejected |
 | SQL injection | SQLAlchemy with bound parameters only; no SQL built with string formatting |
-| XSS | Question text is Markdown; it is sanitised on save (allowlist) and rendered by one shared, sanitising renderer. React escapes everything else |
+| XSS | Question text is Markdown. On save the server removes HTML tags and unsafe link schemes from prose (code is kept as typed). The one shared renderer (`MarkdownView`) never renders raw HTML, keeps an allow-list of elements (`rehype-sanitize`) and allows only http(s), mailto and relative links. React escapes everything else |
 | Size limits | Request body caps per route (e.g. answer text 64 KB, code 256 KB, test case 1 MB, image 2 MB) |
 | Errors | Error responses never include stack traces or SQL |
 

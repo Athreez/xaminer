@@ -8,6 +8,7 @@ from decimal import Decimal
 from typing import Any
 
 from app.core.errors import AppError
+from app.core.markdown import sanitize_markdown
 from app.questions.schemas import OptionIn
 
 MIN_OPTIONS, MAX_OPTIONS = 2, 10
@@ -18,13 +19,28 @@ CHOICE_TYPES = ("MCQ", "MSQ", "TRUE_FALSE")
 def check(type: str, content: dict[str, Any], options: list[OptionIn]) -> list[OptionIn]:
     """Raise VALIDATION_FAILED listing every problem, or return the options to save.
 
-    `content` is the version's fields and is completed in place (MSQ scoring defaults to
-    ALL_OR_NOTHING). True/False labels come back in their fixed spelling and order.
+    `content` is the version's fields and is completed in place: Markdown is sanitised and MSQ
+    scoring defaults to ALL_OR_NOTHING. Option labels are sanitised too, and True/False labels come
+    back in their fixed spelling and order.
     """
     errors: list[tuple[str, str]] = []
 
     def wrong(field: str, message: str) -> None:
         errors.append((field, message))
+
+    # Sanitising happens before the rules, so text that was only HTML is empty here.
+    content["body"] = sanitize_markdown(content["body"]).strip()
+    if content["rubric"]:
+        content["rubric"] = sanitize_markdown(content["rubric"]).strip() or None
+    options = [
+        OptionIn.model_construct(label=sanitize_markdown(o.label).strip(), is_correct=o.is_correct)
+        for o in options
+    ]
+    if not content["body"]:
+        wrong("body", "The question text is empty.")
+    for i, option in enumerate(options):
+        if not option.label:
+            wrong(f"options.{i}.label", f"Option {i + 1} is empty.")
 
     points: Decimal = content["points"]
     if content["negative_marks"] > points:

@@ -467,3 +467,35 @@ async def test_edits_are_checked_too(client: TestClient, world: World) -> None:
     assert reset["version"]["msq_scoring"] == "ALL_OR_NOTHING"
     (row,) = await world.audit("question.updated")
     assert row.changes == {"msq_scoring": {"old": "PARTIAL", "new": "ALL_OR_NOTHING"}}
+
+
+# ---------------------------------------------------------------------- Markdown is cleaned (QB-06)
+
+
+async def test_markdown_is_sanitised_on_save(client: TestClient, world: World) -> None:
+    me = await world.user()
+    q = create(
+        client,
+        me,
+        body="Pick one <img src=x onerror=alert(1)>[docs](javascript:alert(1))"
+        "\n\n```\n<b>code</b>\n```",
+        options=[
+            {"label": "<script>alert(1)</script>Yes", "is_correct": True},
+            {"label": "No", "is_correct": False},
+        ],
+    )
+    version = q["version"]
+    assert version["body"] == "Pick one [docs](#)\n\n```\n<b>code</b>\n```"  # code kept as typed
+    assert version["options"][0]["label"] == "Yes"
+    essay = create(client, me, type="DESCRIPTIVE", options=[], rubric="<iframe src=x></iframe>")
+    assert essay["version"]["rubric"] is None  # nothing left of it
+
+    only_html = client.post(URL, json=mcq(body="<script>alert(1)</script>"), headers=me)
+    assert only_html.status_code == 422
+    assert only_html.json()["error"]["details"][0]["field"] == "body"
+    empty_option = mcq(
+        options=[{"label": "<b></b>", "is_correct": True}, {"label": "B", "is_correct": False}]
+    )
+    response = client.post(URL, json=empty_option, headers=me)
+    assert response.status_code == 422
+    assert any(d["field"] == "options.0.label" for d in response.json()["error"]["details"])

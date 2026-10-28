@@ -11,9 +11,32 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
+import { MarkdownView } from "@/components/MarkdownView";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+
+const SAMPLE_MARKDOWN = `### Reverse a linked list
+
+Given the head of a **singly linked list**, return it reversed. Use \`O(1)\` extra space.
+See [linked lists](https://en.wikipedia.org/wiki/Linked_list).
+
+\`\`\`python
+def reverse(head):
+    prev = None
+    while head:
+        head.next, prev, head = prev, head, head.next
+    return prev
+\`\`\`
+
+| Input | Output |
+|---|---|
+| 1 → 2 → 3 | 3 → 2 → 1 |
+
+> Hint: you only need two pointers.
+
+- Time: O(n)
+- Space: O(1)`;
 
 /** Style guide for the Xaminer theme (FRONTEND_SPEC.md § 3.1). Visit /theme. */
 export function ThemePreviewPage() {
@@ -139,6 +162,15 @@ export function ThemePreviewPage() {
               Next
             </Button>
           </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="markdown" className="space-y-3">
+        <h2 id="markdown" className="text-lg font-semibold">
+          Question text (Markdown)
+        </h2>
+        <div className="bg-card shadow-card max-w-2xl rounded-2xl border p-6">
+          <MarkdownView text={SAMPLE_MARKDOWN} />
         </div>
       </section>
 

@@ -71,7 +71,7 @@ Imports use the `@/` alias for `src/`. shadcn components live in `src/components
 | Time sync | `offset = server_time − Date.now()` from every attempt response; remaining = `deadline_at − (Date.now() + offset)` |
 | Proctoring | MediaPipe runs in a **Web Worker** so the exam screen stays responsive. Detectors produce events; the uploader sends them |
 | Caching | A Service Worker caches MediaPipe models, WASM files and editor language modes during the pre-check |
-| Markdown | One shared renderer (`react-markdown` + sanitiser) for all question text and feedback |
+| Markdown | One shared renderer, `MarkdownView` (`react-markdown` + `remark-gfm` + `rehype-sanitize`, raw HTML skipped), for all question text, options, rubrics and feedback |
 
 ---
 
