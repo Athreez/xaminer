@@ -9,7 +9,9 @@ import { homeFor, lockedUntilText, safeNextPath } from "@/auth/helpers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-import { AuthLayout, Field, FormMessage, PasswordInput } from "./AuthLayout";
+import { Field, FormMessage } from "@/components/form";
+
+import { AuthLayout, PasswordInput } from "./AuthLayout";
 
 interface Choice {
   id: string;

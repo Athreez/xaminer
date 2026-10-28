@@ -6,7 +6,9 @@ import { tokenFromHash } from "@/auth/helpers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-import { AuthLayout, Field, FormMessage, PasswordInput } from "./AuthLayout";
+import { Field, FormMessage } from "@/components/form";
+
+import { AuthLayout, PasswordInput } from "./AuthLayout";
 
 const MIN_LENGTH = 10; // same as the server (app/auth/passwords.py); the server has the final say
 const INVALID_LINK =
