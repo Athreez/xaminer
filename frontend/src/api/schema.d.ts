@@ -373,6 +373,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/users/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Users
+         * @description Check (`dry_run: true`) or import a CSV of users: email, full name, role, roll no.
+         *
+         *     Rows with errors are reported and not imported; existing emails are skipped. Each imported
+         *     user gets an invitation email. At most 1 MB and 2,000 users per file.
+         */
+        post: operations["import_users_api_v1_users_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users/{user_id}": {
         parameters: {
             query?: never;
@@ -680,6 +703,69 @@ export interface components {
         HealthResponse: {
             /** Status */
             status: string;
+        };
+        /** ImportRequest */
+        ImportRequest: {
+            /**
+             * Csv
+             * @description The file's text, header row first
+             */
+            csv: string;
+            /**
+             * Dry Run
+             * @description True: only check and report. False: create the users
+             */
+            dry_run: boolean;
+        };
+        /** ImportResult */
+        ImportResult: {
+            /** Dry Run */
+            dry_run: boolean;
+            /**
+             * Failed
+             * @description Rows with errors; nothing is created for them
+             */
+            failed: number;
+            /**
+             * Ready
+             * @description Rows that are (or would be) imported
+             */
+            ready: number;
+            /** Rows */
+            rows: components["schemas"]["ImportRow"][];
+            /**
+             * Skipped
+             * @description Emails that already have an account
+             */
+            skipped: number;
+            /** Total */
+            total: number;
+        };
+        /** ImportRow */
+        ImportRow: {
+            /** Email */
+            email: string;
+            /** Full Name */
+            full_name: string;
+            /**
+             * Message
+             * @description Why the row is skipped or has an error
+             */
+            message: string | null;
+            /** Role */
+            role: string;
+            /** Roll No */
+            roll_no: string | null;
+            /**
+             * Row
+             * @description Line number in the file (the header is line 1)
+             */
+            row: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "READY" | "IMPORTED" | "SKIPPED" | "ERROR";
         };
         /** InstitutionSettings */
         InstitutionSettings: {
@@ -1511,6 +1597,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminUserView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_users_api_v1_users_import_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportResult"];
                 };
             };
             /** @description Validation Error */

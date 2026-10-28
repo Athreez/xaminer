@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Search } from "lucide-react";
+import { FileUp, Plus, Search } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 
@@ -102,9 +102,16 @@ export function UsersPage() {
         title="Users"
         description="Everyone in your institution. New users get an email to set their password."
         actions={
-          <Button onClick={() => setAdding(true)}>
-            <Plus /> Add user
-          </Button>
+          <>
+            <Button variant="outline" asChild>
+              <Link to="import">
+                <FileUp /> Import CSV
+              </Link>
+            </Button>
+            <Button onClick={() => setAdding(true)}>
+              <Plus /> Add user
+            </Button>
+          </>
         }
       />
 

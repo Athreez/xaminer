@@ -480,6 +480,137 @@
         "title": "HealthResponse",
         "type": "object"
       },
+      "ImportRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "csv": {
+            "description": "The file's text, header row first",
+            "maxLength": 1000000,
+            "title": "Csv",
+            "type": "string"
+          },
+          "dry_run": {
+            "description": "True: only check and report. False: create the users",
+            "title": "Dry Run",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "csv",
+          "dry_run"
+        ],
+        "title": "ImportRequest",
+        "type": "object"
+      },
+      "ImportResult": {
+        "properties": {
+          "dry_run": {
+            "title": "Dry Run",
+            "type": "boolean"
+          },
+          "failed": {
+            "description": "Rows with errors; nothing is created for them",
+            "title": "Failed",
+            "type": "integer"
+          },
+          "ready": {
+            "description": "Rows that are (or would be) imported",
+            "title": "Ready",
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/ImportRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "skipped": {
+            "description": "Emails that already have an account",
+            "title": "Skipped",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "dry_run",
+          "total",
+          "ready",
+          "skipped",
+          "failed",
+          "rows"
+        ],
+        "title": "ImportResult",
+        "type": "object"
+      },
+      "ImportRow": {
+        "properties": {
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "full_name": {
+            "title": "Full Name",
+            "type": "string"
+          },
+          "message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Why the row is skipped or has an error",
+            "title": "Message"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          },
+          "roll_no": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Roll No"
+          },
+          "row": {
+            "description": "Line number in the file (the header is line 1)",
+            "title": "Row",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "READY",
+              "IMPORTED",
+              "SKIPPED",
+              "ERROR"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "row",
+          "email",
+          "full_name",
+          "role",
+          "roll_no",
+          "status",
+          "message"
+        ],
+        "title": "ImportRow",
+        "type": "object"
+      },
       "InstitutionSettings": {
         "properties": {
           "default_consent_text": {
@@ -2048,6 +2179,53 @@
           }
         ],
         "summary": "Create User",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/v1/users/import": {
+      "post": {
+        "description": "Check (`dry_run: true`) or import a CSV of users: email, full name, role, roll no.\n\nRows with errors are reported and not imported; existing emails are skipped. Each imported\nuser gets an invitation email. At most 1 MB and 2,000 users per file.",
+        "operationId": "import_users_api_v1_users_import_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Import Users",
         "tags": [
           "users"
         ]

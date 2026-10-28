@@ -11,7 +11,8 @@ from app.auth.tokens import Principal
 from app.authz.guards import require
 from app.authz.permissions import P
 from app.core.config import Settings
-from app.users import groups, service
+from app.users import csv_import, groups, service
+from app.users.csv_import import ImportRequest, ImportResult
 from app.users.schemas import (
     AddMembersRequest,
     AdminUserView,
@@ -53,6 +54,18 @@ async def create_user(
 ) -> AdminUserView:
     """Create a user and email them an invitation to set their password."""
     return service.view(await service.create_user(db, principal, body, settings.public_base_url))
+
+
+@router.post("/import")
+async def import_users(
+    body: ImportRequest, principal: Admin, db: TenantDB, settings: AppSettings
+) -> ImportResult:
+    """Check (`dry_run: true`) or import a CSV of users: email, full name, role, roll no.
+
+    Rows with errors are reported and not imported; existing emails are skipped. Each imported
+    user gets an invitation email. At most 1 MB and 2,000 users per file.
+    """
+    return await csv_import.import_users(db, principal, body, settings.public_base_url)
 
 
 @router.get("/{user_id}")

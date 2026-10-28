@@ -68,6 +68,10 @@ export const router = createBrowserRouter([
           { index: true, element: <Navigate to="users" replace /> },
           { path: "users", lazy: page(() => import("@/features/admin/UsersPage"), "UsersPage") },
           {
+            path: "users/import",
+            lazy: page(() => import("@/features/admin/ImportUsersPage"), "ImportUsersPage"),
+          },
+          {
             path: "users/:userId",
             lazy: page(() => import("@/features/admin/UserDetailPage"), "UserDetailPage"),
           },
