@@ -15,6 +15,7 @@ from app.audit.service import record
 from app.auth.tokens import Principal
 from app.authz.ownership import get_owned, not_found
 from app.core.errors import AppError
+from app.core.pagination import like_pattern
 from app.users.models import User, UserGroup, UserGroupMember
 from app.users.schemas import GroupDetail, GroupMemberView, GroupView
 
@@ -74,8 +75,7 @@ async def list_groups(session: AsyncSession, q: str | None) -> list[GroupView]:
         .order_by(UserGroup.name)
     )
     if q and q.strip():
-        escaped = q.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-        query = query.where(UserGroup.name.ilike(f"%{escaped}%", escape="\\"))
+        query = query.where(UserGroup.name.ilike(like_pattern(q.strip()), escape="\\"))
     rows = (await session.execute(query)).all()
     return [
         GroupView(id=g.id, name=g.name, member_count=n, created_at=g.created_at) for g, n in rows

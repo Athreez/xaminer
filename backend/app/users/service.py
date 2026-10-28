@@ -5,7 +5,6 @@ deactivating them, ends all their sessions. Emails (invitations, reset links) ar
 after the commit.
 """
 
-import base64
 import uuid
 from datetime import UTC, datetime
 from typing import Any
@@ -21,12 +20,11 @@ from app.auth.models import RefreshToken
 from app.auth.tokens import Principal
 from app.authz.ownership import get_owned
 from app.core.errors import AppError
+from app.core.pagination import MAX_PAGE, decode_cursor, encode_cursor, like_pattern
 from app.notifications.emails import queue_email
 from app.platform.models import Institution
 from app.users.models import User
 from app.users.schemas import AdminUserView, CreateUserRequest, UpdateUserRequest, UserPage
-
-MAX_PAGE = 100
 
 
 def view(user: User, now: datetime | None = None) -> AdminUserView:
@@ -62,17 +60,6 @@ def _clean_email(email: str) -> str:
 
 def _clean_roll_no(roll_no: str | None) -> str | None:
     return (roll_no or "").strip() or None
-
-
-def _encode_cursor(user_id: uuid.UUID) -> str:
-    return base64.urlsafe_b64encode(user_id.bytes).decode().rstrip("=")
-
-
-def _decode_cursor(cursor: str) -> uuid.UUID:
-    try:
-        return uuid.UUID(bytes=base64.urlsafe_b64decode(cursor + "=" * (-len(cursor) % 4)))
-    except ValueError as exc:
-        raise AppError("VALIDATION_FAILED", "Invalid cursor.", status_code=422) from exc
 
 
 async def _check_roll_no_free(session: AsyncSession, roll_no: str | None) -> None:
@@ -150,8 +137,7 @@ async def list_users(
     if status:
         query = query.where(User.status == status)
     if q and q.strip():
-        escaped = q.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-        pattern = f"%{escaped}%"
+        pattern = like_pattern(q.strip())
         query = query.where(
             or_(
                 User.full_name.ilike(pattern, escape="\\"),
@@ -160,13 +146,13 @@ async def list_users(
             )
         )
     if cursor:
-        query = query.where(User.id < _decode_cursor(cursor))  # ids are time-ordered (UUIDv7)
+        query = query.where(User.id < decode_cursor(cursor))  # ids are time-ordered (UUIDv7)
     rows = list(await session.scalars(query))
     page, more = rows[:limit], len(rows) > limit
     now = datetime.now(UTC)
     return UserPage(
         data=[view(user, now) for user in page],
-        next_cursor=_encode_cursor(page[-1].id) if more and page else None,
+        next_cursor=encode_cursor(page[-1].id) if more and page else None,
     )
 
 

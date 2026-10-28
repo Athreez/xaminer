@@ -4,6 +4,46 @@
  */
 
 export interface paths {
+    "/api/v1/audit-logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search Audit Log
+         * @description The institution's audit log, newest first.
+         */
+        get: operations["search_audit_log_api_v1_audit_logs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/audit-logs/actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Actions
+         * @description Every action name that appears in this institution's log, for the filter menu.
+         */
+        get: operations["list_actions_api_v1_audit_logs_actions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/invite/accept": {
         parameters: {
             query?: never;
@@ -499,6 +539,61 @@ export interface components {
              */
             status: "INVITED" | "ACTIVE" | "DEACTIVATED";
         };
+        /** AuditActor */
+        AuditActor: {
+            /** Email */
+            email: string;
+            /** Full Name */
+            full_name: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+        };
+        /** AuditEntry */
+        AuditEntry: {
+            /** Action */
+            action: string;
+            /** @description Null for the system or someone not logged in */
+            actor: components["schemas"]["AuditActor"] | null;
+            /**
+             * Actor Role
+             * @description Role at the time, or PLATFORM for the CLI
+             */
+            actor_role: string | null;
+            /** Changes */
+            changes: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Ip */
+            ip: string | null;
+            /** Request Id */
+            request_id: string | null;
+            /** Target Id */
+            target_id: string | null;
+            /** Target Type */
+            target_type: string | null;
+            /** User Agent */
+            user_agent: string | null;
+        };
+        /** AuditPage */
+        AuditPage: {
+            /** Data */
+            data: components["schemas"]["AuditEntry"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
         /** CreateUserRequest */
         CreateUserRequest: {
             /** Email */
@@ -737,6 +832,70 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    search_audit_log_api_v1_audit_logs_get: {
+        parameters: {
+            query?: {
+                /** @description Who did it */
+                actor_id?: string | null;
+                /** @description Exact action, or a prefix ending in "." like "user." */
+                action?: string | null;
+                /** @description e.g. user */
+                target_type?: string | null;
+                /** @description The item acted on */
+                target_id?: string | null;
+                /** @description Inclusive */
+                from?: string | null;
+                /** @description Exclusive */
+                to?: string | null;
+                limit?: number;
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_actions_api_v1_audit_logs_actions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string[];
+                };
+            };
+        };
+    };
     accept_invitation_api_v1_auth_invite_accept_post: {
         parameters: {
             query?: never;
