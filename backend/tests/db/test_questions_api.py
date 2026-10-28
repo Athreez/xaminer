@@ -293,6 +293,56 @@ async def test_shared_questions_can_be_read_and_copied_not_changed(
     assert row.changes == {"from_question": q["id"], "from_version": 1}
 
 
+async def test_sharing_rules(client: TestClient, world: World) -> None:
+    """ACC-04: Private is owner only; Institution is view and copy for colleagues, never edit."""
+    owner, colleague = await world.user(), await world.user()
+    outsider = await world.user(college=await world.other_college())
+    q = create(client, owner, visibility="INSTITUTION")
+    url = f"{URL}/{q['id']}"
+
+    # Shared: the colleague sees the full question, answer key included (they may use it).
+    seen = client.get(url, headers=colleague).json()
+    assert seen["version"]["options"][0]["is_correct"] is True
+    # Another college never sees it, shared or not.
+    assert client.get(url, headers=outsider).status_code == 404
+    assert client.post(f"{url}/copy", headers=outsider).status_code == 404
+    assert client.get(URL, headers=outsider).json()["data"] == []
+
+    # A copy is independent: editing it leaves the original alone, and the other way round.
+    copy = client.post(f"{url}/copy", headers=colleague).json()
+    client.patch(f"{URL}/{copy['id']}", json={"body": "Colleague's wording"}, headers=colleague)
+    client.patch(url, json={"body": "Owner's wording"}, headers=owner)
+    assert client.get(url, headers=owner).json()["version"]["body"] == "Owner's wording"
+    assert (
+        client.get(f"{URL}/{copy['id']}", headers=colleague).json()["version"]["body"]
+        == "Colleague's wording"
+    )
+    # The copy is private to the colleague.
+    assert client.get(f"{URL}/{copy['id']}", headers=owner).status_code == 404
+
+    # Making it private again hides it from the colleague at once.
+    client.patch(url, json={"visibility": "PRIVATE"}, headers=owner)
+    assert client.get(url, headers=colleague).status_code == 404
+    assert client.post(f"{url}/copy", headers=colleague).status_code == 404
+    assert q["id"] not in [x["id"] for x in client.get(URL, headers=colleague).json()["data"]]
+
+
+async def test_archived_shared_questions_leave_colleagues_lists(
+    client: TestClient, world: World
+) -> None:
+    owner, colleague = await world.user(), await world.user()
+    q = create(client, owner, visibility="INSTITUTION")
+    client.post(f"{URL}/{q['id']}/archive", headers=owner)
+
+    def ids(headers: dict[str, str], **params: str) -> list[str]:
+        return [x["id"] for x in client.get(URL, params=params, headers=headers).json()["data"]]
+
+    assert ids(colleague) == [] and ids(colleague, archived="true") == []
+    assert ids(owner, archived="true") == [q["id"]]
+    # Still readable by id: exams that use it must keep working.
+    assert client.get(f"{URL}/{q['id']}", headers=colleague).status_code == 200
+
+
 async def test_archive_and_restore(client: TestClient, world: World) -> None:
     me = await world.user()
     q = create(client, me)

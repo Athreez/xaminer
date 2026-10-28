@@ -70,7 +70,11 @@ def _readable(principal: Principal):  # type: ignore[no-untyped-def]
 async def get_readable(
     session: AsyncSession, principal: Principal, question_id: uuid.UUID
 ) -> Question:
-    """Own questions and those shared with the institution; anything else is 404."""
+    """Own questions and those shared with the institution; anything else is 404.
+
+    ACC-04 also lets colleagues use shared questions in exams: exam composition (TCK-0503) must
+    load questions through this function too.
+    """
     return await get_owned(session, Question, question_id, principal, owned=_readable(principal))
 
 
@@ -175,9 +179,11 @@ async def list_questions(
     mine = Question.owner_id == principal.user_id
     shared = (Question.visibility == "INSTITUTION") & (Question.owner_id != principal.user_id)
     query = query.where({"mine": mine, "shared": shared}.get(owner, or_(mine, shared)))
-    query = query.where(
-        Question.archived_at.is_not(None) if archived else Question.archived_at.is_(None)
-    )
+    if archived:
+        # Archiving is the owner hiding a question, so only your own archive is listed.
+        query = query.where(Question.archived_at.is_not(None), mine)
+    else:
+        query = query.where(Question.archived_at.is_(None))
     if type:
         query = query.where(Question.type == type)
     if tag and tag.strip():
