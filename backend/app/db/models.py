@@ -4,6 +4,7 @@ from app.audit.models import AuditLog
 from app.auth.models import AuthToken, RefreshToken
 from app.db.base import Base
 from app.platform.models import Institution, Language
+from app.questions.models import Question, QuestionOption, QuestionVersion
 from app.users.models import User, UserGroup, UserGroupMember
 
 __all__ = [
@@ -12,6 +13,9 @@ __all__ = [
     "Base",
     "Institution",
     "Language",
+    "Question",
+    "QuestionOption",
+    "QuestionVersion",
     "RefreshToken",
     "User",
     "UserGroup",
