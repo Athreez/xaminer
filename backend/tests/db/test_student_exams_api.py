@@ -22,8 +22,11 @@ from cli import commands
 from tests.db.api_helpers import SECRET, make_settings
 from tests.db.question_helpers import purge_institutions
 
-NOW = datetime.now(UTC)
 URL = "/api/v1/student/exams"
+
+
+def now() -> datetime:
+    return datetime.now(UTC)
 
 
 def bearer(user: User, institution: Institution) -> dict[str, str]:
@@ -51,7 +54,7 @@ class World:
         publish: bool = True,
     ) -> str:
         """An exam built and published through the API, then moved to the given window."""
-        future = NOW + timedelta(days=5)
+        future = datetime.now(UTC) + timedelta(days=5)
         exam = self.client.post(
             "/api/v1/exams",
             json={
@@ -91,7 +94,8 @@ class World:
             await s.execute(
                 update(Exam)
                 .where(Exam.id == uuid.UUID(exam_id))
-                .values(open_at=NOW + opens, close_at=NOW + closes, **values)
+                # Relative to the moment of the call: a long test run must not shift windows.
+                .values(open_at=now() + opens, close_at=now() + closes, **values)
             )
             await s.commit()
 
@@ -104,8 +108,8 @@ class World:
                     exam_id=exam.id,
                     exam_version_id=exam.published_version_id,
                     student_id=self.student.id,
-                    started_at=NOW - timedelta(minutes=10),
-                    deadline_at=NOW + timedelta(minutes=50),
+                    started_at=now() - timedelta(minutes=10),
+                    deadline_at=now() + timedelta(minutes=50),
                     shuffle_seed=1,
                     **values,
                 )
@@ -153,7 +157,7 @@ async def test_sections_and_states(world: World) -> None:
     await world.attempt(resume)
     done = world.exam("Done", -hour, 2 * hour)
     await world.move(done, -hour, 2 * hour)
-    await world.attempt(done, status="SUBMITTED", submitted_at=NOW)
+    await world.attempt(done, status="SUBMITTED", submitted_at=now())
     world.exam("Draft", -hour, 2 * hour, publish=False)  # never shown
     world.exam("Someone else's", -hour, 2 * hour, assign=False)  # never shown
 
@@ -182,7 +186,7 @@ async def test_archived_exams_stay_only_if_taken(world: World) -> None:
     hour = timedelta(hours=1)
     taken = world.exam("Taken then archived", -hour, 2 * hour)
     await world.move(taken, -3 * hour, -hour, status="ARCHIVED")
-    await world.attempt(taken, status="SUBMITTED", submitted_at=NOW)
+    await world.attempt(taken, status="SUBMITTED", submitted_at=now())
     untaken = world.exam("Archived, not taken", -hour, 2 * hour)
     await world.move(untaken, -3 * hour, -hour, status="ARCHIVED")
     body = world.client.get(URL, headers=world.me).json()
