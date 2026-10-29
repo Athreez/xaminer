@@ -1,4 +1,5 @@
 import logging
+import time
 from collections.abc import Iterator
 
 import pytest
@@ -57,8 +58,14 @@ def test_task_round_trip_through_redis(live_app: Celery, caplog: pytest.LogCaptu
     assert reply["reply"] == "pong"
     assert reply["echo"] == marker
 
-    # Neither the task arguments nor its return value may appear in any log line.
+    # Neither the task arguments nor its return value may appear in any log line. The worker logs
+    # "succeeded" just after storing the result, so give that line a moment to arrive.
     formatter = JsonFormatter()
-    lines = [formatter.format(r) for r in caplog.records]
+    deadline = time.monotonic() + 5
+    while True:
+        lines = [formatter.format(r) for r in caplog.records]
+        if any("succeeded" in line for line in lines) or time.monotonic() > deadline:
+            break
+        time.sleep(0.05)
     assert any("succeeded" in line for line in lines)
     assert not any(marker in line for line in lines)
