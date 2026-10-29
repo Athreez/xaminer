@@ -122,7 +122,10 @@ def run_job(job: ExecJob, sandbox: Sandbox, bundles: BundleCache) -> ExecResult:
         limits = Limits(time_ms=job.time_limit_ms, memory_mb=job.memory_limit_mb)
         image = job.language.image
         result = ExecResult(
-            job_id=job.job_id, status="COMPLETED", image_digest=sandbox.image_id(image)
+            job_id=job.job_id,
+            kind=job.kind,
+            status="COMPLETED",
+            image_digest=sandbox.image_id(image),
         )
         with sandbox.workspace() as workspace:
             files = {job.language.source_filename: job.source.encode()}
@@ -136,7 +139,9 @@ def run_job(job: ExecJob, sandbox: Sandbox, bundles: BundleCache) -> ExecResult:
                 result.cases.append(CaseResult(name=case.name, **_step(outcome).model_dump()))
         return result
     except JobError as error:
-        return ExecResult(job_id=job.job_id, status="FAILED", error=str(error))
+        return ExecResult(job_id=job.job_id, kind=job.kind, status="FAILED", error=str(error))
     except Exception as error:  # the engine, a volume, the network: never the student's fault
         logger.exception("execution job failed", extra={"job_id": job.job_id})
-        return ExecResult(job_id=job.job_id, status="FAILED", error=type(error).__name__)
+        return ExecResult(
+            job_id=job.job_id, kind=job.kind, status="FAILED", error=type(error).__name__
+        )

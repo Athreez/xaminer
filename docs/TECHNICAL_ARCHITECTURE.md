@@ -298,6 +298,9 @@ IntegrityOutcome       PENDING_REVIEW | NO_CONCERNS | CONCERNS_CONFIRMED
 | `coding_evaluation` | submission_id, evaluation_no, verdict, passed_weight, total_weight, score, max_score, compile_output, image_digest, evaluated_at | A re-evaluation adds a new row |
 | `test_case_result` | evaluation_id, test_case_id, outcome, time_ms, memory_kb, stdout (truncated), stderr (truncated) | Powers per-test-case pass rates |
 
+An evaluation (or a code run) is one execution job; its id is the job id. It starts `QUEUED`, and the result
+consumer only applies a result to a `QUEUED` row, so a repeated result changes nothing.
+
 `code_run` and `coding_submission` are separate tables on purpose: different rules, different lifetimes,
 and mixing them is how hidden tests leak or debug runs get graded.
 

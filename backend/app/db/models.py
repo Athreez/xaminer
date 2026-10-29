@@ -6,6 +6,7 @@ from app.audit.models import AuditLog
 from app.auth.models import AuthToken, RefreshToken
 from app.db.base import Base
 from app.exams.models import Exam, ExamAssignment, ExamQuestion, ExamVersion
+from app.execution.models import CodeRun, CodingEvaluation, CodingSubmission, TestCaseResult
 from app.platform.models import Institution, Language
 from app.questions.models import (
     CodingConfig,
@@ -24,7 +25,10 @@ __all__ = [
     "AuthToken",
     "Base",
     "CodeDraft",
+    "CodeRun",
     "CodingConfig",
+    "CodingEvaluation",
+    "CodingSubmission",
     "Exam",
     "ExamAssignment",
     "ExamAttempt",
@@ -38,6 +42,7 @@ __all__ = [
     "ReferenceSolution",
     "RefreshToken",
     "TestCase",
+    "TestCaseResult",
     "User",
     "UserGroup",
     "UserGroupMember",

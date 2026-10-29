@@ -58,6 +58,7 @@ class CaseResult(StepResult):
 
 class ExecResult(BaseModel):
     job_id: str
+    kind: Literal["validation", "run", "submit"]
     status: Literal["COMPLETED", "FAILED"]  # FAILED: the platform failed, never the student
     error: str | None = None
     image_digest: str | None = None

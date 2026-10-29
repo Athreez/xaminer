@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from app.attempts.models import Answer, AttemptQuestion, CodeDraft, ExamAttempt
 from app.auth.models import AuthToken, RefreshToken
 from app.exams.models import Exam, ExamAssignment, ExamQuestion, ExamVersion
+from app.execution.models import CodeRun, CodingEvaluation, CodingSubmission, TestCaseResult
 from app.platform.models import Institution
 from app.questions.models import Question, QuestionOption, QuestionVersion
 from app.users.models import User, UserGroup, UserGroupMember
@@ -59,6 +60,10 @@ async def purge_queued(migrator_engine: AsyncEngine) -> None:
             update(Question).where(Question.institution_id.in_(ids)).values(current_version_id=None)
         )
         for model in (
+            TestCaseResult,
+            CodingEvaluation,
+            CodingSubmission,
+            CodeRun,
             CodeDraft,
             Answer,
             AttemptQuestion,

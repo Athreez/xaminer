@@ -20,7 +20,12 @@ TABLE = {
     "app/questions/bundles.py",  # packs every case for the exec-worker
 }
 # May read hidden test cases.
-READERS = {"app/questions/test_cases.py", "app/questions/coding.py", "app/questions/bundles.py"}
+READERS = {
+    "app/questions/test_cases.py",
+    "app/questions/coding.py",
+    "app/questions/bundles.py",
+    "app/execution/results.py",  # compares outputs with every expected one, to grade
+}
 # Build what students receive: must never get near hidden cases.
 STUDENT_FACING = {
     "app/questions/student_view.py",

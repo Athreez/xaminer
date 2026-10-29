@@ -4,11 +4,14 @@ import smtplib
 import uuid
 from datetime import UTC, datetime
 from email.message import EmailMessage
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from celery import shared_task
 
 from app.core.config import get_settings
+
+if TYPE_CHECKING:
+    from workers.exec_messages import ExecResult
 
 logger = logging.getLogger(__name__)
 
@@ -105,18 +108,20 @@ async def _build_bundle(version_id: uuid.UUID) -> str | None:
 
 @shared_task(name="exec.result")
 def receive_execution_result(result: dict[str, Any]) -> None:
-    """Raw results from exec-worker. Comparing, scoring and saving arrive with TCK-0806; until then
-    the result is checked and summed up in the log (no outputs or code in logs)."""
+    """Raw results from exec-worker: compare, score and save them (TCK-0806). Safe to repeat: a
+    result whose job is no longer QUEUED is ignored."""
     from workers.exec_messages import ExecResult
 
-    parsed = ExecResult.model_validate(result)
-    logger.info(
-        "execution result received",
-        extra={
-            "job_id": parsed.job_id,
-            "status": parsed.status,
-            "compiled": parsed.compiled,
-            "cases": len(parsed.cases),
-            "timed_out": sum(c.timed_out for c in parsed.cases),
-        },
-    )
+    asyncio.run(_apply_result(ExecResult.model_validate(result)))
+
+
+async def _apply_result(result: "ExecResult") -> None:
+    import app.db.models  # noqa: F401  (every table, so foreign keys resolve)
+    from app.db.session import create_engine, create_session_factory
+    from app.execution.results import handle
+
+    engine = create_engine(get_settings().database_url("app"))
+    try:
+        await handle(create_session_factory(engine), result)
+    finally:
+        await engine.dispose()
