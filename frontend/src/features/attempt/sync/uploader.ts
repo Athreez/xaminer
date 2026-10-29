@@ -108,6 +108,11 @@ export class Uploader {
     return this.unsent === 0;
   }
 
+  /** The connection is back (the browser said so): skip the rest of the backoff. */
+  retryNow(): void {
+    this.nextTryAt = 0;
+  }
+
   /** When the next attempt is due after a failure (0 when it may go now). */
   retryAt(): number {
     return this.nextTryAt;

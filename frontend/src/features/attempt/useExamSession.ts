@@ -212,7 +212,12 @@ export function useExamSession(view: AttemptView, clock: ServerClock): ExamSessi
   }, [attemptId, view.deadline_at, clock, failed, reached]);
 
   useEffect(() => {
-    const up = () => setOnline(true);
+    const up = () => {
+      setOnline(true);
+      // Send at once instead of waiting out the backoff (up to 30 s).
+      tools.current?.uploader.retryNow();
+      void flush();
+    };
     const down = () => setOnline(false);
     window.addEventListener("online", up);
     window.addEventListener("offline", down);
@@ -220,7 +225,7 @@ export function useExamSession(view: AttemptView, clock: ServerClock): ExamSessi
       window.removeEventListener("online", up);
       window.removeEventListener("offline", down);
     };
-  }, []);
+  }, [flush]);
 
   // While anything is unsent, closing the tab asks first (§ 6.3).
   useEffect(() => {
