@@ -396,6 +396,22 @@ def _managed_attempt_url(suffix: str) -> Callable[[World], Awaitable[str]]:
     return setup
 
 
+def _draft_with_question_url(suffix: str) -> Callable[[World], Awaitable[str]]:
+    """A draft exam of `world.owner` (a teacher) with one question in it."""
+
+    async def setup(world: World) -> str:
+        question = await _question(world)
+        async with tenant_session(world.factory, world.owner.institution_id) as s:
+            exam = Exam(owner_id=world.owner.id, title="Draft to preview")
+            s.add(exam)
+            await s.flush()
+            s.add(ExamQuestion(exam_id=exam.id, question_id=question.id, order_index=0))
+            await s.commit()
+            return f"/api/v1/exams/{exam.id}{suffix}"
+
+    return setup
+
+
 USERS = "/api/v1/users/{user_id}"
 EXAMS = "/api/v1/exams/{exam_id}"
 QUESTIONS = "/api/v1/questions/{question_id}"
@@ -443,6 +459,11 @@ OWNED_ROUTES: list[OwnedRoute] = [
     ),
     OwnedRoute(f"GET {EXAMS}/student-choices", "TEACHER", _exam_url("/student-choices")),
     OwnedRoute(f"GET {EXAMS}/publish-check", "TEACHER", _exam_url("/publish-check")),
+    OwnedRoute(
+        f"POST {EXAMS}/preview-attempt",
+        "TEACHER",
+        _draft_with_question_url("/preview-attempt"),
+    ),
     OwnedRoute(f"POST {EXAMS}/publish", "TEACHER", _publishable_exam_url, per_caller=True),
     OwnedRoute(
         f"PUT {EXAMS}/questions", "TEACHER", _exam_url("/questions"), body={"questions": []}

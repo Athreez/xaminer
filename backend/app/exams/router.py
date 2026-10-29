@@ -6,6 +6,8 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, status
 
+from app.attempts import preview as previews
+from app.attempts.attempt import AttemptView
 from app.auth.dependencies import TenantDB
 from app.auth.tokens import Principal
 from app.authz.guards import require
@@ -23,6 +25,7 @@ from app.exams.assignments import (
 from app.exams.composition import ExamQuestions, ExamQuestionsIn
 from app.exams.publish_check import PublishCheck
 from app.exams.schemas import AdminExamPage, ExamCreate, ExamPage, ExamStatus, ExamUpdate, ExamView
+from app.images.router import AppStorage
 
 router = APIRouter(prefix="/exams", tags=["exams"])
 admin_router = APIRouter(prefix="/admin/exams", tags=["exams"])
@@ -138,6 +141,15 @@ async def publish_exam(exam_id: uuid.UUID, principal: Author, db: TenantDB) -> E
     passes. Pins and locks question versions and freezes the exam. Afterwards only the window's
     end and the assignments can change."""
     return await service.view(db, await publishing.publish(db, principal, exam_id))
+
+
+@router.post("/{exam_id}/preview-attempt")
+async def preview_attempt(
+    exam_id: uuid.UUID, principal: Author, db: TenantDB, storage: AppStorage
+) -> AttemptView:
+    """Take your own exam as a student would (draft or published). Replaces your previous
+    preview. Previews never count in results. Continue it with the usual /attempts endpoints."""
+    return await previews.start_preview(db, principal, exam_id, storage)
 
 
 @admin_router.get("")

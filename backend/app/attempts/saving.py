@@ -16,12 +16,12 @@ from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.attempts.attempt import snapshot_of
 from app.attempts.models import MAX_TEXT_ANSWER, Answer, AttemptQuestion, CodeDraft, ExamAttempt
 from app.attempts.submit import finalize_if_overdue
 from app.auth.tokens import Principal
 from app.authz.ownership import get_owned, not_found
 from app.core.errors import AppError
-from app.exams.models import ExamVersion
 from app.platform.models import Language
 from domain_core import timer
 
@@ -110,9 +110,7 @@ async def _open_attempt(
             "Time is up: answers can't be changed any more.",
             status_code=409,
         )
-    version = await session.get(ExamVersion, attempt.exam_version_id)
-    if version is None:
-        raise not_found()
+    snapshot = await snapshot_of(session, attempt)
     # Only questions in this attempt (the order rows) can be answered.
     in_attempt = {
         str(eq)
@@ -122,7 +120,7 @@ async def _open_attempt(
     }
     questions = {
         q["exam_question_id"]: q
-        for q in version.snapshot["questions"]
+        for q in snapshot["questions"]
         if q["exam_question_id"] in in_attempt
     }
     return attempt, questions

@@ -142,7 +142,7 @@ async def start(
     fresh = await session.get(ExamVersion, attempt.exam_version_id, populate_existing=True)
     if fresh is None:
         raise not_found()
-    return await view(session, attempt, fresh, storage, now)
+    return await view(session, attempt, fresh.snapshot, storage, now)
 
 
 async def _create(
@@ -150,7 +150,6 @@ async def _create(
 ) -> ExamAttempt:
     if exam.close_at is None or exam.duration_min is None:  # checked by the caller already
         raise AppError("INTERNAL_ERROR", "A published exam has no schedule.", status_code=500)
-    settings = version.snapshot["settings"]
     exam_id, student_id = exam.id, principal.user_id  # kept: a rollback below expires the objects
     attempt = ExamAttempt(
         exam_id=exam.id,
@@ -171,7 +170,25 @@ async def _create(
             raise
         return winner
 
-    questions = version.snapshot["questions"]
+    write_order(session, attempt, version.snapshot)
+    record(
+        session,
+        "attempt.started",
+        institution_id=principal.institution_id,
+        actor_id=principal.user_id,
+        actor_role=principal.role,
+        target_type="attempt",
+        target_id=attempt.id,
+        changes={"exam_id": str(exam.id), "deadline_at": attempt.deadline_at.isoformat()},
+    )
+    await session.commit()
+    return attempt
+
+
+def write_order(session: AsyncSession, attempt: ExamAttempt, snapshot: dict[str, Any]) -> None:
+    """This attempt's question order and option orders (shuffled if the exam says so, ATT-05)."""
+    settings = snapshot["settings"]
+    questions = snapshot["questions"]
     if settings["shuffle_questions"]:
         questions = shuffle.shuffled(
             attempt.shuffle_seed, questions, key=lambda q: q["exam_question_id"]
@@ -190,28 +207,25 @@ async def _create(
                 option_order=option_order,
             )
         )
-    record(
-        session,
-        "attempt.started",
-        institution_id=principal.institution_id,
-        actor_id=principal.user_id,
-        actor_role=principal.role,
-        target_type="attempt",
-        target_id=attempt.id,
-        changes={"exam_id": str(exam.id), "deadline_at": attempt.deadline_at.isoformat()},
-    )
-    await session.commit()
-    return attempt
+
+
+async def snapshot_of(session: AsyncSession, attempt: ExamAttempt) -> dict[str, Any]:
+    """The frozen exam this attempt was taken from: the published version, or a preview's copy."""
+    if attempt.preview_snapshot is not None:
+        return attempt.preview_snapshot
+    version = await session.get(ExamVersion, attempt.exam_version_id)
+    if version is None:
+        raise not_found()
+    return version.snapshot
 
 
 async def view(
     session: AsyncSession,
     attempt: ExamAttempt,
-    version: ExamVersion,
+    snapshot: dict[str, Any],
     storage: Storage,
     now: datetime,
 ) -> AttemptView:
-    snapshot = version.snapshot
     by_id = {q["exam_question_id"]: q for q in snapshot["questions"]}
     order = list(
         await session.scalars(
@@ -289,7 +303,4 @@ async def resume(
         raise _refuse(
             "ALREADY_SUBMITTED", "You have already submitted this exam.", attempt_id=str(attempt.id)
         )
-    version = await session.get(ExamVersion, attempt.exam_version_id)
-    if version is None:
-        raise not_found()
-    return await view(session, attempt, version, storage, now)
+    return await view(session, attempt, await snapshot_of(session, attempt), storage, now)

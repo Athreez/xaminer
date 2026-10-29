@@ -49,33 +49,15 @@ def content_hash(snapshot: dict[str, Any]) -> str:
     return hashlib.sha256(canonical.encode()).hexdigest()
 
 
-async def publish(session: AsyncSession, principal: Principal, exam_id: uuid.UUID) -> Exam:
-    exam = await get_owned(
-        session, Exam, exam_id, principal, owned=lambda e: e.owner_id == principal.user_id
-    )
-    # Lock the exam row: a second click (or tab) waits here, then sees it's no longer a draft.
-    await session.execute(select(Exam.id).where(Exam.id == exam.id).with_for_update())
-    await session.refresh(exam)
+async def build_snapshot(
+    session: AsyncSession, exam: Exam, *, publishing: bool
+) -> tuple[dict[str, Any], int]:
+    """The exam as students will see it, frozen: settings, consent text and every question with
+    its options, answer keys and marks. Returns the snapshot and the number of questions.
 
-    result = await publish_check.check(session, exam)
-    if not result.can_publish:
-        raise AppError(
-            "PUBLISH_BLOCKED",
-            result.blocks[0].message
-            if len(result.blocks) == 1
-            else f"{len(result.blocks)} things need fixing before publishing.",
-            status_code=409,
-            details=[
-                {
-                    "field": b.field or "exam",
-                    "message": b.message,
-                    "type": b.code,
-                    "question_id": str(b.question_id) if b.question_id else None,
-                }
-                for b in result.blocks
-            ],
-        )
-
+    `publishing`: also pin each question to this version and lock the versions (no edits after),
+    reading them under a lock. A teacher's preview builds the same snapshot without either.
+    """
     rows = (
         await session.execute(
             select(ExamQuestion, Question)
@@ -85,13 +67,11 @@ async def publish(session: AsyncSession, principal: Principal, exam_id: uuid.UUI
         )
     ).all()
     version_ids = [q.current_version_id for _, q in rows]
-    # Lock the versions while reading them, so an edit can't slip in between snapshot and lock.
-    versions = {
-        v.id: v
-        for v in await session.scalars(
-            select(QuestionVersion).where(QuestionVersion.id.in_(version_ids)).with_for_update()
-        )
-    }
+    query = select(QuestionVersion).where(QuestionVersion.id.in_(version_ids))
+    if publishing:
+        # Lock the versions while reading them, so an edit can't slip in between snapshot and lock.
+        query = query.with_for_update()
+    versions = {v.id: v for v in await session.scalars(query)}
     options: dict[uuid.UUID, list[QuestionOption]] = {vid: [] for vid in version_ids}  # type: ignore[misc]
     for option in await session.scalars(
         select(QuestionOption)
@@ -104,7 +84,8 @@ async def publish(session: AsyncSession, principal: Principal, exam_id: uuid.UUI
     total = Decimal(0)
     for eq, question in rows:
         v = versions[question.current_version_id]  # type: ignore[index]
-        eq.pinned_version_id = v.id
+        if publishing:
+            eq.pinned_version_id = v.id
         points = eq.points if eq.points is not None else v.points
         total += points
         questions.append(
@@ -128,11 +109,12 @@ async def publish(session: AsyncSession, principal: Principal, exam_id: uuid.UUI
                 ],
             }
         )
-    await session.execute(
-        update(QuestionVersion)
-        .where(QuestionVersion.id.in_(version_ids), QuestionVersion.is_locked.is_(False))
-        .values(is_locked=True)
-    )
+    if publishing:
+        await session.execute(
+            update(QuestionVersion)
+            .where(QuestionVersion.id.in_(version_ids), QuestionVersion.is_locked.is_(False))
+            .values(is_locked=True)
+        )
 
     consent = exam.consent_text
     if exam.proctoring_mode != "OFF" and not consent:
@@ -164,6 +146,37 @@ async def publish(session: AsyncSession, principal: Principal, exam_id: uuid.UUI
             "questions": questions,
         }
     )
+    return snapshot, len(questions)
+
+
+async def publish(session: AsyncSession, principal: Principal, exam_id: uuid.UUID) -> Exam:
+    exam = await get_owned(
+        session, Exam, exam_id, principal, owned=lambda e: e.owner_id == principal.user_id
+    )
+    # Lock the exam row: a second click (or tab) waits here, then sees it's no longer a draft.
+    await session.execute(select(Exam.id).where(Exam.id == exam.id).with_for_update())
+    await session.refresh(exam)
+
+    result = await publish_check.check(session, exam)
+    if not result.can_publish:
+        raise AppError(
+            "PUBLISH_BLOCKED",
+            result.blocks[0].message
+            if len(result.blocks) == 1
+            else f"{len(result.blocks)} things need fixing before publishing.",
+            status_code=409,
+            details=[
+                {
+                    "field": b.field or "exam",
+                    "message": b.message,
+                    "type": b.code,
+                    "question_id": str(b.question_id) if b.question_id else None,
+                }
+                for b in result.blocks
+            ],
+        )
+
+    snapshot, question_count = await build_snapshot(session, exam, publishing=True)
     latest = await session.scalar(
         select(func.max(ExamVersion.version_no)).where(ExamVersion.exam_id == exam.id)
     )
@@ -188,7 +201,7 @@ async def publish(session: AsyncSession, principal: Principal, exam_id: uuid.UUI
         changes={
             "version_no": version.version_no,
             "content_hash": version.content_hash,
-            "questions": len(questions),
+            "questions": question_count,
         },
     )
     await session.commit()

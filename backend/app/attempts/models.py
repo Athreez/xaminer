@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime
 from decimal import Decimal
+from typing import Any
 
 from sqlalchemy import (
     BigInteger,
@@ -17,7 +18,7 @@ from sqlalchemy import (
     func,
     text,
 )
-from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, IdMixin, TenantMixin, TimestampMixin
@@ -41,6 +42,11 @@ class ExamAttempt(IdMixin, TenantMixin, TimestampMixin, Base):
             "status NOT IN ('SUBMITTED', 'AUTO_SUBMITTED') OR submitted_at IS NOT NULL",
             name="submitted_has_time",
         ),
+        CheckConstraint(
+            "(exam_version_id IS NULL) <> (preview_snapshot IS NULL)"
+            " AND (preview_snapshot IS NULL OR is_preview)",
+            name="one_exam_copy",
+        ),
         # ATT-02: one attempt per student per exam, unless voided. Two simultaneous "Start"
         # requests: the second insert fails here and the API returns the first attempt.
         Index(
@@ -60,9 +66,13 @@ class ExamAttempt(IdMixin, TenantMixin, TimestampMixin, Base):
     )
 
     exam_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("exam.id", ondelete="RESTRICT"))
-    exam_version_id: Mapped[uuid.UUID] = mapped_column(
+    # A student's attempt uses the published version. A teacher's preview of a draft has no
+    # published version, so it carries its own frozen copy instead (exactly one of the two).
+    exam_version_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("exam_version.id", ondelete="RESTRICT")
     )
+    # none_as_null: Python None must be SQL NULL, not the JSON value null (the check counts it).
+    preview_snapshot: Mapped[dict[str, Any] | None] = mapped_column(JSONB(none_as_null=True))
     student_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("user.id", ondelete="RESTRICT"), index=True
     )
