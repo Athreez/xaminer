@@ -435,6 +435,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/questions/{question_id}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Preview Question
+         * @description The question exactly as a student sees it: no answer key, no rubric.
+         */
+        get: operations["preview_question_api_v1_questions__question_id__preview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/questions/{question_id}/restore": {
         parameters: {
             query?: never;
@@ -1149,6 +1169,62 @@ export interface components {
             password: string;
             /** Token */
             token: string;
+        };
+        /** StudentOption */
+        StudentOption: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Label */
+            label: string;
+        };
+        /**
+         * StudentQuestion
+         * @description A question as shown in an exam. Never includes answer keys or the rubric.
+         */
+        StudentQuestion: {
+            /**
+             * Body
+             * @description Markdown; image links are signed
+             */
+            body: string;
+            /**
+             * Id
+             * Format: uuid
+             * @description The question version shown
+             */
+            id: string;
+            /**
+             * Max Answer Length
+             * @description Descriptive answers: character limit
+             */
+            max_answer_length: number | null;
+            /**
+             * Msq Scoring
+             * @description How a multiple-select answer is marked
+             */
+            msq_scoring: ("ALL_OR_NOTHING" | "PARTIAL") | null;
+            /**
+             * Multiple Answers
+             * @description True for multiple-select: tick all that apply
+             */
+            multiple_answers: boolean;
+            /** Negative Marks */
+            negative_marks: string;
+            /**
+             * Options
+             * @description In the order to show them
+             */
+            options: components["schemas"]["StudentOption"][];
+            /** Points */
+            points: string;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "MCQ" | "MSQ" | "TRUE_FALSE" | "DESCRIPTIVE" | "CODING";
         };
         /**
          * TokenRequest
@@ -2107,6 +2183,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["QuestionView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_question_api_v1_questions__question_id__preview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                question_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentQuestion"];
                 };
             };
             /** @description Validation Error */

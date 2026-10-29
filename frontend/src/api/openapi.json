@@ -1323,6 +1323,114 @@
         "title": "SetPasswordRequest",
         "type": "object"
       },
+      "StudentOption": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label"
+        ],
+        "title": "StudentOption",
+        "type": "object"
+      },
+      "StudentQuestion": {
+        "description": "A question as shown in an exam. Never includes answer keys or the rubric.",
+        "properties": {
+          "body": {
+            "description": "Markdown; image links are signed",
+            "title": "Body",
+            "type": "string"
+          },
+          "id": {
+            "description": "The question version shown",
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "max_answer_length": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Descriptive answers: character limit",
+            "title": "Max Answer Length"
+          },
+          "msq_scoring": {
+            "anyOf": [
+              {
+                "enum": [
+                  "ALL_OR_NOTHING",
+                  "PARTIAL"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "How a multiple-select answer is marked",
+            "title": "Msq Scoring"
+          },
+          "multiple_answers": {
+            "description": "True for multiple-select: tick all that apply",
+            "title": "Multiple Answers",
+            "type": "boolean"
+          },
+          "negative_marks": {
+            "title": "Negative Marks",
+            "type": "string"
+          },
+          "options": {
+            "description": "In the order to show them",
+            "items": {
+              "$ref": "#/components/schemas/StudentOption"
+            },
+            "title": "Options",
+            "type": "array"
+          },
+          "points": {
+            "title": "Points",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "MCQ",
+              "MSQ",
+              "TRUE_FALSE",
+              "DESCRIPTIVE",
+              "CODING"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "body",
+          "points",
+          "negative_marks",
+          "multiple_answers",
+          "msq_scoring",
+          "max_answer_length",
+          "options"
+        ],
+        "title": "StudentQuestion",
+        "type": "object"
+      },
       "TokenRequest": {
         "additionalProperties": false,
         "description": "One-time tokens travel in the body, never the URL, so they can't end up in access logs.",
@@ -3098,6 +3206,55 @@
           }
         ],
         "summary": "Copy Question",
+        "tags": [
+          "questions"
+        ]
+      }
+    },
+    "/api/v1/questions/{question_id}/preview": {
+      "get": {
+        "description": "The question exactly as a student sees it: no answer key, no rubric.",
+        "operationId": "preview_question_api_v1_questions__question_id__preview_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "question_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Question Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentQuestion"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Preview Question",
         "tags": [
           "questions"
         ]

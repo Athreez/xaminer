@@ -171,6 +171,7 @@ OWNED_ROUTES: list[OwnedRoute] = [
     OwnedRoute(f"POST {USERS}/unlock", "ADMIN", _user_url("/unlock"), scope="institution"),
     OwnedRoute(f"GET {QUESTIONS}", "TEACHER", _question_url()),
     OwnedRoute(f"PATCH {QUESTIONS}", "TEACHER", _question_url(), body={"body": "Explain why."}),
+    OwnedRoute(f"GET {QUESTIONS}/preview", "TEACHER", _question_url("/preview")),
     OwnedRoute(f"POST {QUESTIONS}/copy", "TEACHER", _question_url("/copy")),
     OwnedRoute(f"POST {QUESTIONS}/archive", "TEACHER", _question_url("/archive")),
     OwnedRoute(f"POST {QUESTIONS}/restore", "TEACHER", _question_url("/restore")),

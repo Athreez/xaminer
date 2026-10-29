@@ -499,3 +499,60 @@ async def test_markdown_is_sanitised_on_save(client: TestClient, world: World) -
     response = client.post(URL, json=empty_option, headers=me)
     assert response.status_code == 422
     assert any(d["field"] == "options.0.label" for d in response.json()["error"]["details"])
+
+
+# ---------------------------------------------------------------------- student view (QB-08)
+
+SECRET_RUBRIC = "RUBRIC-MARKER-7f3a: award 2 marks for mentioning O(log n)"
+
+
+def keys_in(value: Any) -> set[str]:
+    """Every key anywhere in a JSON value."""
+    if isinstance(value, dict):
+        return set(value) | set().union(*(keys_in(v) for v in value.values()))
+    if isinstance(value, list):
+        return set().union(*(keys_in(v) for v in value))
+    return set()
+
+
+def test_student_view_has_no_field_for_secrets() -> None:
+    """Guard for future edits: the student types can't even hold answer keys or the rubric."""
+    from app.questions.student_view import StudentOption, StudentQuestion
+
+    fields = set(StudentQuestion.model_fields) | set(StudentOption.model_fields)
+    assert not fields & {"is_correct", "rubric", "owner", "tags", "version_no", "is_locked"}
+
+
+@pytest.mark.parametrize("kind", ["MCQ", "MSQ", "TRUE_FALSE", "DESCRIPTIVE"])
+async def test_preview_never_contains_answers_or_rubric(
+    client: TestClient, world: World, kind: str
+) -> None:
+    me = await world.user()
+    extra: dict[str, Any] = {
+        "MCQ": {},
+        "MSQ": {"options": opts(True, True, False), "msq_scoring": "PARTIAL"},
+        "TRUE_FALSE": {"options": TF},
+        "DESCRIPTIVE": {"options": [], "rubric": SECRET_RUBRIC, "max_answer_length": 500},
+    }[kind]
+    q = create(client, me, type=kind, **extra)
+    response = client.get(f"{URL}/{q['id']}/preview", headers=me)
+    assert response.status_code == 200, response.text
+    preview = response.json()
+
+    assert not keys_in(preview) & {"is_correct", "rubric"}
+    assert "RUBRIC-MARKER-7f3a" not in response.text and '"is_correct"' not in response.text
+    assert preview["id"] == q["version"]["id"] and preview["body"] == q["version"]["body"]
+    assert [o["label"] for o in preview["options"]] == [o["label"] for o in q["version"]["options"]]
+    assert preview["multiple_answers"] is (kind == "MSQ")
+    if kind == "DESCRIPTIVE":
+        assert preview["max_answer_length"] == 500 and preview["options"] == []
+
+
+async def test_preview_follows_access_rules(client: TestClient, world: World) -> None:
+    owner, colleague = await world.user(), await world.user()
+    private = create(client, owner)
+    shared = create(client, owner, visibility="INSTITUTION")
+    assert client.get(f"{URL}/{private['id']}/preview", headers=colleague).status_code == 404
+    assert client.get(f"{URL}/{shared['id']}/preview", headers=colleague).status_code == 200
+    student = await world.user("STUDENT")
+    assert client.get(f"{URL}/{shared['id']}/preview", headers=student).status_code == 403

@@ -20,7 +20,7 @@ from app.core.errors import AppError
 from app.core.pagination import MAX_PAGE, decode_cursor, encode_cursor, like_pattern
 from app.core.storage import Storage
 from app.images.service import sign_refs
-from app.questions import rules
+from app.questions import rules, student_view
 from app.questions.models import Question, QuestionOption, QuestionVersion
 from app.questions.schemas import (
     OptionIn,
@@ -33,6 +33,7 @@ from app.questions.schemas import (
     QuestionView,
     VersionView,
 )
+from app.questions.student_view import StudentQuestion
 from app.users.models import User
 
 TEACHER_IMAGE_SECONDS = 3600
@@ -155,6 +156,16 @@ async def view(
             ],
         ),
     )
+
+
+async def preview(
+    session: AsyncSession, principal: Principal, question_id: uuid.UUID, storage: Storage
+) -> StudentQuestion:
+    """Exactly what a student will see of the current version (PRD QB-08)."""
+    question = await get_readable(session, principal, question_id)
+    version = await _current(session, question)
+    options = await _options(session, version.id)
+    return student_view.build(question, version, options, storage, TEACHER_IMAGE_SECONDS)
 
 
 # ----------------------------------------------------------------------------- listing

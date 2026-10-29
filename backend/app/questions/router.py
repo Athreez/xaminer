@@ -18,6 +18,7 @@ from app.questions.schemas import (
     QuestionUpdate,
     QuestionView,
 )
+from app.questions.student_view import StudentQuestion
 
 router = APIRouter(prefix="/questions", tags=["questions"])
 
@@ -89,6 +90,14 @@ async def update_question(
     if new_version:
         response.headers["X-New-Version"] = "true"
     return await service.view(db, principal, question, storage)
+
+
+@router.get("/{question_id}/preview")
+async def preview_question(
+    question_id: uuid.UUID, principal: Reader, db: TenantDB, storage: AppStorage
+) -> StudentQuestion:
+    """The question exactly as a student sees it: no answer key, no rubric."""
+    return await service.preview(db, principal, question_id, storage)
 
 
 @router.post("/{question_id}/copy", status_code=status.HTTP_201_CREATED)
