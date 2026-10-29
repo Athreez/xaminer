@@ -275,8 +275,8 @@ IntegrityOutcome       PENDING_REVIEW | NO_CONCERNS | CONCERNS_CONFIRMED
 | Table | Key columns | Notes |
 |---|---|---|
 | `exam` | owner_id, title, instructions, status, open_at, close_at, duration_min, navigation_mode, shuffle_questions, shuffle_options, run_code_enabled, release_policy, counted_submission, pass_percent, proctoring_mode, proctoring_detectors `jsonb` (sensitivity, gaze on/off, books on/off), consent_text, published_version_id | Settings live on the exam row |
-| `exam_question` | exam_id, question_id, pinned_version_id, order_index, points, negative_marks | Version pinned at publish |
-| `exam_version` | exam_id, version_no, snapshot `jsonb`, content_hash, published_at | Frozen copy of the exam at publish; edits blocked by trigger |
+| `exam_question` | exam_id, question_id, pinned_version_id, order_index, points, negative_marks | Version pinned at publish. Points and negative marks: null means the question's own. Order is unique per exam, checked at commit so a reorder can swap |
+| `exam_version` | exam_id, version_no, snapshot `jsonb`, content_hash, published_at | Frozen copy of the exam at publish; a trigger blocks any update or delete, so a published exam can't be deleted either |
 | `exam_assignment` | exam_id, student_id, assigned_by, via_group_id | Unique `(exam_id, student_id)`. No assignment, no attempt |
 
 **Attempts**

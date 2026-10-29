@@ -3,6 +3,7 @@
 from app.audit.models import AuditLog
 from app.auth.models import AuthToken, RefreshToken
 from app.db.base import Base
+from app.exams.models import Exam, ExamAssignment, ExamQuestion, ExamVersion
 from app.platform.models import Institution, Language
 from app.questions.models import Question, QuestionOption, QuestionVersion
 from app.users.models import User, UserGroup, UserGroupMember
@@ -11,6 +12,10 @@ __all__ = [
     "AuditLog",
     "AuthToken",
     "Base",
+    "Exam",
+    "ExamAssignment",
+    "ExamQuestion",
+    "ExamVersion",
     "Institution",
     "Language",
     "Question",
