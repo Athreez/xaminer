@@ -27,7 +27,8 @@ class Institution(IdMixin, TimestampMixin, Base):
 class Language(IdMixin, TimestampMixin, Base):
     """A programming language students can use. Global: not per institution (PRD CQ-02).
 
-    `image` is the runner image built in TCK-0801; it is pinned to a digest there.
+    `image` is the runner image tag, built from runners/<key>/Dockerfile (base pinned by digest);
+    app/platform/languages.py holds the same values.
     """
 
     __tablename__ = "language"

@@ -93,7 +93,8 @@ security risk, language or resource needs are different from the API's.
 One-off setup services run on every start and then exit: `db-init` (creates the `migrator` and `app`
 database users and the test database), `migrate` (applies migrations), `storage-init` (creates buckets).
 
-Language runner images (`cpp17`, `java21`, `python312`, `node22`) are images, not running services.
+Language runner images (`cpp17`, `java21`, `python312`, `node22`) are images, not running services. They are built
+from `runners/` (official bases pinned by digest) and loaded into `sandbox-docker` with `make runners`.
 `sandbox-docker` starts containers from them on demand.
 
 **Rule for untrusted input:** `exec-worker` (student code) and `inference-worker` (student-uploaded images)

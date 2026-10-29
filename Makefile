@@ -2,7 +2,7 @@
 .PHONY: setup check lint typecheck test format \
         backend-lint backend-typecheck backend-test frontend-lint frontend-typecheck frontend-test \
         up down ps logs platform-admin api-client \
-        create-institution create-admin invite-user list-institutions list-languages
+        create-institution create-admin invite-user list-institutions list-languages \n        runners runners-check
 
 # Regenerate the frontend's typed API client after changing backend endpoints. Commit the result.
 api-client:
@@ -10,6 +10,16 @@ api-client:
 	cd frontend && npm run api:types
 
 COMPOSE = docker compose -f deploy/docker-compose.yml
+
+# Language runner images (runners/<key>/Dockerfile): build, then load into sandbox-docker, where
+# student code runs (stack must be up; NO_LOAD=1 only builds). runners-check runs a hello-world
+# in each, here and in the sandbox, with the sandbox's container restrictions.
+runners:
+	cd backend && uv run python ../runners/build.py $(if $(NO_LOAD),--no-load,)
+
+runners-check:
+	cd backend && uv run python ../runners/smoke_test.py
+	cd backend && uv run python ../runners/smoke_test.py --sandbox
 
 # Hide Docker Desktop's "What's next: Debug this with Gordon" advert after failed commands.
 export DOCKER_CLI_HINTS = false
