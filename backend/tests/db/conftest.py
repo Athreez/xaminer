@@ -8,6 +8,7 @@ Skipped if Postgres isn't reachable (fails instead when REQUIRE_SERVICES=1, as i
 import asyncio
 import os
 import tempfile
+import uuid
 from collections.abc import AsyncIterator, Iterator
 from pathlib import Path
 
@@ -112,3 +113,13 @@ async def migrator_engine() -> AsyncIterator[AsyncEngine]:
 @pytest.fixture
 def alembic_config() -> Config:
     return migrator_config()
+
+
+@pytest.fixture(autouse=True)
+def no_bundle_jobs(monkeypatch: pytest.MonkeyPatch) -> list[uuid.UUID]:
+    """Test bundle builds are queued for app-worker; tests record them instead of sending."""
+    from app.questions import bundles
+
+    queued: list[uuid.UUID] = []
+    monkeypatch.setattr(bundles, "queue_build", queued.append)
+    return queued

@@ -1,4 +1,5 @@
-"""Imports every module's models so `Base.metadata` is complete (used by Alembic)."""
+"""Imports every module's models so `Base.metadata` is complete (Alembic, and workers that load
+only some modules: foreign keys need every table they point at)."""
 
 from app.attempts.models import Answer, AttemptQuestion, CodeDraft, ExamAttempt
 from app.audit.models import AuditLog
@@ -6,7 +7,14 @@ from app.auth.models import AuthToken, RefreshToken
 from app.db.base import Base
 from app.exams.models import Exam, ExamAssignment, ExamQuestion, ExamVersion
 from app.platform.models import Institution, Language
-from app.questions.models import Question, QuestionOption, QuestionVersion
+from app.questions.models import (
+    CodingConfig,
+    Question,
+    QuestionOption,
+    QuestionVersion,
+    ReferenceSolution,
+    TestCase,
+)
 from app.users.models import User, UserGroup, UserGroupMember
 
 __all__ = [
@@ -16,6 +24,7 @@ __all__ = [
     "AuthToken",
     "Base",
     "CodeDraft",
+    "CodingConfig",
     "Exam",
     "ExamAssignment",
     "ExamAttempt",
@@ -26,7 +35,9 @@ __all__ = [
     "Question",
     "QuestionOption",
     "QuestionVersion",
+    "ReferenceSolution",
     "RefreshToken",
+    "TestCase",
     "User",
     "UserGroup",
     "UserGroupMember",

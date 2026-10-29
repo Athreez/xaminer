@@ -420,7 +420,8 @@ If Run Code becomes slow under load, start a second `exec-worker` that listens o
 
 **Test bundle.** When a coding question version is saved, `app-worker` builds one tar file
 (`001.in`, `001.out`, …, `manifest.json`) and stores it in object storage. The worker gets a pre-signed URL for that
-one file only. Bundles never change, so the worker can cache them by hash.
+one file only. Bundles never change, so the worker can cache them by hash: the key is
+`<institution>/<sha256>.tar`, so equal test cases share one bundle. Results name cases by position (`001`…).
 
 **Scoring rules** (in `domain_core`):
 - Compile error → 0.

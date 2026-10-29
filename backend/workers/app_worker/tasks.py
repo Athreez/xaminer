@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import smtplib
+import uuid
 from datetime import UTC, datetime
 from email.message import EmailMessage
 
@@ -71,5 +72,31 @@ async def _sweep() -> int:
     engine = create_engine(get_settings().database_url("app"))
     try:
         return await sweep(create_session_factory(engine))
+    finally:
+        await engine.dispose()
+
+
+@shared_task(
+    name="questions.build_bundle",
+    autoretry_for=(OSError,),  # storage briefly down
+    retry_backoff=10,
+    max_retries=6,
+)
+def build_bundle(version_id: str) -> None:
+    """Pack a coding version's test cases into its test bundle (TCK-0704). Safe to repeat."""
+    key = asyncio.run(_build_bundle(uuid.UUID(version_id)))
+    logger.info("test bundle ready", extra={"version_id": version_id, "built": key is not None})
+
+
+async def _build_bundle(version_id: uuid.UUID) -> str | None:
+    import app.db.models  # noqa: F401  (every table, so foreign keys resolve)
+    from app.core.storage import Storage
+    from app.db.session import create_engine, create_session_factory
+    from app.questions.bundles import build
+
+    settings = get_settings()
+    engine = create_engine(settings.database_url("app"))
+    try:
+        return await build(create_session_factory(engine), Storage(settings), version_id)
     finally:
         await engine.dispose()

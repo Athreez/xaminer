@@ -12,9 +12,15 @@ BACKEND = Path(__file__).resolve().parents[1]
 SOURCES = [*BACKEND.glob("app/**/*.py"), *BACKEND.glob("workers/**/*.py")]
 
 # May use the TestCase model (define it, read it through the door, or write it for the teacher).
-TABLE = {"app/questions/models.py", "app/questions/test_cases.py", "app/questions/coding.py"}
+TABLE = {
+    "app/questions/models.py",
+    "app/db/models.py",  # lists every table, reads none
+    "app/questions/test_cases.py",
+    "app/questions/coding.py",
+    "app/questions/bundles.py",  # packs every case for the exec-worker
+}
 # May read hidden test cases.
-READERS = {"app/questions/test_cases.py", "app/questions/coding.py"}
+READERS = {"app/questions/test_cases.py", "app/questions/coding.py", "app/questions/bundles.py"}
 # Build what students receive: must never get near hidden cases.
 STUDENT_FACING = {
     "app/questions/student_view.py",

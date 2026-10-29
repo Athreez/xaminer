@@ -20,7 +20,7 @@ from app.auth.tokens import Principal
 from app.core.errors import AppError
 from app.core.markdown import sanitize_markdown
 from app.platform.models import Language
-from app.questions import service
+from app.questions import bundles, service
 from app.questions.models import (
     MAX_CASE_BYTES,
     MAX_SOURCE_BYTES,
@@ -154,14 +154,9 @@ async def copy_setup(session: AsyncSession, source_id: uuid.UUID, target_id: uui
     copied = {
         column.key: getattr(config, column.key)
         for column in CodingConfig.__table__.columns
+        # The bundle is named by its content, which is the same: the copy shares it.
         if column.key
-        not in (
-            "version_id",
-            "institution_id",
-            "validation_status",
-            "validation_report",
-            "bundle_key",
-        )
+        not in ("version_id", "institution_id", "validation_status", "validation_report")
     }
     session.add(CodingConfig(version_id=target_id, **copied))
     for case in await all_test_cases(session, source_id):
@@ -359,7 +354,9 @@ async def add_case(
         order_index=(cases[-1].order_index + 1) if cases else 0,
     )
     session.add(case)
-    _needs_validation(await _config(session, version.id))
+    config = await _config(session, version.id)
+    _needs_validation(config)
+    bundles.stale(config)
     _touch(question)
     await session.flush()
     _audit(
@@ -370,6 +367,7 @@ async def add_case(
         {"test_case": str(case.id), "visibility": case.visibility},
     )
     await session.commit()
+    bundles.queue_build(version.id)
     return case_view(case)
 
 
@@ -420,7 +418,9 @@ async def update_case(
             )
             setattr(case, field, value)
     if changes:
-        _needs_validation(await _config(session, version.id))
+        config = await _config(session, version.id)
+        _needs_validation(config)
+        bundles.stale(config)
         _touch(question)
         _audit(
             session,
@@ -430,6 +430,7 @@ async def update_case(
             {"test_case": str(case.id), **changes},
         )
         await session.commit()
+        bundles.queue_build(version.id)
     return case_view(case)
 
 
@@ -442,10 +443,13 @@ async def delete_case(
     await session.flush()
     for i, rest in enumerate(await all_test_cases(session, version.id)):  # close the gap
         rest.order_index = i
-    _needs_validation(await _config(session, version.id))
+    config = await _config(session, version.id)
+    _needs_validation(config)
+    bundles.stale(config)
     _touch(question)
     _audit(session, principal, "question.test_case_deleted", question, {"test_case": str(case_id)})
     await session.commit()
+    bundles.queue_build(version.id)
 
 
 async def reorder_cases(
@@ -460,11 +464,15 @@ async def reorder_cases(
     if wanted != [c.id for c in cases]:
         for i, case_id in enumerate(wanted):
             by_id[case_id].order_index = i  # the unique check waits for the commit
+        config = await _config(session, version.id)
+        _needs_validation(config)  # results name cases by position
+        bundles.stale(config)
         _touch(question)
         _audit(
             session, principal, "question.test_cases_reordered", question, {"count": len(wanted)}
         )
         await session.commit()
+        bundles.queue_build(version.id)
     return [case_view(by_id[i]) for i in wanted]
 
 
