@@ -1,12 +1,15 @@
-"""Student-facing exam API (PRD ATT-01). Attempts, answers and submitting join in later tickets."""
+"""Student-facing exam API: the student's exams, starting, resuming and saving (PRD ATT-01..09).
+
+Submitting joins in a later ticket."""
 
 import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
 
-from app.attempts import attempt, student_exams
+from app.attempts import attempt, saving, student_exams
 from app.attempts.attempt import AttemptView
+from app.attempts.saving import AnswersIn, DraftIn, DraftResult, FlagIn, SaveResult
 from app.attempts.student_exams import StudentExamDetail, StudentExams
 from app.auth.dependencies import TenantDB
 from app.auth.tokens import Principal
@@ -52,3 +55,32 @@ async def get_attempt(
 ) -> AttemptView:
     """Your attempt as you left it: same questions, order, answers and deadline (resume)."""
     return await attempt.resume(db, principal, attempt_id, storage)
+
+
+@attempts_router.put("/{attempt_id}/answers")
+async def save_answers(
+    attempt_id: uuid.UUID, body: AnswersIn, principal: Taker, db: TenantDB
+) -> SaveResult:
+    """Save a batch of answers. Each has a `client_revision`; an older or repeated one changes
+    nothing and is listed as stale. Refused with 409 `TIME_UP` after the deadline plus 60 s."""
+    return await saving.save_answers(db, principal, attempt_id, body)
+
+
+@attempts_router.put("/{attempt_id}/flags/{exam_question_id}", status_code=204)
+async def set_flag(
+    attempt_id: uuid.UUID, exam_question_id: uuid.UUID, body: FlagIn, principal: Taker, db: TenantDB
+) -> None:
+    """Mark or unmark a question for review."""
+    await saving.set_flag(db, principal, attempt_id, exam_question_id, body)
+
+
+@attempts_router.put("/{attempt_id}/drafts/{exam_question_id}")
+async def save_draft(
+    attempt_id: uuid.UUID,
+    exam_question_id: uuid.UUID,
+    body: DraftIn,
+    principal: Taker,
+    db: TenantDB,
+) -> DraftResult:
+    """Save unsubmitted code for a coding question (one draft per language)."""
+    return await saving.save_draft(db, principal, attempt_id, exam_question_id, body)

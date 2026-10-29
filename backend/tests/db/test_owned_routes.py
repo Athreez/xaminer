@@ -31,7 +31,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from app.attempts.models import ExamAttempt
+from app.attempts.models import AttemptQuestion, ExamAttempt
 from app.auth.dependencies import CurrentPrincipal, TenantDB
 from app.auth.tokens import Principal, create_access_token
 from app.authz.guards import access_table, require
@@ -55,6 +55,8 @@ class World:
     owner: User
     neighbour: User  # same institution, same role, not the owner
     outsider: User  # another institution, same role
+    # Ids a setup made, for a request body that needs them (e.g. the question to answer).
+    notes: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -247,23 +249,108 @@ def _assigned(suffix: str = "") -> Callable[[World], Awaitable[str]]:
     return setup
 
 
-async def _attempt_url(world: World) -> str:
-    """`world.owner`'s attempt at an open exam."""
-    exam_url = await _assigned_exam_url(world)
-    exam_id = uuid.UUID(exam_url.rsplit("/", 1)[1])
+async def _attempt(world: World) -> str:
+    """`world.owner` (a student) mid-way through an open exam with a written and a coding
+    question. Returns the attempt id and notes both exam-question ids."""
+    start = datetime.now(UTC) - timedelta(hours=1)
     async with tenant_session(world.factory, world.owner.institution_id) as s:
-        exam = await s.get(Exam, exam_id)
-        assert exam is not None and exam.published_version_id is not None
+        teacher = User(email=f"{uuid.uuid4().hex[:8]}@x.edu", full_name="Tea Cher", role="TEACHER")
+        s.add(teacher)
+        await s.flush()
+        exam = Exam(
+            owner_id=teacher.id,
+            title="Exam in progress",
+            status="PUBLISHED",
+            open_at=start,
+            close_at=start + timedelta(hours=3),
+            duration_min=60,
+        )
+        s.add(exam)
+        await s.flush()
+        snapshot_questions = []
+        rows = []
+        for i, kind in enumerate(("DESCRIPTIVE", "CODING")):
+            question = Question(owner_id=teacher.id, type=kind)
+            s.add(question)
+            await s.flush()
+            version = QuestionVersion(
+                question_id=question.id, version_no=1, body="Q", points=1, created_by=teacher.id
+            )
+            s.add(version)
+            await s.flush()
+            question.current_version_id = version.id
+            eq = ExamQuestion(
+                exam_id=exam.id,
+                question_id=question.id,
+                order_index=i,
+                pinned_version_id=version.id,
+            )
+            s.add(eq)
+            await s.flush()
+            rows.append(eq)
+            snapshot_questions.append(
+                {
+                    "exam_question_id": str(eq.id),
+                    "version_id": str(version.id),
+                    "type": kind,
+                    "body": "Q",
+                    "points": "1.00",
+                    "negative_marks": "0.00",
+                    "options": [],
+                }
+            )
+        exam_version = ExamVersion(
+            exam_id=exam.id,
+            version_no=1,
+            snapshot={
+                "title": "Exam in progress",
+                "total_points": "2.00",
+                "questions": snapshot_questions,
+                "settings": {
+                    "navigation_mode": "FREE",
+                    "run_code_enabled": True,
+                    "shuffle_questions": False,
+                    "shuffle_options": False,
+                },
+            },
+            content_hash="0" * 64,
+        )
+        s.add(exam_version)
+        await s.flush()
+        exam.published_version_id = exam_version.id
+        s.add(ExamAssignment(exam_id=exam.id, student_id=world.owner.id, assigned_by=teacher.id))
         attempt = ExamAttempt(
             exam_id=exam.id,
-            exam_version_id=exam.published_version_id,
+            exam_version_id=exam_version.id,
             student_id=world.owner.id,
             deadline_at=datetime.now(UTC) + timedelta(hours=1),
             shuffle_seed=1,
         )
         s.add(attempt)
+        await s.flush()
+        for position, eq in enumerate(rows, start=1):
+            s.add(AttemptQuestion(attempt_id=attempt.id, exam_question_id=eq.id, position=position))
         await s.commit()
-        return f"/api/v1/attempts/{attempt.id}"
+        world.notes["written"], world.notes["coding"] = str(rows[0].id), str(rows[1].id)
+        return str(attempt.id)
+
+
+def _attempt_url(suffix: str = "") -> Callable[[World], Awaitable[str]]:
+    """The attempt's URL; `{written}` / `{coding}` in `suffix` become those exam-question ids."""
+
+    async def setup(world: World) -> str:
+        attempt_id = await _attempt(world)
+        return f"/api/v1/attempts/{attempt_id}" + suffix.format(**world.notes)
+
+    return setup
+
+
+async def _answer_body(world: World) -> dict[str, Any]:
+    return {
+        "answers": [
+            {"exam_question_id": world.notes["written"], "text_answer": "x", "client_revision": 1}
+        ]
+    }
 
 
 USERS = "/api/v1/users/{user_id}"
@@ -319,7 +406,25 @@ OWNED_ROUTES: list[OwnedRoute] = [
     ),
     OwnedRoute("GET /api/v1/student/exams/{exam_id}", "STUDENT", _assigned_exam_url),
     OwnedRoute("POST /api/v1/student/exams/{exam_id}/attempts", "STUDENT", _assigned("/attempts")),
-    OwnedRoute("GET /api/v1/attempts/{attempt_id}", "STUDENT", _attempt_url),
+    OwnedRoute("GET /api/v1/attempts/{attempt_id}", "STUDENT", _attempt_url()),
+    OwnedRoute(
+        "PUT /api/v1/attempts/{attempt_id}/answers",
+        "STUDENT",
+        _attempt_url("/answers"),
+        make_body=_answer_body,
+    ),
+    OwnedRoute(
+        "PUT /api/v1/attempts/{attempt_id}/flags/{exam_question_id}",
+        "STUDENT",
+        _attempt_url("/flags/{written}"),
+        body={"marked": True},
+    ),
+    OwnedRoute(
+        "PUT /api/v1/attempts/{attempt_id}/drafts/{exam_question_id}",
+        "STUDENT",
+        _attempt_url("/drafts/{coding}"),
+        body={"language_key": "python312", "source": "print(1)", "client_revision": 1},
+    ),
     OwnedRoute(f"GET {GROUPS}", "TEACHER", _group_url(), scope="institution"),
     OwnedRoute(
         f"PATCH {GROUPS}",

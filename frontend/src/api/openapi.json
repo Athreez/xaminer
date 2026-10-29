@@ -209,6 +209,77 @@
         "title": "AdminUserView",
         "type": "object"
       },
+      "AnswerIn": {
+        "additionalProperties": false,
+        "properties": {
+          "client_revision": {
+            "description": "Increases with every change on the device",
+            "minimum": 1.0,
+            "title": "Client Revision",
+            "type": "integer"
+          },
+          "exam_question_id": {
+            "format": "uuid",
+            "title": "Exam Question Id",
+            "type": "string"
+          },
+          "selected_option_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "maxItems": 10,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Choice questions; [] clears the answer",
+            "title": "Selected Option Ids"
+          },
+          "text_answer": {
+            "anyOf": [
+              {
+                "maxLength": 65536,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Descriptive questions; null clears the answer",
+            "title": "Text Answer"
+          }
+        },
+        "required": [
+          "exam_question_id",
+          "client_revision"
+        ],
+        "title": "AnswerIn",
+        "type": "object"
+      },
+      "AnswersIn": {
+        "additionalProperties": false,
+        "properties": {
+          "answers": {
+            "items": {
+              "$ref": "#/components/schemas/AnswerIn"
+            },
+            "maxItems": 200,
+            "minItems": 1,
+            "title": "Answers",
+            "type": "array"
+          }
+        },
+        "required": [
+          "answers"
+        ],
+        "title": "AnswersIn",
+        "type": "object"
+      },
       "AssignRequest": {
         "additionalProperties": false,
         "properties": {
@@ -777,6 +848,58 @@
           }
         },
         "title": "Detectors",
+        "type": "object"
+      },
+      "DraftIn": {
+        "additionalProperties": false,
+        "properties": {
+          "client_revision": {
+            "minimum": 1.0,
+            "title": "Client Revision",
+            "type": "integer"
+          },
+          "language_key": {
+            "maxLength": 32,
+            "title": "Language Key",
+            "type": "string"
+          },
+          "source": {
+            "maxLength": 262144,
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "language_key",
+          "source",
+          "client_revision"
+        ],
+        "title": "DraftIn",
+        "type": "object"
+      },
+      "DraftResult": {
+        "properties": {
+          "saved": {
+            "description": "False: the server already had this revision or a newer one",
+            "title": "Saved",
+            "type": "boolean"
+          },
+          "seconds_left": {
+            "title": "Seconds Left",
+            "type": "integer"
+          },
+          "server_time": {
+            "format": "date-time",
+            "title": "Server Time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "saved",
+          "server_time",
+          "seconds_left"
+        ],
+        "title": "DraftResult",
         "type": "object"
       },
       "ExamCreate": {
@@ -1631,6 +1754,20 @@
           "updated_at"
         ],
         "title": "ExamView",
+        "type": "object"
+      },
+      "FlagIn": {
+        "additionalProperties": false,
+        "properties": {
+          "marked": {
+            "title": "Marked",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "marked"
+        ],
+        "title": "FlagIn",
         "type": "object"
       },
       "GroupDetail": {
@@ -2681,6 +2818,45 @@
         "title": "QuestionView",
         "type": "object"
       },
+      "SaveResult": {
+        "properties": {
+          "saved": {
+            "description": "Questions whose answer was stored",
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Saved",
+            "type": "array"
+          },
+          "seconds_left": {
+            "title": "Seconds Left",
+            "type": "integer"
+          },
+          "server_time": {
+            "format": "date-time",
+            "title": "Server Time",
+            "type": "string"
+          },
+          "stale": {
+            "description": "Ignored: the server already had this revision or a newer one",
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Stale",
+            "type": "array"
+          }
+        },
+        "required": [
+          "saved",
+          "stale",
+          "server_time",
+          "seconds_left"
+        ],
+        "title": "SaveResult",
+        "type": "object"
+      },
       "SavedAnswer": {
         "properties": {
           "client_revision": {
@@ -3651,6 +3827,196 @@
           }
         ],
         "summary": "Get Attempt",
+        "tags": [
+          "attempts"
+        ]
+      }
+    },
+    "/api/v1/attempts/{attempt_id}/answers": {
+      "put": {
+        "description": "Save a batch of answers. Each has a `client_revision`; an older or repeated one changes\nnothing and is listed as stale. Refused with 409 `TIME_UP` after the deadline plus 60 s.",
+        "operationId": "save_answers_api_v1_attempts__attempt_id__answers_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "attempt_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Attempt Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnswersIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SaveResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Save Answers",
+        "tags": [
+          "attempts"
+        ]
+      }
+    },
+    "/api/v1/attempts/{attempt_id}/drafts/{exam_question_id}": {
+      "put": {
+        "description": "Save unsubmitted code for a coding question (one draft per language).",
+        "operationId": "save_draft_api_v1_attempts__attempt_id__drafts__exam_question_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "attempt_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Attempt Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "exam_question_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Exam Question Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DraftIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DraftResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Save Draft",
+        "tags": [
+          "attempts"
+        ]
+      }
+    },
+    "/api/v1/attempts/{attempt_id}/flags/{exam_question_id}": {
+      "put": {
+        "description": "Mark or unmark a question for review.",
+        "operationId": "set_flag_api_v1_attempts__attempt_id__flags__exam_question_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "attempt_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Attempt Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "exam_question_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Exam Question Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FlagIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Set Flag",
         "tags": [
           "attempts"
         ]

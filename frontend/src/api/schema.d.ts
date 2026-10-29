@@ -44,6 +44,67 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/attempts/{attempt_id}/answers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Save Answers
+         * @description Save a batch of answers. Each has a `client_revision`; an older or repeated one changes
+         *     nothing and is listed as stale. Refused with 409 `TIME_UP` after the deadline plus 60 s.
+         */
+        put: operations["save_answers_api_v1_attempts__attempt_id__answers_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/attempts/{attempt_id}/drafts/{exam_question_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Save Draft
+         * @description Save unsubmitted code for a coding question (one draft per language).
+         */
+        put: operations["save_draft_api_v1_attempts__attempt_id__drafts__exam_question_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/attempts/{attempt_id}/flags/{exam_question_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Flag
+         * @description Mark or unmark a question for review.
+         */
+        put: operations["set_flag_api_v1_attempts__attempt_id__flags__exam_question_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/audit-logs": {
         parameters: {
             query?: never;
@@ -1039,6 +1100,34 @@ export interface components {
              */
             status: "INVITED" | "ACTIVE" | "DEACTIVATED";
         };
+        /** AnswerIn */
+        AnswerIn: {
+            /**
+             * Client Revision
+             * @description Increases with every change on the device
+             */
+            client_revision: number;
+            /**
+             * Exam Question Id
+             * Format: uuid
+             */
+            exam_question_id: string;
+            /**
+             * Selected Option Ids
+             * @description Choice questions; [] clears the answer
+             */
+            selected_option_ids?: string[] | null;
+            /**
+             * Text Answer
+             * @description Descriptive questions; null clears the answer
+             */
+            text_answer?: string | null;
+        };
+        /** AnswersIn */
+        AnswersIn: {
+            /** Answers */
+            answers: components["schemas"]["AnswerIn"][];
+        };
         /** AssignRequest */
         AssignRequest: {
             /**
@@ -1295,6 +1384,30 @@ export interface components {
              * @enum {string}
              */
             sensitivity: "RELAXED" | "STANDARD" | "STRICT";
+        };
+        /** DraftIn */
+        DraftIn: {
+            /** Client Revision */
+            client_revision: number;
+            /** Language Key */
+            language_key: string;
+            /** Source */
+            source: string;
+        };
+        /** DraftResult */
+        DraftResult: {
+            /**
+             * Saved
+             * @description False: the server already had this revision or a newer one
+             */
+            saved: boolean;
+            /** Seconds Left */
+            seconds_left: number;
+            /**
+             * Server Time
+             * Format: date-time
+             */
+            server_time: string;
         };
         /** ExamCreate */
         ExamCreate: {
@@ -1598,6 +1711,11 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+        };
+        /** FlagIn */
+        FlagIn: {
+            /** Marked */
+            marked: boolean;
         };
         /** GroupDetail */
         GroupDetail: {
@@ -2019,6 +2137,26 @@ export interface components {
              */
             visibility: "PRIVATE" | "INSTITUTION";
         };
+        /** SaveResult */
+        SaveResult: {
+            /**
+             * Saved
+             * @description Questions whose answer was stored
+             */
+            saved: string[];
+            /** Seconds Left */
+            seconds_left: number;
+            /**
+             * Server Time
+             * Format: date-time
+             */
+            server_time: string;
+            /**
+             * Stale
+             * @description Ignored: the server already had this revision or a newer one
+             */
+            stale: string[];
+        };
         /** SavedAnswer */
         SavedAnswer: {
             /** Client Revision */
@@ -2429,6 +2567,111 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["AttemptView"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    save_answers_api_v1_attempts__attempt_id__answers_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnswersIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SaveResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    save_draft_api_v1_attempts__attempt_id__drafts__exam_question_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attempt_id: string;
+                exam_question_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DraftIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DraftResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_flag_api_v1_attempts__attempt_id__flags__exam_question_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attempt_id: string;
+                exam_question_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FlagIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
