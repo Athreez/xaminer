@@ -311,6 +311,48 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/exams/{exam_id}/assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Assignments
+         * @description Students who may take the exam.
+         */
+        get: operations["list_assignments_api_v1_exams__exam_id__assignments_get"];
+        put?: never;
+        /**
+         * Assign Students
+         * @description Assign groups and/or students. A group adds each of its students; deactivated students are
+         *     skipped and students already assigned are left alone. Not for archived exams.
+         */
+        post: operations["assign_students_api_v1_exams__exam_id__assignments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/{exam_id}/assignments/{student_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Unassign Student */
+        delete: operations["unassign_student_api_v1_exams__exam_id__assignments__student_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/exams/{exam_id}/questions": {
         parameters: {
             query?: never;
@@ -329,6 +371,26 @@ export interface paths {
          *     only. Your own questions and those shared with the institution can be used.
          */
         put: operations["set_exam_questions_api_v1_exams__exam_id__questions_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/{exam_id}/student-choices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Student Choices
+         * @description Students who could be assigned to this exam, for the picker (name, email, roll no.).
+         */
+        get: operations["student_choices_api_v1_exams__exam_id__student_choices_get"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -851,6 +913,71 @@ export interface components {
              * @enum {string}
              */
             status: "INVITED" | "ACTIVE" | "DEACTIVATED";
+        };
+        /** AssignRequest */
+        AssignRequest: {
+            /**
+             * Group Ids
+             * @default []
+             */
+            group_ids: string[];
+            /**
+             * Student Ids
+             * @default []
+             */
+            student_ids: string[];
+        };
+        /** AssignResult */
+        AssignResult: {
+            /**
+             * Added
+             * @description Students newly assigned
+             */
+            added: number;
+            /** Already Assigned */
+            already_assigned: number;
+            /**
+             * Skipped Inactive
+             * @description Deactivated students in the groups, not assigned
+             */
+            skipped_inactive: number;
+        };
+        /** AssignedStudent */
+        AssignedStudent: {
+            /**
+             * Assigned At
+             * Format: date-time
+             */
+            assigned_at: string;
+            /** Email */
+            email: string;
+            /** Full Name */
+            full_name: string;
+            /** Roll No */
+            roll_no: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "INVITED" | "ACTIVE" | "DEACTIVATED";
+            /**
+             * Student Id
+             * Format: uuid
+             */
+            student_id: string;
+            /**
+             * Via Group
+             * @description The group it came from, if any
+             */
+            via_group: string | null;
+        };
+        /** Assignments */
+        Assignments: {
+            /**
+             * Students
+             * @description By roll number, then name
+             */
+            students: components["schemas"]["AssignedStudent"][];
         };
         /** AuditActor */
         AuditActor: {
@@ -1644,6 +1771,25 @@ export interface components {
             /** Token */
             token: string;
         };
+        /**
+         * StudentChoice
+         * @description Just enough to pick a student (SECURITY_AND_ACCESS.md § 3).
+         */
+        StudentChoice: {
+            /** Assigned */
+            assigned: boolean;
+            /** Email */
+            email: string;
+            /** Full Name */
+            full_name: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Roll No */
+            roll_no: string | null;
+        };
         /** StudentOption */
         StudentOption: {
             /**
@@ -2400,6 +2546,102 @@ export interface operations {
             };
         };
     };
+    list_assignments_api_v1_exams__exam_id__assignments_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exam_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Assignments"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    assign_students_api_v1_exams__exam_id__assignments_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exam_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssignResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unassign_student_api_v1_exams__exam_id__assignments__student_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exam_id: string;
+                student_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_exam_questions_api_v1_exams__exam_id__questions_get: {
         parameters: {
             query?: never;
@@ -2453,6 +2695,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ExamQuestions"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    student_choices_api_v1_exams__exam_id__student_choices_get: {
+        parameters: {
+            query?: {
+                /** @description Name, email or roll no. */
+                q?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                exam_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentChoice"][];
                 };
             };
             /** @description Validation Error */

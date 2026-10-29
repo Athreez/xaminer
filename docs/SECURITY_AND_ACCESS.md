@@ -95,7 +95,7 @@ password, invited (no password yet) and deactivated accounts all get the identic
 
 | Permission | Admin | Teacher | Student |
 |---|---|---|---|
-| `user:read` | inst | self + students assigned to own exams (name, roll no.) | self |
+| `user:read` | inst | self + students assigned to own exams (name, roll no.); when assigning an own exam, a search of the institution's students (name, email, roll no.) | self |
 | `user:write` (create, edit, deactivate, invite, import) | inst (cannot deactivate self) | — | — |
 | `user:change-password` | self | self | self |
 | `group:read` | inst | inst (to assign exams) | — |

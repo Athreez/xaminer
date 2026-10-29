@@ -11,7 +11,13 @@ from app.auth.tokens import Principal
 from app.authz.guards import require
 from app.authz.permissions import P
 from app.core.errors import AppError
-from app.exams import composition, service
+from app.exams import assignments, composition, service
+from app.exams.assignments import (
+    Assignments,
+    AssignRequest,
+    AssignResult,
+    StudentChoice,
+)
 from app.exams.composition import ExamQuestions, ExamQuestionsIn
 from app.exams.schemas import AdminExamPage, ExamCreate, ExamPage, ExamStatus, ExamUpdate, ExamView
 
@@ -81,6 +87,40 @@ async def set_exam_questions(
     """Replace the whole ordered list in one step: add, remove, reorder and set marks. Drafts
     only. Your own questions and those shared with the institution can be used."""
     return await composition.set_questions(db, principal, exam_id, body)
+
+
+@router.get("/{exam_id}/assignments")
+async def list_assignments(exam_id: uuid.UUID, principal: Author, db: TenantDB) -> Assignments:
+    """Students who may take the exam."""
+    return await assignments.list_assignments(db, principal, exam_id)
+
+
+@router.post("/{exam_id}/assignments")
+async def assign_students(
+    exam_id: uuid.UUID, body: AssignRequest, principal: Author, db: TenantDB
+) -> AssignResult:
+    """Assign groups and/or students. A group adds each of its students; deactivated students are
+    skipped and students already assigned are left alone. Not for archived exams."""
+    return await assignments.assign(db, principal, exam_id, body)
+
+
+@router.delete("/{exam_id}/assignments/{student_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def unassign_student(
+    exam_id: uuid.UUID, student_id: uuid.UUID, principal: Author, db: TenantDB
+) -> None:
+    await assignments.unassign(db, principal, exam_id, student_id)
+
+
+@router.get("/{exam_id}/student-choices")
+async def student_choices(
+    exam_id: uuid.UUID,
+    principal: Author,
+    db: TenantDB,
+    q: Annotated[str | None, Query(max_length=100, description="Name, email or roll no.")] = None,
+    limit: Annotated[int, Query(ge=1, le=100)] = 50,
+) -> list[StudentChoice]:
+    """Students who could be assigned to this exam, for the picker (name, email, roll no.)."""
+    return await assignments.search_students(db, principal, exam_id, q, limit)
 
 
 @admin_router.get("")

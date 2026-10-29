@@ -209,6 +209,140 @@
         "title": "AdminUserView",
         "type": "object"
       },
+      "AssignRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "group_ids": {
+            "default": [],
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 50,
+            "title": "Group Ids",
+            "type": "array"
+          },
+          "student_ids": {
+            "default": [],
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 2000,
+            "title": "Student Ids",
+            "type": "array"
+          }
+        },
+        "title": "AssignRequest",
+        "type": "object"
+      },
+      "AssignResult": {
+        "properties": {
+          "added": {
+            "description": "Students newly assigned",
+            "title": "Added",
+            "type": "integer"
+          },
+          "already_assigned": {
+            "title": "Already Assigned",
+            "type": "integer"
+          },
+          "skipped_inactive": {
+            "description": "Deactivated students in the groups, not assigned",
+            "title": "Skipped Inactive",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "added",
+          "already_assigned",
+          "skipped_inactive"
+        ],
+        "title": "AssignResult",
+        "type": "object"
+      },
+      "AssignedStudent": {
+        "properties": {
+          "assigned_at": {
+            "format": "date-time",
+            "title": "Assigned At",
+            "type": "string"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "full_name": {
+            "title": "Full Name",
+            "type": "string"
+          },
+          "roll_no": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Roll No"
+          },
+          "status": {
+            "enum": [
+              "INVITED",
+              "ACTIVE",
+              "DEACTIVATED"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "student_id": {
+            "format": "uuid",
+            "title": "Student Id",
+            "type": "string"
+          },
+          "via_group": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The group it came from, if any",
+            "title": "Via Group"
+          }
+        },
+        "required": [
+          "student_id",
+          "full_name",
+          "email",
+          "roll_no",
+          "status",
+          "via_group",
+          "assigned_at"
+        ],
+        "title": "AssignedStudent",
+        "type": "object"
+      },
+      "Assignments": {
+        "properties": {
+          "students": {
+            "description": "By roll number, then name",
+            "items": {
+              "$ref": "#/components/schemas/AssignedStudent"
+            },
+            "title": "Students",
+            "type": "array"
+          }
+        },
+        "required": [
+          "students"
+        ],
+        "title": "Assignments",
+        "type": "object"
+      },
       "AuditActor": {
         "properties": {
           "email": {
@@ -2307,6 +2441,48 @@
         "title": "SetPasswordRequest",
         "type": "object"
       },
+      "StudentChoice": {
+        "description": "Just enough to pick a student (SECURITY_AND_ACCESS.md \u00a7 3).",
+        "properties": {
+          "assigned": {
+            "title": "Assigned",
+            "type": "boolean"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "full_name": {
+            "title": "Full Name",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "roll_no": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Roll No"
+          }
+        },
+        "required": [
+          "id",
+          "full_name",
+          "email",
+          "roll_no",
+          "assigned"
+        ],
+        "title": "StudentChoice",
+        "type": "object"
+      },
       "StudentOption": {
         "properties": {
           "id": {
@@ -3790,6 +3966,163 @@
         ]
       }
     },
+    "/api/v1/exams/{exam_id}/assignments": {
+      "get": {
+        "description": "Students who may take the exam.",
+        "operationId": "list_assignments_api_v1_exams__exam_id__assignments_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "exam_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Exam Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Assignments"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Assignments",
+        "tags": [
+          "exams"
+        ]
+      },
+      "post": {
+        "description": "Assign groups and/or students. A group adds each of its students; deactivated students are\nskipped and students already assigned are left alone. Not for archived exams.",
+        "operationId": "assign_students_api_v1_exams__exam_id__assignments_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "exam_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Exam Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssignResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Assign Students",
+        "tags": [
+          "exams"
+        ]
+      }
+    },
+    "/api/v1/exams/{exam_id}/assignments/{student_id}": {
+      "delete": {
+        "operationId": "unassign_student_api_v1_exams__exam_id__assignments__student_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "exam_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Exam Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "student_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Student Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Unassign Student",
+        "tags": [
+          "exams"
+        ]
+      }
+    },
     "/api/v1/exams/{exam_id}/questions": {
       "get": {
         "description": "The exam's questions in order, with the marks each is worth here.",
@@ -3891,6 +4224,90 @@
           }
         ],
         "summary": "Set Exam Questions",
+        "tags": [
+          "exams"
+        ]
+      }
+    },
+    "/api/v1/exams/{exam_id}/student-choices": {
+      "get": {
+        "description": "Students who could be assigned to this exam, for the picker (name, email, roll no.).",
+        "operationId": "student_choices_api_v1_exams__exam_id__student_choices_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "exam_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Exam Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Name, email or roll no.",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Name, email or roll no.",
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/StudentChoice"
+                  },
+                  "title": "Response Student Choices Api V1 Exams  Exam Id  Student Choices Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Student Choices",
         "tags": [
           "exams"
         ]

@@ -37,7 +37,7 @@ from app.authz.guards import access_table, require
 from app.authz.ownership import get_owned, not_found
 from app.authz.permissions import P
 from app.db.session import SessionFactory, create_session_factory, system_session, tenant_session
-from app.exams.models import Exam
+from app.exams.models import Exam, ExamAssignment
 from app.main import create_app
 from app.platform.models import Institution
 from app.questions.models import Question, QuestionVersion
@@ -158,6 +158,22 @@ def _exam_url(suffix: str = "") -> Callable[[World], Awaitable[str]]:
     return setup
 
 
+async def _assigned_student_url(world: World) -> str:
+    """The owner's exam with one student assigned; the URL removes that student."""
+    student = await _target(world)
+    async with tenant_session(world.factory, world.owner.institution_id) as s:
+        exam = Exam(owner_id=world.owner.id, title="Owned routes exam")
+        s.add(exam)
+        await s.flush()
+        s.add(ExamAssignment(exam_id=exam.id, student_id=student.id, assigned_by=world.owner.id))
+        await s.commit()
+        return f"/api/v1/exams/{exam.id}/assignments/{student.id}"
+
+
+async def _assign_body(world: World) -> dict[str, Any]:
+    return {"student_ids": [str((await _target(world)).id)]}
+
+
 USERS = "/api/v1/users/{user_id}"
 EXAMS = "/api/v1/exams/{exam_id}"
 QUESTIONS = "/api/v1/questions/{question_id}"
@@ -193,6 +209,17 @@ OWNED_ROUTES: list[OwnedRoute] = [
     OwnedRoute(f"DELETE {EXAMS}", "TEACHER", _exam_url(), per_caller=True),
     OwnedRoute(f"POST {EXAMS}/archive", "TEACHER", _exam_url("/archive")),
     OwnedRoute(f"GET {EXAMS}/questions", "TEACHER", _exam_url("/questions")),
+    OwnedRoute(f"GET {EXAMS}/assignments", "TEACHER", _exam_url("/assignments")),
+    OwnedRoute(
+        f"POST {EXAMS}/assignments", "TEACHER", _exam_url("/assignments"), make_body=_assign_body
+    ),
+    OwnedRoute(
+        f"DELETE {EXAMS}/assignments/{{student_id}}",
+        "TEACHER",
+        _assigned_student_url,
+        per_caller=True,
+    ),
+    OwnedRoute(f"GET {EXAMS}/student-choices", "TEACHER", _exam_url("/student-choices")),
     OwnedRoute(
         f"PUT {EXAMS}/questions", "TEACHER", _exam_url("/questions"), body={"questions": []}
     ),
@@ -259,7 +286,16 @@ async def factory(app_engine: AsyncEngine) -> AsyncIterator[SessionFactory]:
     async with system_session(factory) as s:
         ids = select(Institution.id).where(Institution.name.like("Owned routes test%"))
         # Deleting a question removes its versions and options too.
-        for model in (AuthToken, RefreshToken, UserGroupMember, UserGroup, Exam, Question, User):
+        for model in (
+            AuthToken,
+            RefreshToken,
+            UserGroupMember,
+            UserGroup,
+            ExamAssignment,
+            Exam,
+            Question,
+            User,
+        ):
             await s.execute(delete(model).where(model.institution_id.in_(ids)))
         await s.execute(delete(Institution).where(Institution.name.like("Owned routes test%")))
         await s.commit()
