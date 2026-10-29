@@ -123,6 +123,7 @@ export class Uploader {
     this.running = true;
     try {
       const pending = await this.outbox.pending(this.attemptId);
+      this.unsent = pending.length; // a status asked for meanwhile says "saving", not "saved"
       const answers = pending.filter((e) => e.kind === "answer").slice(0, MAX_BATCH);
       if (answers.length) await this.sendAnswers(answers);
       for (const entry of pending.filter((e) => e.kind !== "answer")) {

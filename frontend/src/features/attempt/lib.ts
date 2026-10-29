@@ -6,6 +6,7 @@ import type { Entry } from "./sync/outbox";
 export type AttemptView = components["schemas"]["AttemptView"];
 export type AttemptItem = components["schemas"]["AttemptItem"];
 export type Heartbeat = components["schemas"]["HeartbeatOut"];
+export type Receipt = components["schemas"]["Receipt"];
 
 // ----------------------------------------------------------------------------- answers
 
@@ -127,4 +128,18 @@ export function connection(
   if (!browserOnline) return "offline";
   if (failingSince === null) return "online";
   return now - failingSince >= OFFLINE_AFTER_MS ? "offline" : "reconnecting";
+}
+
+// ----------------------------------------------------------------------------- review
+
+/** A one-line preview of a question's Markdown for the review table. */
+export function plainText(markdown: string, max = 90): string {
+  const text = markdown
+    .replace(/```[\s\S]*?```/g, " [code] ")
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, " [image] ")
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/[*_`#>|~]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
 }

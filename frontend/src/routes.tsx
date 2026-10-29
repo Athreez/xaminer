@@ -173,7 +173,7 @@ export const router = createBrowserRouter([
         // The exam screen: no app navigation (§ 4). Teachers come here for their own previews.
         path: "/attempt/:attemptId",
         element: (
-          <RequireRole role={["STUDENT", "TEACHER"]}>
+          <RequireRole role={["STUDENT", "TEACHER"]} stayWhenExpired>
             <Outlet />
           </RequireRole>
         ),

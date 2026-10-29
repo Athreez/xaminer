@@ -242,6 +242,25 @@ describe("Uploader", () => {
     expect((await outbox.pending(ATTEMPT))[0]?.payload).toMatchObject({ text_answer: "new" });
   });
 
+  it("while an upload is under way, asking again says saving, never saved", async () => {
+    let release: () => void = () => undefined;
+    const { transport } = fakeTransport();
+    const slow: Transport = {
+      ...transport,
+      saveAnswers: async (attempt, answers) => {
+        await new Promise<void>((resolve) => (release = resolve));
+        return transport.saveAnswers(attempt, answers);
+      },
+    };
+    await outbox.put(ATTEMPT, "answer", "q1", { exam_question_id: "q1" });
+    const uploader = make(slow);
+    const first = uploader.flush();
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(await uploader.flush()).toEqual({ state: "saving", unsent: 1, refused: 0 });
+    release();
+    expect((await first).state).toBe("saved");
+  });
+
   it("time up: everything still queued is kept aside and counted honestly", async () => {
     const { transport } = fakeTransport({ fail: new SendError("closed", "TIME_UP") });
     await outbox.put(ATTEMPT, "answer", "q1", { exam_question_id: "q1" });

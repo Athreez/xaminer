@@ -386,8 +386,9 @@ them."
 
 ### 6.7 Time up
 
-At 0: inputs lock, the outbox flushes, and a modal says "Time is up. Your exam was submitted
-automatically," showing what was saved. If some answers didn't reach the server in time, it says how many,
+At 0: inputs lock, the outbox flushes, and a modal says "Time is up" while the exam submits itself
+(a few seconds after the deadline, so it counts as automatic). The receipt then says "Time is up.
+Your exam was submitted automatically," showing what was saved. If some answers didn't reach the server in time, it says how many,
 honestly. Unsubmitted code drafts are graded automatically (PRD EXE-06) and the modal says so.
 
 ### 6.8 Rules inside the exam screen

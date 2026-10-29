@@ -1,5 +1,7 @@
 /** Small, pure helpers for the auth pages (unit-tested in helpers.test.ts). */
 
+import type { ApiError } from "@/api/client";
+
 export type Role = "ADMIN" | "TEACHER" | "STUDENT";
 
 const HOME: Record<Role, string> = {
@@ -46,4 +48,22 @@ export function lockedUntilText(iso: string | undefined): string {
   if (Number.isNaN(until.getTime())) return "Try again later.";
   const time = until.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   return `Try again after ${time}.`;
+}
+
+/** Messages for each login error (FRONTEND_SPEC § 5.0). */
+export function loginErrorText(error: ApiError["error"]): string {
+  switch (error.code) {
+    case "INVALID_CREDENTIALS":
+      return "Email or password is incorrect.";
+    case "ACCOUNT_LOCKED":
+      return `Too many failed attempts, so this account is locked for a while. ${lockedUntilText(
+        error.details?.[0]?.locked_until as string | undefined,
+      )}`;
+    case "RATE_LIMITED":
+      return "Too many attempts from this device. Wait a minute and try again.";
+    case "VALIDATION_FAILED":
+      return "Enter your email and password.";
+    default:
+      return "Something went wrong. Try again in a moment.";
+  }
 }

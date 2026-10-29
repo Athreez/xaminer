@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Navigate, useLocation } from "react-router";
 
 import { homeFor } from "./helpers";
@@ -24,11 +24,25 @@ function FullPageLoading() {
 /**
  * Only lets the given role in. Not logged in → /login, then back here. Wrong role → /403.
  * The server checks every request anyway; this is for a clear experience, not security.
+ *
+ * `stayWhenExpired`: once in, a session that expires keeps the page on screen (the exam screen
+ * asks for the password in a dialog instead of leaving, FRONTEND_SPEC § 6.8).
  */
-export function RequireRole({ role, children }: { role: string | string[]; children: ReactNode }) {
+export function RequireRole({
+  role,
+  stayWhenExpired = false,
+  children,
+}: {
+  role: string | string[];
+  stayWhenExpired?: boolean;
+  children: ReactNode;
+}) {
   const session = useSession();
   const location = useLocation();
+  const [entered, setEntered] = useState(false);
+  if (session.status === "authenticated" && !entered) setEntered(true);
   if (session.status === "loading") return <FullPageLoading />;
+  if (session.status === "anonymous" && stayWhenExpired && entered) return children;
   if (session.status === "anonymous") {
     const next = encodeURIComponent(location.pathname + location.search);
     return <Navigate to={`/login?next=${next}`} replace />;

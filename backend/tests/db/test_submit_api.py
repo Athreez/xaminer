@@ -127,6 +127,15 @@ async def test_submitting_after_the_grace_counts_as_automatic(world: World) -> N
     assert row.action == "attempt.auto_submitted" and row.actor_id is None
 
 
+async def test_submitting_in_the_grace_counts_as_automatic(world: World) -> None:
+    # The exam screen submits by itself when the timer reaches zero.
+    attempt = begin(world)
+    await overdue(world, attempt["id"], seconds=5)
+    assert submit(world, attempt["id"]).json()["status"] == "AUTO_SUBMITTED"
+    (row,) = await endings(world, attempt["id"])
+    assert row.action == "attempt.auto_submitted" and row.actor_id == world.student.id
+
+
 async def test_touching_an_overdue_attempt_ends_it(world: World) -> None:
     attempt = begin(world)
     await overdue(world, attempt["id"])

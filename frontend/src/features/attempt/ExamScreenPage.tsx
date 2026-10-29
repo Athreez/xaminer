@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, ArrowRight, Flag, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, ClipboardCheck, Flag, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router";
 
 import { api, errorCode } from "@/api/client";
 import { useSession } from "@/auth/hooks";
+import type { User } from "@/auth/session";
 import { MarkdownView } from "@/components/MarkdownView";
 import { ErrorState } from "@/components/page";
 import { Button } from "@/components/ui/button";
@@ -15,9 +16,11 @@ import { MarksNote } from "@/features/questions/StudentQuestionCard";
 import { unwrap } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
+import { ReceiptView, SessionExpiredDialog, TimeUpDialog } from "./ExamEnd";
 import { ExamHeader } from "./ExamHeader";
 import { canOpen, isAnswered, navState, type AttemptView } from "./lib";
 import { QuestionNavigator, type NavItem } from "./QuestionNavigator";
+import { ReviewPage } from "./ReviewPage";
 import { ServerClock } from "./sync/clock";
 import { useExamSession, type Ended } from "./useExamSession";
 
@@ -49,14 +52,25 @@ export function ExamScreenPage() {
   });
 
   if (query.isPending) return <ScreenSkeleton />;
-  if (query.isError) return <Unavailable error={query.error} onRetry={() => query.refetch()} />;
+  if (query.isError) {
+    if (errorCode(query.error) === "ALREADY_SUBMITTED") return <AlreadySubmitted id={attemptId} />;
+    return <Unavailable error={query.error} onRetry={() => query.refetch()} />;
+  }
   return <ExamScreen view={query.data.view} clock={query.data.clock} />;
 }
 
 function ExamScreen({ view, clock }: { view: AttemptView; clock: ServerClock }) {
   const session = useExamSession(view, clock);
   const me = useSession();
-  const preview = me.status === "authenticated" && me.user.role === "TEACHER";
+  // Who is taking the exam, remembered if the session expires (only they may log back in).
+  const [user, setUser] = useState<User | null>(null);
+  if (me.status === "authenticated" && me.user.id !== user?.id) setUser(me.user);
+  const preview = user?.role === "TEACHER";
+  const [reviewing, setReviewing] = useState(false);
+  // Reopened after a reload or on another device: say so (§ 6.2).
+  const [restored, setRestored] = useState(
+    () => Date.parse(view.server_time) - Date.parse(view.started_at) > 60_000,
+  );
   const sequential = view.navigation_mode === "SEQUENTIAL";
   const items = view.questions;
   const position = usePosition(view.id, items.length);
@@ -98,6 +112,18 @@ function ExamScreen({ view, clock }: { view: AttemptView; clock: ServerClock }) 
     );
   }
   if (!session.ready || !item) return <ScreenSkeleton />;
+  if (session.receipt) {
+    return (
+      <ReceiptView
+        receipt={session.receipt}
+        title={view.title}
+        lost={session.lost}
+        hasCoding={items.some((q) => q.question.type === "CODING")}
+        timeUp={session.secondsLeft === 0}
+        back={backLink(preview, view.exam_id)}
+      />
+    );
+  }
 
   const locked = session.ended !== null;
   const id = item.exam_question_id;
@@ -113,88 +139,149 @@ function ExamScreen({ view, clock }: { view: AttemptView; clock: ServerClock }) 
           save={session.save}
           connection={session.connection}
         />
-        <Banners session={session} preview={preview ? view.exam_id : null} />
+        <Banners
+          session={session}
+          preview={preview ? view.exam_id : null}
+          restored={restored}
+          onRestoredSeen={() => setRestored(false)}
+        />
       </div>
 
-      <div className="mx-auto flex w-full max-w-6xl flex-1 gap-6 p-5">
-        <aside className="w-60 shrink-0">
-          <div className="bg-card rounded-2xl border p-4">
-            <QuestionNavigator
-              items={navItems}
-              current={current}
-              sequential={sequential}
-              onOpen={(i) => open(i)}
-            />
-          </div>
-        </aside>
+      <TimeUpDialog open={session.ended === "TIME_UP"} unsent={session.save.unsent} />
+      {me.status === "anonymous" && <SessionExpiredDialog user={user} />}
 
-        <main className="min-w-0 flex-1">
-          <article className="bg-card shadow-card rounded-2xl border p-6" aria-labelledby="q-title">
-            <header className="mb-4 flex flex-wrap items-center gap-3">
-              <h2 id="q-title" className="mr-auto text-sm font-semibold">
-                Question {current + 1} of {items.length}
-              </h2>
-              <Button
-                variant={flags[id] ? "secondary" : "outline"}
-                size="sm"
-                aria-pressed={Boolean(flags[id])}
-                disabled={locked}
-                onClick={() => session.setFlag(id, !flags[id])}
-              >
-                <Flag className={cn("size-4", flags[id] && "fill-warning text-warning")} />
-                {flags[id] ? "Marked for review" : "Mark for review"}
-              </Button>
-              <span className="text-muted-foreground flex gap-3 text-sm">
-                <MarksNote question={item.question} />
-              </span>
-            </header>
-
-            <MarkdownView text={item.question.body} />
-
-            <div className="mt-6">
-              <AnswerControls
-                key={id}
-                question={item.question}
-                value={answers[id] ?? NO_ANSWER}
-                disabled={locked}
-                onChange={(value) =>
-                  session.setAnswer(id, value, item.question.type === "DESCRIPTIVE")
-                }
+      {reviewing ? (
+        <ReviewPage
+          rows={items.map((q, i) => ({
+            item: q,
+            state: navItems[i]!.state,
+            open: navItems[i]!.open,
+          }))}
+          session={session}
+          onBack={() => setReviewing(false)}
+          onOpen={(i) => {
+            open(i);
+            setReviewing(false);
+          }}
+        />
+      ) : (
+        <div className="mx-auto flex w-full max-w-6xl flex-1 gap-6 p-5">
+          <aside className="w-60 shrink-0">
+            <div className="bg-card rounded-2xl border p-4">
+              <QuestionNavigator
+                items={navItems}
+                current={current}
+                sequential={sequential}
+                onOpen={(i) => open(i)}
               />
-            </div>
-
-            <footer className="mt-8 flex flex-wrap items-center gap-3 border-t pt-5">
-              {!sequential && (
-                <Button
-                  variant="outline"
-                  disabled={current === 0}
-                  onClick={() => open(current - 1)}
-                >
-                  <ArrowLeft className="size-4" /> Previous
-                </Button>
-              )}
-              <Button
-                variant="ghost"
-                className="mx-auto"
-                disabled={locked || !answered || item.question.type === "CODING"}
-                onClick={() => session.setAnswer(id, NO_ANSWER)}
-              >
-                Clear answer
+              <Button variant="outline" className="mt-4 w-full" onClick={() => setReviewing(true)}>
+                <ClipboardCheck className="size-4" /> Review &amp; submit
               </Button>
-              <div className="flex items-center gap-3">
-                {sequential && !last && (
-                  <span className="text-muted-foreground text-xs">You can't come back</span>
-                )}
-                <Button disabled={last} onClick={() => open(current + 1)}>
-                  Next <ArrowRight className="size-4" />
+            </div>
+          </aside>
+
+          <main className="min-w-0 flex-1">
+            <article
+              className="bg-card shadow-card rounded-2xl border p-6"
+              aria-labelledby="q-title"
+            >
+              <header className="mb-4 flex flex-wrap items-center gap-3">
+                <h2 id="q-title" className="mr-auto text-sm font-semibold">
+                  Question {current + 1} of {items.length}
+                </h2>
+                <Button
+                  variant={flags[id] ? "secondary" : "outline"}
+                  size="sm"
+                  aria-pressed={Boolean(flags[id])}
+                  disabled={locked}
+                  onClick={() => session.setFlag(id, !flags[id])}
+                >
+                  <Flag className={cn("size-4", flags[id] && "fill-warning text-warning")} />
+                  {flags[id] ? "Marked for review" : "Mark for review"}
                 </Button>
+                <span className="text-muted-foreground flex gap-3 text-sm">
+                  <MarksNote question={item.question} />
+                </span>
+              </header>
+
+              <MarkdownView text={item.question.body} />
+
+              <div className="mt-6">
+                <AnswerControls
+                  key={id}
+                  question={item.question}
+                  value={answers[id] ?? NO_ANSWER}
+                  disabled={locked}
+                  onChange={(value) =>
+                    session.setAnswer(id, value, item.question.type === "DESCRIPTIVE")
+                  }
+                />
               </div>
-            </footer>
-          </article>
-        </main>
-      </div>
+
+              <footer className="mt-8 flex flex-wrap items-center gap-3 border-t pt-5">
+                {!sequential && (
+                  <Button
+                    variant="outline"
+                    disabled={current === 0}
+                    onClick={() => open(current - 1)}
+                  >
+                    <ArrowLeft className="size-4" /> Previous
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  className="mx-auto"
+                  disabled={locked || !answered || item.question.type === "CODING"}
+                  onClick={() => session.setAnswer(id, NO_ANSWER)}
+                >
+                  Clear answer
+                </Button>
+                <div className="flex items-center gap-3">
+                  {sequential && !last && (
+                    <span className="text-muted-foreground text-xs">You can't come back</span>
+                  )}
+                  {last ? (
+                    <Button onClick={() => setReviewing(true)}>
+                      Review &amp; submit <ArrowRight className="size-4" />
+                    </Button>
+                  ) : (
+                    <Button onClick={() => open(current + 1)}>
+                      Next <ArrowRight className="size-4" />
+                    </Button>
+                  )}
+                </div>
+              </footer>
+            </article>
+          </main>
+        </div>
+      )}
     </div>
   );
+}
+
+function backLink(preview: boolean, examId: string) {
+  return preview
+    ? { to: `/teacher/exams/${examId}`, label: "Back to the exam" }
+    : { to: "/student", label: "Back to your exams" };
+}
+
+/** Opening an attempt that is already over shows its receipt (UI state ALREADY_SUBMITTED). */
+function AlreadySubmitted({ id }: { id: string }) {
+  const me = useSession();
+  const receipt = useQuery({
+    queryKey: ["attempt", id, "receipt"],
+    queryFn: async () =>
+      unwrap(
+        await api.GET("/api/v1/attempts/{attempt_id}/receipt", {
+          params: { path: { attempt_id: id } },
+        }),
+      ),
+  });
+  if (receipt.isPending) return <ScreenSkeleton />;
+  if (receipt.isError)
+    return <Unavailable error={receipt.error} onRetry={() => receipt.refetch()} />;
+  const preview = me.status === "authenticated" && me.user.role === "TEACHER";
+  return <ReceiptView receipt={receipt.data} back={backLink(preview, receipt.data.exam_id)} />;
 }
 
 // ----------------------------------------------------------------------------- position
@@ -262,9 +349,13 @@ function readPosition(key: string): Position | null {
 function Banners({
   session,
   preview,
+  restored,
+  onRestoredSeen,
 }: {
   session: ReturnType<typeof useExamSession>;
   preview: string | null;
+  restored: boolean;
+  onRestoredSeen: () => void;
 }) {
   const small = useWindowTooSmall();
   const { secondsLeft, ended, extendedBy } = session;
@@ -276,6 +367,11 @@ function Banners({
           <Link className="font-medium underline" to={`/teacher/exams/${preview}`}>
             Leave preview
           </Link>
+        </Banner>
+      )}
+      {restored && !ended && (
+        <Banner tone="info" onClose={onRestoredSeen}>
+          Your answers were restored. The timer kept running.
         </Banner>
       )}
       {ended && <Banner tone="danger">{endedText(ended, session.save.unsent)}</Banner>}

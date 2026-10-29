@@ -1,9 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { api } from "@/api/client";
+import { unwrap } from "@/lib/api";
 import type { AnswerValue } from "@/features/questions/lib";
 
-import { connection, restore, type AttemptView, type Connection, type Heartbeat } from "./lib";
+import {
+  connection,
+  restore,
+  type AttemptView,
+  type Connection,
+  type Heartbeat,
+  type Receipt,
+} from "./lib";
 import type { ServerClock } from "./sync/clock";
 import { Outbox } from "./sync/outbox";
 import { TIMEOUT_MS, apiTransport } from "./sync/transport";
@@ -13,6 +21,10 @@ import { Uploader, type Status } from "./sync/uploader";
 const HEARTBEAT_MS = 15_000;
 /** Typing is written to the device after this pause (each choice click is written at once). */
 const TEXT_DEBOUNCE_MS = 300;
+/** At time up, submitting is retried this often until it gets through. */
+const SUBMIT_RETRY_MS = 5_000;
+/** At time up, submitting waits until this long past the deadline by the server's clock. */
+const SUBMIT_AFTER_DEADLINE_MS = 2_000;
 
 /** Why answers can't be changed any more. */
 export type Ended = "TIME_UP" | "SUBMITTED" | "AUTO_SUBMITTED" | "VOIDED";
@@ -32,6 +44,14 @@ export interface ExamSession {
   dismissExtension: () => void;
   setAnswer: (examQuestionId: string, value: AnswerValue, typing?: boolean) => void;
   setFlag: (examQuestionId: string, marked: boolean) => void;
+  /** Write what's typed and try to send everything now; resolves with what's still unsent. */
+  sendAll: () => Promise<Status>;
+  /** Submit the exam. Throws if the server can't be reached (nothing is lost: try again). */
+  submit: () => Promise<void>;
+  /** Set once the exam is submitted (by the student, at time up, or by the teacher). */
+  receipt: Receipt | null;
+  /** Changes that never reached the server before it ended (told honestly on the receipt). */
+  lost: number;
 }
 
 /**
@@ -52,23 +72,27 @@ export function useExamSession(view: AttemptView, clock: ServerClock): ExamSessi
   const [closed, setEnded] = useState<Ended | null>(null); // said by the server
   const [extendedBy, setExtendedBy] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
+  const [receipt, setReceipt] = useState<Receipt | null>(null);
+  const [lost, setLost] = useState(0);
 
   const tools = useRef<{ outbox: Outbox; uploader: Uploader } | null>(null);
   const typing = useRef(new Map<string, { timer: number; value: AnswerValue }>());
   const unsent = useRef(0);
   const locked = useRef(false);
+  const finished = useRef(false); // submitted: stop heartbeats and uploads
 
   const reached = useCallback(() => setFailingSince(null), []);
   const failed = useCallback(() => setFailingSince((since) => since ?? Date.now()), []);
 
   const flush = useCallback(
-    async (force = false) => {
+    async (force = false): Promise<Status | null> => {
       const uploader = tools.current?.uploader;
-      if (!uploader) return;
+      if (!uploader) return null;
       const status = await uploader.flush(force);
       setSave(status);
       if (status.state === "offline" || status.state === "failing") failed();
       else if (status.state === "saved") reached();
+      return status;
     },
     [failed, reached],
   );
@@ -87,22 +111,26 @@ export function useExamSession(view: AttemptView, clock: ServerClock): ExamSessi
     [attemptId, flush],
   );
 
-  // Typing not yet written goes to the device now (leaving the page, time up).
-  const writePending = useCallback(() => {
-    for (const [id, { timer, value }] of typing.current) {
-      window.clearTimeout(timer);
-      void write(id, value);
-    }
+  // Typing not yet written goes to the device now (leaving the page, submitting, time up).
+  const writePending = useCallback(async () => {
+    const waiting = [...typing.current];
     typing.current.clear();
+    await Promise.all(
+      waiting.map(([id, { timer, value }]) => {
+        window.clearTimeout(timer);
+        return write(id, value);
+      }),
+    );
   }, [write]);
 
   // Declared before the outbox effect so that, on leaving the page, typing is written before
   // the outbox closes (React cleans up effects in order).
   useEffect(() => {
-    window.addEventListener("pagehide", writePending);
+    const leave = () => void writePending();
+    window.addEventListener("pagehide", leave);
     return () => {
-      window.removeEventListener("pagehide", writePending);
-      writePending();
+      window.removeEventListener("pagehide", leave);
+      leave();
     };
   }, [writePending]);
 
@@ -113,7 +141,8 @@ export function useExamSession(view: AttemptView, clock: ServerClock): ExamSessi
     (async () => {
       try {
         outbox = await Outbox.open();
-        const restored = restore(view.questions, await outbox.pending(attemptId));
+        const pending = await outbox.pending(attemptId);
+        const restored = restore(view.questions, pending);
         await outbox.ensureRevisionAbove(attemptId, restored.revision);
         if (cancelled) return;
         tools.current = {
@@ -124,6 +153,8 @@ export function useExamSession(view: AttemptView, clock: ServerClock): ExamSessi
         };
         setAnswers(restored.answers);
         setFlags(restored.flags);
+        // Changes left from last time are unsent until the uploader says otherwise.
+        if (pending.length) setSave({ state: "saving", unsent: pending.length, refused: 0 });
         setReady(true);
         void flush();
       } catch (error) {
@@ -150,6 +181,7 @@ export function useExamSession(view: AttemptView, clock: ServerClock): ExamSessi
   useEffect(() => {
     let previousDeadline = Date.parse(view.deadline_at);
     async function beat() {
+      if (finished.current) return;
       const sentAt = Date.now();
       try {
         const { data, response } = await api.POST("/api/v1/attempts/{attempt_id}/heartbeat", {
@@ -198,20 +230,79 @@ export function useExamSession(view: AttemptView, clock: ServerClock): ExamSessi
     return () => window.removeEventListener("beforeunload", warn);
   }, [save.unsent]);
 
+  const sendAll = useCallback(async (): Promise<Status> => {
+    await writePending();
+    return (await flush(true)) ?? { state: "saved", unsent: 0, refused: 0 };
+  }, [writePending, flush]);
+
+  // The exam is over on the server: keep the receipt, count what never got there, and forget
+  // this attempt's outbox (the server refuses anything still in it).
+  const finish = useCallback(
+    async (done: Receipt) => {
+      finished.current = true;
+      const uploader = tools.current?.uploader;
+      const left = uploader ? await uploader.flush(true) : null;
+      setLost(left ? left.unsent + left.refused : 0);
+      setReceipt(done);
+      await tools.current?.outbox.clear(attemptId);
+    },
+    [attemptId],
+  );
+
+  const submit = useCallback(async () => {
+    await sendAll();
+    const done = unwrap(
+      await api.POST("/api/v1/attempts/{attempt_id}/submit", {
+        params: { path: { attempt_id: attemptId } },
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+      }),
+    );
+    await finish(done);
+  }, [sendAll, attemptId, finish]);
+
+  // Submitted elsewhere (the teacher, or the server after the grace): fetch the receipt.
+  useEffect(() => {
+    if (closed !== "SUBMITTED" && closed !== "AUTO_SUBMITTED") return;
+    if (finished.current) return;
+    void (async () => {
+      const { data } = await api.GET("/api/v1/attempts/{attempt_id}/receipt", {
+        params: { path: { attempt_id: attemptId } },
+      });
+      if (data) await finish(data);
+    })();
+  }, [closed, attemptId, finish]);
+
   const secondsLeft = clock.secondsLeft(deadline);
   void now; // re-rendered every second so the line above moves
-  const ended = closed ?? (ready && secondsLeft <= 0 ? "TIME_UP" : null);
+  const ended: Ended | null =
+    closed ?? (receipt ? receipt.status : ready && secondsLeft <= 0 ? "TIME_UP" : null);
   useEffect(() => {
     unsent.current = save.unsent;
     locked.current = ended !== null;
   }, [save.unsent, ended]);
 
-  // Time up: write what's typed and send everything now (the server allows 60 s of grace).
+  // Time up: send everything (the server takes saves for 60 s more), then submit, retrying until
+  // it gets through. Past the grace the server ends the attempt itself and returns its receipt.
+  // The timer shows 0 up to a second early and the clock estimate is approximate, so the submit
+  // waits until the deadline has surely passed on the server: it then counts as automatic.
   useEffect(() => {
-    if (ended !== "TIME_UP") return;
-    writePending();
-    void flush(true);
-  }, [ended, writePending, flush]);
+    if (ended !== "TIME_UP" || finished.current) return;
+    void writePending().then(() => flush(true));
+    let busy = false;
+    let nextTry = Date.parse(deadline) + SUBMIT_AFTER_DEADLINE_MS;
+    const id = window.setInterval(async () => {
+      if (busy || finished.current || clock.serverNow() < nextTry) return;
+      busy = true;
+      try {
+        await submit();
+      } catch {
+        nextTry = clock.serverNow() + SUBMIT_RETRY_MS;
+      } finally {
+        busy = false;
+      }
+    }, 500);
+    return () => window.clearInterval(id);
+  }, [ended, submit, deadline, clock, writePending, flush]);
 
   const setAnswer = useCallback(
     (examQuestionId: string, value: AnswerValue, isTyping = false) => {
@@ -258,5 +349,9 @@ export function useExamSession(view: AttemptView, clock: ServerClock): ExamSessi
     dismissExtension: () => setExtendedBy(null),
     setAnswer,
     setFlag,
+    sendAll,
+    submit,
+    receipt,
+    lost,
   };
 }

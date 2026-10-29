@@ -131,15 +131,15 @@ async def submit(session: AsyncSession, principal: Principal, attempt_id: uuid.U
     if attempt.status == "VOIDED":
         raise not_found()
     if attempt.status == "IN_PROGRESS":
-        # Past the grace it was already over: record it as automatic, at the time it's noticed.
-        late = timer.is_overdue(attempt.deadline_at, now)
+        # After the deadline the time ran out: the exam screen submits by itself at zero, so it
+        # counts as automatic. Past the grace it was over already: the system ends it.
         await finalize(
             session,
             attempt.id,
             attempt.institution_id,
-            auto=late,
+            auto=now >= attempt.deadline_at,
             now=now,
-            actor=None if late else principal,
+            actor=None if timer.is_overdue(attempt.deadline_at, now) else principal,
         )
         await session.commit()
         await session.refresh(attempt)

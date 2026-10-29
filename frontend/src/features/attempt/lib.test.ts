@@ -6,6 +6,7 @@ import {
   formatClock,
   isAnswered,
   navLabel,
+  plainText,
   navState,
   restore,
   timeAnnouncement,
@@ -135,5 +136,15 @@ describe("connection", () => {
     expect(connection(true, 0, 29_999)).toBe("reconnecting");
     expect(connection(true, 0, 30_000)).toBe("offline");
     expect(connection(false, null, 0)).toBe("offline");
+  });
+});
+
+describe("plainText", () => {
+  it("drops Markdown marks, keeps words, and shortens", () => {
+    expect(plainText("Index of the **first** element?")).toBe("Index of the first element?");
+    expect(plainText("See [docs](http://x) and ![a](q.png)\n```py\nx=1\n```")).toBe(
+      "See docs and [image] [code]",
+    );
+    expect(plainText("a".repeat(100), 10)).toBe("aaaaaaaaa…");
   });
 });

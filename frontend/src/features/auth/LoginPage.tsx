@@ -5,7 +5,7 @@ import { Link, Navigate, useLocation, useNavigate, useSearchParams } from "react
 import { api, type ApiError } from "@/api/client";
 import { useSession } from "@/auth/hooks";
 import { signedIn } from "@/auth/session";
-import { homeFor, lockedUntilText, safeNextPath } from "@/auth/helpers";
+import { homeFor, loginErrorText, safeNextPath } from "@/auth/helpers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -16,24 +16,6 @@ import { AuthLayout, PasswordInput } from "./AuthLayout";
 interface Choice {
   id: string;
   name: string;
-}
-
-/** Messages for each login error (FRONTEND_SPEC § 5.0). */
-function messageFor(error: ApiError["error"]): string {
-  switch (error.code) {
-    case "INVALID_CREDENTIALS":
-      return "Email or password is incorrect.";
-    case "ACCOUNT_LOCKED":
-      return `Too many failed attempts, so this account is locked for a while. ${lockedUntilText(
-        error.details?.[0]?.locked_until as string | undefined,
-      )}`;
-    case "RATE_LIMITED":
-      return "Too many attempts from this device. Wait a minute and try again.";
-    case "VALIDATION_FAILED":
-      return "Enter your email and password.";
-    default:
-      return "Something went wrong. Try again in a moment.";
-  }
 }
 
 export function LoginPage() {
@@ -71,7 +53,7 @@ export function LoginPage() {
         setChoices((err.details ?? []) as unknown as Choice[]);
       } else {
         setChoices(null);
-        setError(messageFor(err));
+        setError(loginErrorText(err));
       }
     } catch {
       setError("Can't reach the server. Check your connection and try again.");
