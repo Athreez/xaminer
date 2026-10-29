@@ -243,7 +243,7 @@ expired. Ask your admin for a new invitation." Password reset pages work the sam
 | Users | Table: name, email, role, roll no., status. Filters: role, status, search. Actions: add user (sends invite), edit, deactivate, resend invite, send password reset |
 | CSV import (S) | Choose file (read in the browser) → preview with per-row errors → import valid rows → summary (imported / skipped / failed). A template file can be downloaded |
 | Groups | List of groups with member count; group page to add/remove students (search + multi-select) |
-| Exams | Read-only list: title, owner, window, status. Built with the exam API (TCK-0502) |
+| Exams | Read-only list: title, owner, window, minutes, students assigned, status. Search and status filter |
 | Settings | Evidence retention days (7–90), default consent text. Shows "Overdue evidence deletions: 0" (anything else shown as an error); the count is added with the retention job (TCK-1107) |
 | Audit log | Table: time, user, action, item, details. Filters: action, date range, and user (click a name, or **History** on a user's page). Filters are kept in the address bar |
 

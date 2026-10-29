@@ -4,6 +4,26 @@
  */
 
 export interface paths {
+    "/api/v1/admin/exams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Exams For Admin
+         * @description Every exam in the institution: title, owner, window and status only.
+         */
+        get: operations["list_exams_for_admin_api_v1_admin_exams_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/audit-logs": {
         parameters: {
             query?: never;
@@ -218,6 +238,73 @@ export interface paths {
          * @description Get a new access token using the refresh cookie. The cookie is replaced each time.
          */
         post: operations["refresh_api_v1_auth_refresh_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Exams
+         * @description Your exams, newest first.
+         */
+        get: operations["list_exams_api_v1_exams_get"];
+        put?: never;
+        /**
+         * Create Exam
+         * @description Create a draft. Settings not sent take their defaults (PRD § 6.3).
+         */
+        post: operations["create_exam_api_v1_exams_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/{exam_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Exam */
+        get: operations["get_exam_api_v1_exams__exam_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Exam
+         * @description Delete a draft. Published exams are archived instead, so their results stay.
+         */
+        delete: operations["delete_exam_api_v1_exams__exam_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Exam
+         * @description Change settings. Once published only `close_at` may change; other fields return 409
+         *     `EXAM_PUBLISHED` naming the field.
+         */
+        patch: operations["update_exam_api_v1_exams__exam_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/exams/{exam_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive Exam */
+        post: operations["archive_exam_api_v1_exams__exam_id__archive_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -666,6 +753,41 @@ export interface components {
             /** User Ids */
             user_ids: string[];
         };
+        /** AdminExamPage */
+        AdminExamPage: {
+            /** Data */
+            data: components["schemas"]["AdminExamSummary"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /**
+         * AdminExamSummary
+         * @description What an admin may see of an exam: metadata only, never its questions (SECURITY § 3).
+         */
+        AdminExamSummary: {
+            /** Assigned Count */
+            assigned_count: number;
+            /** Close At */
+            close_at: string | null;
+            /** Duration Min */
+            duration_min: number | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Open At */
+            open_at: string | null;
+            /** Owner Name */
+            owner_name: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+            /** Title */
+            title: string;
+        };
         /**
          * AdminUserView
          * @description A user as the admin sees them. Built field by field; never includes password data.
@@ -781,6 +903,245 @@ export interface components {
             role: "ADMIN" | "TEACHER" | "STUDENT";
             /** Roll No */
             roll_no?: string | null;
+        };
+        /**
+         * Detectors
+         * @description Proctoring detector settings (PRD § 6.5). Other detectors are always on when proctored.
+         */
+        Detectors: {
+            /**
+             * Books
+             * @description Book detection (closed-book exams)
+             * @default false
+             */
+            books: boolean;
+            /**
+             * Gaze
+             * @description Gaze detection
+             * @default false
+             */
+            gaze: boolean;
+            /**
+             * Sensitivity
+             * @default STANDARD
+             * @enum {string}
+             */
+            sensitivity: "RELAXED" | "STANDARD" | "STRICT";
+        };
+        /** ExamCreate */
+        ExamCreate: {
+            /** Close At */
+            close_at?: string | null;
+            /**
+             * Consent Text
+             * @description Null: use the institution's default consent text
+             */
+            consent_text?: string | null;
+            /**
+             * Counted Submission
+             * @default BEST
+             * @enum {string}
+             */
+            counted_submission: "BEST" | "LAST";
+            /** Duration Min */
+            duration_min?: number | null;
+            /**
+             * Instructions
+             * @description Markdown, shown before starting
+             * @default
+             */
+            instructions: string;
+            /**
+             * Navigation Mode
+             * @default FREE
+             * @enum {string}
+             */
+            navigation_mode: "FREE" | "SEQUENTIAL";
+            /** Open At */
+            open_at?: string | null;
+            /** Pass Percent */
+            pass_percent?: number | string | null;
+            /**
+             * @default {
+             *       "books": false,
+             *       "gaze": false,
+             *       "sensitivity": "STANDARD"
+             *     }
+             */
+            proctoring_detectors: components["schemas"]["Detectors"];
+            /**
+             * Proctoring Mode
+             * @default OFF
+             * @enum {string}
+             */
+            proctoring_mode: "OFF" | "VIDEO" | "VIDEO_AUDIO";
+            /**
+             * Release Policy
+             * @default MANUAL
+             * @enum {string}
+             */
+            release_policy: "MANUAL" | "ON_SUBMIT";
+            /**
+             * Run Code Enabled
+             * @default true
+             */
+            run_code_enabled: boolean;
+            /**
+             * Shuffle Options
+             * @default false
+             */
+            shuffle_options: boolean;
+            /**
+             * Shuffle Questions
+             * @default false
+             */
+            shuffle_questions: boolean;
+            /** Title */
+            title: string;
+        };
+        /** ExamPage */
+        ExamPage: {
+            /** Data */
+            data: components["schemas"]["ExamSummary"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** ExamSummary */
+        ExamSummary: {
+            /** Assigned Count */
+            assigned_count: number;
+            /** Close At */
+            close_at: string | null;
+            /** Duration Min */
+            duration_min: number | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Open At */
+            open_at: string | null;
+            /** Question Count */
+            question_count: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+            /** Title */
+            title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * ExamUpdate
+         * @description Only the fields sent change. After publishing only `close_at` may change (PRD EX-06).
+         */
+        ExamUpdate: {
+            /** Close At */
+            close_at?: string | null;
+            /** Consent Text */
+            consent_text?: string | null;
+            /** Counted Submission */
+            counted_submission?: ("BEST" | "LAST") | null;
+            /** Duration Min */
+            duration_min?: number | null;
+            /** Instructions */
+            instructions?: string | null;
+            /** Navigation Mode */
+            navigation_mode?: ("FREE" | "SEQUENTIAL") | null;
+            /** Open At */
+            open_at?: string | null;
+            /** Pass Percent */
+            pass_percent?: number | string | null;
+            proctoring_detectors?: components["schemas"]["Detectors"] | null;
+            /** Proctoring Mode */
+            proctoring_mode?: ("OFF" | "VIDEO" | "VIDEO_AUDIO") | null;
+            /** Release Policy */
+            release_policy?: ("MANUAL" | "ON_SUBMIT") | null;
+            /** Run Code Enabled */
+            run_code_enabled?: boolean | null;
+            /** Shuffle Options */
+            shuffle_options?: boolean | null;
+            /** Shuffle Questions */
+            shuffle_questions?: boolean | null;
+            /** Title */
+            title?: string | null;
+        };
+        /** ExamView */
+        ExamView: {
+            /** Assigned Count */
+            assigned_count: number;
+            /** Close At */
+            close_at: string | null;
+            /** Consent Text */
+            consent_text: string | null;
+            /**
+             * Counted Submission
+             * @enum {string}
+             */
+            counted_submission: "BEST" | "LAST";
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Duration Min */
+            duration_min: number | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Instructions */
+            instructions: string;
+            /**
+             * Navigation Mode
+             * @enum {string}
+             */
+            navigation_mode: "FREE" | "SEQUENTIAL";
+            /** Open At */
+            open_at: string | null;
+            /** Pass Percent */
+            pass_percent: string | null;
+            proctoring_detectors: components["schemas"]["Detectors"];
+            /**
+             * Proctoring Mode
+             * @enum {string}
+             */
+            proctoring_mode: "OFF" | "VIDEO" | "VIDEO_AUDIO";
+            /** Published Version No */
+            published_version_no: number | null;
+            /** Question Count */
+            question_count: number;
+            /**
+             * Release Policy
+             * @enum {string}
+             */
+            release_policy: "MANUAL" | "ON_SUBMIT";
+            /** Run Code Enabled */
+            run_code_enabled: boolean;
+            /** Shuffle Options */
+            shuffle_options: boolean;
+            /** Shuffle Questions */
+            shuffle_questions: boolean;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+            /** Title */
+            title: string;
+            /** Total Points */
+            total_points: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
         };
         /** GroupDetail */
         GroupDetail: {
@@ -1379,6 +1740,41 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    list_exams_for_admin_api_v1_admin_exams_get: {
+        parameters: {
+            query?: {
+                status?: ("DRAFT" | "PUBLISHED" | "ARCHIVED") | null;
+                /** @description Search titles */
+                q?: string | null;
+                limit?: number;
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminExamPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     search_audit_log_api_v1_audit_logs_get: {
         parameters: {
             query?: {
@@ -1691,6 +2087,200 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LoginResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_exams_api_v1_exams_get: {
+        parameters: {
+            query?: {
+                status?: ("DRAFT" | "PUBLISHED" | "ARCHIVED") | null;
+                /** @description Search titles */
+                q?: string | null;
+                limit?: number;
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_exam_api_v1_exams_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_exam_api_v1_exams__exam_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exam_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_exam_api_v1_exams__exam_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exam_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_exam_api_v1_exams__exam_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exam_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    archive_exam_api_v1_exams__exam_id__archive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exam_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamView"];
                 };
             };
             /** @description Validation Error */

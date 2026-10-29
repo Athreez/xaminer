@@ -80,8 +80,10 @@ export const router = createBrowserRouter([
             path: "groups/:groupId",
             lazy: page(() => import("@/features/admin/GroupDetailPage"), "GroupDetailPage"),
           },
-          // The admin exam list needs the exam API (TCK-0502); the page comes with it.
-          { path: "exams", element: <PlaceholderPage title="Exams" ticket="TCK-0502" /> },
+          {
+            path: "exams",
+            lazy: page(() => import("@/features/admin/ExamsPage"), "ExamsPage"),
+          },
           {
             path: "settings",
             lazy: page(() => import("@/features/admin/SettingsPage"), "SettingsPage"),

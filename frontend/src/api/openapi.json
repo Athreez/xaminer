@@ -21,6 +21,112 @@
         "title": "AddMembersRequest",
         "type": "object"
       },
+      "AdminExamPage": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/AdminExamSummary"
+            },
+            "title": "Data",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "data",
+          "next_cursor"
+        ],
+        "title": "AdminExamPage",
+        "type": "object"
+      },
+      "AdminExamSummary": {
+        "description": "What an admin may see of an exam: metadata only, never its questions (SECURITY \u00a7 3).",
+        "properties": {
+          "assigned_count": {
+            "title": "Assigned Count",
+            "type": "integer"
+          },
+          "close_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Close At"
+          },
+          "duration_min": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Min"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "open_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Open At"
+          },
+          "owner_name": {
+            "title": "Owner Name",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "DRAFT",
+              "PUBLISHED",
+              "ARCHIVED"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "owner_name",
+          "status",
+          "open_at",
+          "close_at",
+          "duration_min",
+          "assigned_count"
+        ],
+        "title": "AdminExamSummary",
+        "type": "object"
+      },
       "AdminUserView": {
         "description": "A user as the admin sees them. Built field by field; never includes password data.",
         "properties": {
@@ -336,6 +442,691 @@
           "role"
         ],
         "title": "CreateUserRequest",
+        "type": "object"
+      },
+      "Detectors": {
+        "additionalProperties": false,
+        "description": "Proctoring detector settings (PRD \u00a7 6.5). Other detectors are always on when proctored.",
+        "properties": {
+          "books": {
+            "default": false,
+            "description": "Book detection (closed-book exams)",
+            "title": "Books",
+            "type": "boolean"
+          },
+          "gaze": {
+            "default": false,
+            "description": "Gaze detection",
+            "title": "Gaze",
+            "type": "boolean"
+          },
+          "sensitivity": {
+            "default": "STANDARD",
+            "enum": [
+              "RELAXED",
+              "STANDARD",
+              "STRICT"
+            ],
+            "title": "Sensitivity",
+            "type": "string"
+          }
+        },
+        "title": "Detectors",
+        "type": "object"
+      },
+      "ExamCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "close_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Close At"
+          },
+          "consent_text": {
+            "anyOf": [
+              {
+                "maxLength": 20000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Null: use the institution's default consent text",
+            "title": "Consent Text"
+          },
+          "counted_submission": {
+            "default": "BEST",
+            "enum": [
+              "BEST",
+              "LAST"
+            ],
+            "title": "Counted Submission",
+            "type": "string"
+          },
+          "duration_min": {
+            "anyOf": [
+              {
+                "description": "Minutes",
+                "maximum": 600.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Min"
+          },
+          "instructions": {
+            "default": "",
+            "description": "Markdown, shown before starting",
+            "maxLength": 20000,
+            "title": "Instructions",
+            "type": "string"
+          },
+          "navigation_mode": {
+            "default": "FREE",
+            "enum": [
+              "FREE",
+              "SEQUENTIAL"
+            ],
+            "title": "Navigation Mode",
+            "type": "string"
+          },
+          "open_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Open At"
+          },
+          "pass_percent": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pass Percent"
+          },
+          "proctoring_detectors": {
+            "$ref": "#/components/schemas/Detectors",
+            "default": {
+              "books": false,
+              "gaze": false,
+              "sensitivity": "STANDARD"
+            }
+          },
+          "proctoring_mode": {
+            "default": "OFF",
+            "enum": [
+              "OFF",
+              "VIDEO",
+              "VIDEO_AUDIO"
+            ],
+            "title": "Proctoring Mode",
+            "type": "string"
+          },
+          "release_policy": {
+            "default": "MANUAL",
+            "enum": [
+              "MANUAL",
+              "ON_SUBMIT"
+            ],
+            "title": "Release Policy",
+            "type": "string"
+          },
+          "run_code_enabled": {
+            "default": true,
+            "title": "Run Code Enabled",
+            "type": "boolean"
+          },
+          "shuffle_options": {
+            "default": false,
+            "title": "Shuffle Options",
+            "type": "boolean"
+          },
+          "shuffle_questions": {
+            "default": false,
+            "title": "Shuffle Questions",
+            "type": "boolean"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "title": "ExamCreate",
+        "type": "object"
+      },
+      "ExamPage": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/ExamSummary"
+            },
+            "title": "Data",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "data",
+          "next_cursor"
+        ],
+        "title": "ExamPage",
+        "type": "object"
+      },
+      "ExamSummary": {
+        "properties": {
+          "assigned_count": {
+            "title": "Assigned Count",
+            "type": "integer"
+          },
+          "close_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Close At"
+          },
+          "duration_min": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Min"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "open_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Open At"
+          },
+          "question_count": {
+            "title": "Question Count",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "DRAFT",
+              "PUBLISHED",
+              "ARCHIVED"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "status",
+          "open_at",
+          "close_at",
+          "duration_min",
+          "question_count",
+          "assigned_count",
+          "updated_at"
+        ],
+        "title": "ExamSummary",
+        "type": "object"
+      },
+      "ExamUpdate": {
+        "additionalProperties": false,
+        "description": "Only the fields sent change. After publishing only `close_at` may change (PRD EX-06).",
+        "properties": {
+          "close_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Close At"
+          },
+          "consent_text": {
+            "anyOf": [
+              {
+                "maxLength": 20000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Consent Text"
+          },
+          "counted_submission": {
+            "anyOf": [
+              {
+                "enum": [
+                  "BEST",
+                  "LAST"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Counted Submission"
+          },
+          "duration_min": {
+            "anyOf": [
+              {
+                "description": "Minutes",
+                "maximum": 600.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Min"
+          },
+          "instructions": {
+            "anyOf": [
+              {
+                "maxLength": 20000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instructions"
+          },
+          "navigation_mode": {
+            "anyOf": [
+              {
+                "enum": [
+                  "FREE",
+                  "SEQUENTIAL"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Navigation Mode"
+          },
+          "open_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Open At"
+          },
+          "pass_percent": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pass Percent"
+          },
+          "proctoring_detectors": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Detectors"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "proctoring_mode": {
+            "anyOf": [
+              {
+                "enum": [
+                  "OFF",
+                  "VIDEO",
+                  "VIDEO_AUDIO"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proctoring Mode"
+          },
+          "release_policy": {
+            "anyOf": [
+              {
+                "enum": [
+                  "MANUAL",
+                  "ON_SUBMIT"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Release Policy"
+          },
+          "run_code_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Code Enabled"
+          },
+          "shuffle_options": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shuffle Options"
+          },
+          "shuffle_questions": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shuffle Questions"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "title": "ExamUpdate",
+        "type": "object"
+      },
+      "ExamView": {
+        "properties": {
+          "assigned_count": {
+            "title": "Assigned Count",
+            "type": "integer"
+          },
+          "close_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Close At"
+          },
+          "consent_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Consent Text"
+          },
+          "counted_submission": {
+            "enum": [
+              "BEST",
+              "LAST"
+            ],
+            "title": "Counted Submission",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "duration_min": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Min"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "instructions": {
+            "title": "Instructions",
+            "type": "string"
+          },
+          "navigation_mode": {
+            "enum": [
+              "FREE",
+              "SEQUENTIAL"
+            ],
+            "title": "Navigation Mode",
+            "type": "string"
+          },
+          "open_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Open At"
+          },
+          "pass_percent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pass Percent"
+          },
+          "proctoring_detectors": {
+            "$ref": "#/components/schemas/Detectors"
+          },
+          "proctoring_mode": {
+            "enum": [
+              "OFF",
+              "VIDEO",
+              "VIDEO_AUDIO"
+            ],
+            "title": "Proctoring Mode",
+            "type": "string"
+          },
+          "published_version_no": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Published Version No"
+          },
+          "question_count": {
+            "title": "Question Count",
+            "type": "integer"
+          },
+          "release_policy": {
+            "enum": [
+              "MANUAL",
+              "ON_SUBMIT"
+            ],
+            "title": "Release Policy",
+            "type": "string"
+          },
+          "run_code_enabled": {
+            "title": "Run Code Enabled",
+            "type": "boolean"
+          },
+          "shuffle_options": {
+            "title": "Shuffle Options",
+            "type": "boolean"
+          },
+          "shuffle_questions": {
+            "title": "Shuffle Questions",
+            "type": "boolean"
+          },
+          "status": {
+            "enum": [
+              "DRAFT",
+              "PUBLISHED",
+              "ARCHIVED"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "total_points": {
+            "title": "Total Points",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "status",
+          "instructions",
+          "open_at",
+          "close_at",
+          "duration_min",
+          "navigation_mode",
+          "shuffle_questions",
+          "shuffle_options",
+          "run_code_enabled",
+          "release_policy",
+          "counted_submission",
+          "pass_percent",
+          "proctoring_mode",
+          "proctoring_detectors",
+          "consent_text",
+          "question_count",
+          "total_points",
+          "assigned_count",
+          "published_version_no",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ExamView",
         "type": "object"
       },
       "GroupDetail": {
@@ -1811,6 +2602,113 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/admin/exams": {
+      "get": {
+        "description": "Every exam in the institution: title, owner, window and status only.",
+        "operationId": "list_exams_for_admin_api_v1_admin_exams_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "DRAFT",
+                    "PUBLISHED",
+                    "ARCHIVED"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "description": "Search titles",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Search titles",
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminExamPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Exams For Admin",
+        "tags": [
+          "exams"
+        ]
+      }
+    },
     "/api/v1/audit-logs": {
       "get": {
         "description": "The institution's audit log, newest first.",
@@ -2360,6 +3258,351 @@
         "summary": "Refresh",
         "tags": [
           "auth"
+        ]
+      }
+    },
+    "/api/v1/exams": {
+      "get": {
+        "description": "Your exams, newest first.",
+        "operationId": "list_exams_api_v1_exams_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "DRAFT",
+                    "PUBLISHED",
+                    "ARCHIVED"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "description": "Search titles",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Search titles",
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExamPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Exams",
+        "tags": [
+          "exams"
+        ]
+      },
+      "post": {
+        "description": "Create a draft. Settings not sent take their defaults (PRD \u00a7 6.3).",
+        "operationId": "create_exam_api_v1_exams_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExamCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExamView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Exam",
+        "tags": [
+          "exams"
+        ]
+      }
+    },
+    "/api/v1/exams/{exam_id}": {
+      "delete": {
+        "description": "Delete a draft. Published exams are archived instead, so their results stay.",
+        "operationId": "delete_exam_api_v1_exams__exam_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "exam_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Exam Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Exam",
+        "tags": [
+          "exams"
+        ]
+      },
+      "get": {
+        "operationId": "get_exam_api_v1_exams__exam_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "exam_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Exam Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExamView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Exam",
+        "tags": [
+          "exams"
+        ]
+      },
+      "patch": {
+        "description": "Change settings. Once published only `close_at` may change; other fields return 409\n`EXAM_PUBLISHED` naming the field.",
+        "operationId": "update_exam_api_v1_exams__exam_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "exam_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Exam Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExamUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExamView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Exam",
+        "tags": [
+          "exams"
+        ]
+      }
+    },
+    "/api/v1/exams/{exam_id}/archive": {
+      "post": {
+        "operationId": "archive_exam_api_v1_exams__exam_id__archive_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "exam_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Exam Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExamView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Archive Exam",
+        "tags": [
+          "exams"
         ]
       }
     },

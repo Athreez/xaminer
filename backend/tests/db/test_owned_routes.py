@@ -37,6 +37,7 @@ from app.authz.guards import access_table, require
 from app.authz.ownership import get_owned, not_found
 from app.authz.permissions import P
 from app.db.session import SessionFactory, create_session_factory, system_session, tenant_session
+from app.exams.models import Exam
 from app.main import create_app
 from app.platform.models import Institution
 from app.questions.models import Question, QuestionVersion
@@ -146,7 +147,19 @@ def _question_url(suffix: str = "") -> Callable[[World], Awaitable[str]]:
     return setup
 
 
+def _exam_url(suffix: str = "") -> Callable[[World], Awaitable[str]]:
+    async def setup(world: World) -> str:
+        async with tenant_session(world.factory, world.owner.institution_id) as s:
+            exam = Exam(owner_id=world.owner.id, title="Owned routes exam")
+            s.add(exam)
+            await s.commit()
+            return f"/api/v1/exams/{exam.id}{suffix}"
+
+    return setup
+
+
 USERS = "/api/v1/users/{user_id}"
+EXAMS = "/api/v1/exams/{exam_id}"
 QUESTIONS = "/api/v1/questions/{question_id}"
 GROUPS = "/api/v1/groups/{group_id}"
 
@@ -175,6 +188,10 @@ OWNED_ROUTES: list[OwnedRoute] = [
     OwnedRoute(f"POST {QUESTIONS}/copy", "TEACHER", _question_url("/copy")),
     OwnedRoute(f"POST {QUESTIONS}/archive", "TEACHER", _question_url("/archive")),
     OwnedRoute(f"POST {QUESTIONS}/restore", "TEACHER", _question_url("/restore")),
+    OwnedRoute(f"GET {EXAMS}", "TEACHER", _exam_url()),
+    OwnedRoute(f"PATCH {EXAMS}", "TEACHER", _exam_url(), body={"title": "Renamed"}),
+    OwnedRoute(f"DELETE {EXAMS}", "TEACHER", _exam_url(), per_caller=True),
+    OwnedRoute(f"POST {EXAMS}/archive", "TEACHER", _exam_url("/archive")),
     OwnedRoute(f"GET {GROUPS}", "TEACHER", _group_url(), scope="institution"),
     OwnedRoute(
         f"PATCH {GROUPS}",
@@ -238,7 +255,7 @@ async def factory(app_engine: AsyncEngine) -> AsyncIterator[SessionFactory]:
     async with system_session(factory) as s:
         ids = select(Institution.id).where(Institution.name.like("Owned routes test%"))
         # Deleting a question removes its versions and options too.
-        for model in (AuthToken, RefreshToken, UserGroupMember, UserGroup, Question, User):
+        for model in (AuthToken, RefreshToken, UserGroupMember, UserGroup, Exam, Question, User):
             await s.execute(delete(model).where(model.institution_id.in_(ids)))
         await s.execute(delete(Institution).where(Institution.name.like("Owned routes test%")))
         await s.commit()
