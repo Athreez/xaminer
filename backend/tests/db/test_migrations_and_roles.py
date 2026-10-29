@@ -7,8 +7,15 @@ from sqlalchemy import text
 from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from tests.db.conftest import drop_test_tables
 
-async def test_migrations_round_trip(alembic_config: Config, app_engine: AsyncEngine) -> None:
+
+@pytest.mark.serial  # drops every table: other tests can't run meanwhile
+async def test_migrations_round_trip(
+    alembic_config: Config, app_engine: AsyncEngine, migrator_engine: AsyncEngine
+) -> None:
+    async with migrator_engine.connect() as conn:
+        await drop_test_tables(conn)
     # Alembic's env.py runs its own event loop, so call it from a worker thread.
     await asyncio.to_thread(command.downgrade, alembic_config, "base")
     await asyncio.to_thread(command.upgrade, alembic_config, "head")

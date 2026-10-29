@@ -1,7 +1,6 @@
 """The automatic institution filter (PRD ACC-02, architecture § 5 'Tenant scoping')."""
 
 import uuid
-from collections.abc import AsyncIterator
 
 import pytest
 from sqlalchemy import String, delete, func, select, update
@@ -22,14 +21,12 @@ class Note(IdMixin, TenantMixin, Base):
 
 
 @pytest.fixture
-async def factory(
-    migrator_engine: AsyncEngine, app_engine: AsyncEngine
-) -> AsyncIterator[SessionFactory]:
+async def factory(migrator_engine: AsyncEngine, app_engine: AsyncEngine) -> SessionFactory:
+    # Made once and kept for the run (dropping it would lock `institution` for every worker);
+    # the next run's schema reset removes it (conftest.TEST_TABLES).
     async with migrator_engine.begin() as conn:
         await conn.run_sync(lambda c: Note.__table__.create(c, checkfirst=True))
-    yield create_session_factory(app_engine)
-    async with migrator_engine.begin() as conn:
-        await conn.run_sync(lambda c: Note.__table__.drop(c))
+    return create_session_factory(app_engine)
 
 
 @pytest.fixture

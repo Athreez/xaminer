@@ -66,8 +66,9 @@ backend-lint:
 backend-typecheck:
 	cd backend && uv run mypy
 
+# Test files run in parallel (one file stays on one worker); tests marked serial run after.
 backend-test:
-	cd backend && uv run pytest -q
+	cd backend && uv run pytest -q -n auto --maxprocesses 8 --dist loadfile -m "not serial" 		&& uv run pytest -q -m serial
 
 frontend-lint:
 	cd frontend && npm run lint && npm run format:check

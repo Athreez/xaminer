@@ -22,6 +22,9 @@ from cli import commands
 from tests.db.api_helpers import PASSWORD, SECRET, make_settings
 
 LOGIN = "/api/v1/auth/login"
+# Login looks across every institution, so this file's addresses must be its own: other files
+# running in parallel make users like a@abc.edu too.
+DOMAIN = f"auth-{uuid.uuid4().hex[:8]}.edu"
 
 
 @dataclass
@@ -55,7 +58,7 @@ async def new_college(factory: SessionFactory) -> Institution:
 @pytest.fixture
 async def world(factory: SessionFactory) -> World:
     college = await new_college(factory)
-    admin = await commands.create_admin(factory, college.name, "a@abc.edu", "Asha Rao", PASSWORD)
+    admin = await commands.create_admin(factory, college.name, f"a@{DOMAIN}", "Asha Rao", PASSWORD)
     return World(college, admin)
 
 
@@ -79,14 +82,14 @@ def error_code(response) -> str:  # type: ignore[no-untyped-def]
 
 
 async def test_login_success(client: TestClient, world: World, factory: SessionFactory) -> None:
-    response = login(client, "A@ABC.edu")  # email match is case-insensitive
+    response = login(client, f"A@{DOMAIN.upper()}")  # email match is case-insensitive
     assert response.status_code == 200
     body = response.json()
     assert body["token_type"] == "bearer"
     assert body["expires_in"] == 15 * 60
     assert body["user"] == {
         "id": str(world.admin.id),
-        "email": "a@abc.edu",
+        "email": f"a@{DOMAIN}",
         "full_name": "Asha Rao",
         "role": "ADMIN",
         "institution_id": str(world.college.id),
@@ -112,26 +115,26 @@ async def test_login_success(client: TestClient, world: World, factory: SessionF
 
 def test_cookie_is_secure_when_configured(world: World) -> None:
     with TestClient(create_app(make_settings(cookie_secure=True))) as secure_client:
-        response = login(secure_client, "a@abc.edu")
+        response = login(secure_client, f"a@{DOMAIN}")
     assert "Secure" in response.headers["set-cookie"]
 
 
 async def test_failures_all_look_the_same(
     client: TestClient, world: World, factory: SessionFactory
 ) -> None:
-    await add_user(factory, world.college, email="invited@abc.edu")  # no password yet
+    await add_user(factory, world.college, email=f"invited@{DOMAIN}")  # no password yet
     await add_user(
         factory,
         world.college,
-        email="gone@abc.edu",
+        email=f"gone@{DOMAIN}",
         status="DEACTIVATED",
         password_hash=hash_password(PASSWORD),
     )
     attempts = [
-        login(client, "a@abc.edu", "wrong-password-123"),
-        login(client, "nobody@abc.edu"),
-        login(client, "invited@abc.edu"),
-        login(client, "gone@abc.edu"),
+        login(client, f"a@{DOMAIN}", "wrong-password-123"),
+        login(client, f"nobody@{DOMAIN}"),
+        login(client, f"invited@{DOMAIN}"),
+        login(client, f"gone@{DOMAIN}"),
     ]
     bodies = []
     for response in attempts:
@@ -155,8 +158,8 @@ async def test_locked_account_only_revealed_with_correct_password(
             .values(locked_until=datetime.now(UTC) + timedelta(minutes=10))
         )
         await s.commit()
-    assert error_code(login(client, "a@abc.edu", "wrong-password-123")) == "INVALID_CREDENTIALS"
-    locked = login(client, "a@abc.edu")
+    assert error_code(login(client, f"a@{DOMAIN}", "wrong-password-123")) == "INVALID_CREDENTIALS"
+    locked = login(client, f"a@{DOMAIN}")
     assert locked.status_code == 401
     assert error_code(locked) == "ACCOUNT_LOCKED"
 
@@ -164,22 +167,24 @@ async def test_locked_account_only_revealed_with_correct_password(
 async def test_same_account_in_two_institutions(
     client: TestClient, world: World, factory: SessionFactory
 ) -> None:
+    email = f"both@{DOMAIN}"
     other = await new_college(factory)
-    await commands.create_admin(factory, other.name, "a@abc.edu", "Asha Rao", PASSWORD)
+    for college in (world.college, other):
+        await commands.create_admin(factory, college.name, email, "Asha Rao", PASSWORD)
 
-    ambiguous = login(client, "a@abc.edu")
+    ambiguous = login(client, email)
     assert ambiguous.status_code == 409
     assert error_code(ambiguous) == "INSTITUTION_REQUIRED"
     choices = {c["id"] for c in ambiguous.json()["error"]["details"]}
     assert choices == {str(world.college.id), str(other.id)}
 
-    chosen = login(client, "a@abc.edu", institution_id=str(other.id))
+    chosen = login(client, email, institution_id=str(other.id))
     assert chosen.status_code == 200
     assert chosen.json()["user"]["institution_id"] == str(other.id)
 
 
 def test_unknown_fields_rejected(client: TestClient, world: World) -> None:
-    response = login(client, "a@abc.edu", role="ADMIN")
+    response = login(client, f"a@{DOMAIN}", role="ADMIN")
     assert response.status_code == 422
 
 
@@ -187,10 +192,10 @@ def test_unknown_fields_rejected(client: TestClient, world: World) -> None:
 
 
 def test_me_with_token(client: TestClient, world: World) -> None:
-    token = login(client, "a@abc.edu").json()["access_token"]
+    token = login(client, f"a@{DOMAIN}").json()["access_token"]
     response = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
     assert response.status_code == 200
-    assert response.json()["email"] == "a@abc.edu"
+    assert response.json()["email"] == f"a@{DOMAIN}"
 
 
 def _bad_tokens(world: World) -> list[str]:
@@ -224,7 +229,7 @@ def test_me_rejects_missing_and_bad_tokens(client: TestClient, world: World) -> 
 async def test_me_stops_working_after_deactivation(
     client: TestClient, world: World, factory: SessionFactory
 ) -> None:
-    token = login(client, "a@abc.edu").json()["access_token"]
+    token = login(client, f"a@{DOMAIN}").json()["access_token"]
     async with system_session(factory) as s:
         await s.execute(update(User).where(User.id == world.admin.id).values(status="DEACTIVATED"))
         await s.commit()
@@ -243,7 +248,7 @@ async def _tokens(factory: SessionFactory, user_id: uuid.UUID) -> list[RefreshTo
 async def test_logout_revokes_this_session(
     client: TestClient, world: World, factory: SessionFactory
 ) -> None:
-    login(client, "a@abc.edu")
+    login(client, f"a@{DOMAIN}")
     response = client.post("/api/v1/auth/logout")
     assert response.status_code == 204
     assert 'xaminer_refresh=""' in response.headers["set-cookie"]  # cookie cleared
@@ -257,13 +262,13 @@ async def test_logout_all_revokes_every_session_of_that_user_only(
     other = await add_user(
         factory,
         world.college,
-        email="b@abc.edu",
+        email=f"b@{DOMAIN}",
         status="ACTIVE",
         password_hash=hash_password(PASSWORD),
     )
-    token = login(client, "a@abc.edu").json()["access_token"]  # e.g. laptop
-    login(client, "a@abc.edu")  # e.g. phone: a second session of the same user
-    login(client, "b@abc.edu")  # someone else
+    token = login(client, f"a@{DOMAIN}").json()["access_token"]  # e.g. laptop
+    login(client, f"a@{DOMAIN}")  # e.g. phone: a second session of the same user
+    login(client, f"b@{DOMAIN}")  # someone else
     response = client.post("/api/v1/auth/logout-all", headers={"Authorization": f"Bearer {token}"})
     assert response.status_code == 204
     mine = await _tokens(factory, world.admin.id)
@@ -324,7 +329,7 @@ async def _age_use(factory: SessionFactory, raw: str, seconds: int) -> None:
 async def test_refresh_rotates_the_token(
     client: TestClient, world: World, factory: SessionFactory
 ) -> None:
-    login(client, "a@abc.edu")
+    login(client, f"a@{DOMAIN}")
     first = client.cookies["xaminer_refresh"]
 
     response = client.post(REFRESH)
@@ -334,7 +339,7 @@ async def test_refresh_rotates_the_token(
     me = client.get(
         "/api/v1/auth/me", headers={"Authorization": f"Bearer {response.json()['access_token']}"}
     )
-    assert me.json()["email"] == "a@abc.edu"
+    assert me.json()["email"] == f"a@{DOMAIN}"
 
     family = await _family(factory, first)
     assert len(family) == 2  # same login, same family
@@ -342,7 +347,7 @@ async def test_refresh_rotates_the_token(
 
 
 def test_refresh_can_be_repeated_down_the_chain(client: TestClient, world: World) -> None:
-    login(client, "a@abc.edu")
+    login(client, f"a@{DOMAIN}")
     for _ in range(4):
         assert client.post(REFRESH).status_code == 200
 
@@ -350,7 +355,7 @@ def test_refresh_can_be_repeated_down_the_chain(client: TestClient, world: World
 async def test_reuse_of_an_old_token_logs_out_the_whole_family(
     client: TestClient, world: World, factory: SessionFactory
 ) -> None:
-    login(client, "a@abc.edu")
+    login(client, f"a@{DOMAIN}")
     stolen = client.cookies["xaminer_refresh"]
     client.post(REFRESH)  # the real user refreshes; `stolen` is now used
     current = client.cookies["xaminer_refresh"]
@@ -368,7 +373,7 @@ async def test_reuse_of_an_old_token_logs_out_the_whole_family(
 async def test_two_tabs_refreshing_at_once_is_not_treated_as_theft(
     client: TestClient, world: World, factory: SessionFactory
 ) -> None:
-    login(client, "a@abc.edu")
+    login(client, f"a@{DOMAIN}")
     shared = client.cookies["xaminer_refresh"]
     client.post(REFRESH)  # tab 1 wins
     current = client.cookies["xaminer_refresh"]
@@ -388,7 +393,7 @@ def test_refresh_without_cookie(client: TestClient) -> None:
 
 
 def test_refresh_after_logout(client: TestClient, world: World) -> None:
-    login(client, "a@abc.edu")
+    login(client, f"a@{DOMAIN}")
     raw = client.cookies["xaminer_refresh"]
     client.post("/api/v1/auth/logout")
     assert error_code(refresh_with(client, raw)) == "UNAUTHENTICATED"
@@ -397,7 +402,7 @@ def test_refresh_after_logout(client: TestClient, world: World) -> None:
 async def test_refresh_with_expired_token(
     client: TestClient, world: World, factory: SessionFactory
 ) -> None:
-    login(client, "a@abc.edu")
+    login(client, f"a@{DOMAIN}")
     raw = client.cookies["xaminer_refresh"]
     async with system_session(factory) as s:
         await s.execute(
@@ -412,7 +417,7 @@ async def test_refresh_with_expired_token(
 async def test_refresh_after_deactivation_ends_the_session(
     client: TestClient, world: World, factory: SessionFactory
 ) -> None:
-    login(client, "a@abc.edu")
+    login(client, f"a@{DOMAIN}")
     raw = client.cookies["xaminer_refresh"]
     async with system_session(factory) as s:
         await s.execute(update(User).where(User.id == world.admin.id).values(status="DEACTIVATED"))

@@ -2,7 +2,7 @@
 
 from app.core.config import Settings
 from tests.db.conftest import PORT, TEST_DB
-from tests.services import ENV, HOST
+from tests.services import ENV, HOST, REDIS_DB
 
 PASSWORD = "violet-tram-42-lantern"
 SECRET = "test-signing-secret-that-is-long-enough-123"
@@ -18,8 +18,8 @@ def make_settings(**overrides: object) -> Settings:
         "postgres_port": PORT,
         "postgres_db": TEST_DB,
         "db_app_password": ENV.get("DB_APP_PASSWORD", ""),
-        # Database 15 keeps test keys (rate limits) away from the real ones in database 0.
-        "redis_url": f"redis://:{ENV.get('REDIS_PASSWORD', '')}@{HOST}:{REDIS_PORT}/15",
+        # A database of its own keeps test keys (rate limits) away from the real ones in database 0.
+        "redis_url": f"redis://:{ENV.get('REDIS_PASSWORD', '')}@{HOST}:{REDIS_PORT}/{REDIS_DB}",
         "jwt_secret": SECRET,
         "cookie_secure": False,  # the test client talks plain http
         "public_base_url": "http://xaminer.test",

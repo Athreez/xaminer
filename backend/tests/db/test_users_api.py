@@ -47,10 +47,10 @@ async def factory(app_engine: AsyncEngine) -> AsyncIterator[SessionFactory]:
     factory = create_session_factory(app_engine)
     yield factory
     async with system_session(factory) as s:
-        ids = select(Institution.id).where(Institution.name.like("Users test%"))
+        ids = select(Institution.id).where(Institution.name.like("Users API test%"))
         for model in (AuthToken, RefreshToken, User):
             await s.execute(delete(model).where(model.institution_id.in_(ids)))
-        await s.execute(delete(Institution).where(Institution.name.like("Users test%")))
+        await s.execute(delete(Institution).where(Institution.name.like("Users API test%")))
         await s.commit()
 
 
@@ -88,7 +88,7 @@ class World:
 
 @pytest.fixture
 async def world(factory: SessionFactory) -> World:
-    college = await commands.create_institution(factory, f"Users test {uuid.uuid4().hex[:8]}")
+    college = await commands.create_institution(factory, f"Users API test {uuid.uuid4().hex[:8]}")
     w = World(factory, college, admin=None, student=None)  # type: ignore[arg-type]
     w.admin = await w.add("ADMIN")
     w.student = await w.add("STUDENT", full_name="Ravi Kumar", roll_no="CSE-042")
@@ -167,7 +167,7 @@ async def test_list_filters_searches_and_pages(client: TestClient, world: World)
 async def test_list_shows_only_own_institution(
     client: TestClient, world: World, factory: SessionFactory
 ) -> None:
-    other = await commands.create_institution(factory, f"Users test {uuid.uuid4().hex[:8]}")
+    other = await commands.create_institution(factory, f"Users API test {uuid.uuid4().hex[:8]}")
     async with tenant_session(factory, other.id) as s:
         s.add(User(email="elsewhere@xyz.edu", full_name="Else Where", role="STUDENT"))
         await s.commit()

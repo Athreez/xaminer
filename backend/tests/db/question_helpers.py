@@ -21,12 +21,29 @@ TRIGGERS = (
 )
 
 
+# Institutions waiting for `purge_queued` at the end of the session.
+_queued: list[uuid.UUID] = []
+
+
 async def purge_institutions(migrator_engine: AsyncEngine, ids: list[uuid.UUID]) -> None:
-    """Delete these institutions with everything in them, locked and frozen rows included.
+    """Queue these institutions for deletion when the session ends (see `purge_queued`).
+
+    Deleting needs the protecting triggers off, which locks whole tables; doing it once at the end
+    instead of after every test keeps parallel workers from queueing behind each other. Every test
+    makes institutions of its own, so leftovers until then are harmless.
+    """
+    del migrator_engine  # kept in the signature: callers pass the engine they'd purge with
+    _queued.extend(ids)
+
+
+async def purge_queued(migrator_engine: AsyncEngine) -> None:
+    """Delete the queued institutions with everything in them, locked and frozen rows included.
 
     The table owner switches the triggers off inside this one transaction. DDL is
     transactional in Postgres, so the triggers are never off for anyone else.
     """
+    ids = list(dict.fromkeys(_queued))
+    _queued.clear()
     if not ids:
         return
     async with migrator_engine.begin() as conn:

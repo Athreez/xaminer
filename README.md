@@ -102,7 +102,7 @@ Every push to `main` and every pull request runs [`.github/workflows/ci.yml`](.g
 
 | Job | Checks |
 |---|---|
-| Backend | ruff, mypy, pytest against real Postgres and Redis (`REQUIRE_SERVICES=1`: nothing is skipped) |
+| Backend | ruff, mypy, pytest against real Postgres and Redis (`REQUIRE_SERVICES=1`: nothing is skipped). Test files run in parallel; tests marked `serial` run after |
 | Frontend | oxlint, Prettier, type check, production build, and that `make api-client` output is committed |
 | Docker images | every service image builds |
 

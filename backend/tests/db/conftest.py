@@ -5,13 +5,17 @@ users as production: `migrator` runs migrations, `app` runs the tests' queries.
 Skipped if Postgres isn't reachable (fails instead when REQUIRE_SERVICES=1, as in CI).
 """
 
+import asyncio
+import os
+import tempfile
 from collections.abc import AsyncIterator, Iterator
+from pathlib import Path
 
 import pytest
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import URL
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sqlalchemy import URL, text
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, create_async_engine
 
 from tests.services import BACKEND, ENV, HOST, require
 
@@ -31,15 +35,64 @@ def db_url(role: str) -> URL:
     )
 
 
-@pytest.fixture(scope="session", autouse=True)
-def migrated_database() -> Iterator[None]:
-    require(PORT, "Postgres")
+# Tables some tests add for themselves; they would block dropping the real schema.
+TEST_TABLES = ("test_tenant_note",)
+
+
+async def drop_test_tables(conn: AsyncConnection) -> None:
+    for table in TEST_TABLES:
+        await conn.execute(text(f"DROP TABLE IF EXISTS {table}"))
+    await conn.commit()
+
+
+def migrator_config() -> Config:
     config = Config(str(BACKEND / "alembic.ini"))
     config.attributes["url"] = db_url("migrator").render_as_string(hide_password=False)
     config.attributes["configure_logger"] = False
-    command.downgrade(config, "base")  # start clean, whatever a previous run left behind
-    command.upgrade(config, "head")
+    return config
+
+
+async def migrate_once() -> None:
+    """Rebuild the schema from scratch, once per run even when workers run in parallel.
+
+    Workers queue on a Postgres lock; the first one migrates and leaves a marker named after the
+    run, so the others go straight on.
+    """
+    run = os.environ.get("PYTEST_XDIST_TESTRUNUID")
+    marker = Path(tempfile.gettempdir()) / f"xaminer-migrated-{run}" if run else None
+    engine = create_async_engine(db_url("migrator"))
+    try:
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT pg_advisory_lock(4242)"))
+            if marker is None or not marker.exists():
+                await drop_test_tables(conn)
+                config = migrator_config()
+                # Alembic's env.py runs its own event loop, so call it from a worker thread.
+                await asyncio.to_thread(command.downgrade, config, "base")  # start clean
+                await asyncio.to_thread(command.upgrade, config, "head")
+                if marker is not None:
+                    marker.touch()
+            await conn.execute(text("SELECT pg_advisory_unlock(4242)"))
+    finally:
+        await engine.dispose()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def migrated_database() -> Iterator[None]:
+    require(PORT, "Postgres")
+    asyncio.run(migrate_once())
     yield
+    asyncio.run(purge_at_end())
+
+
+async def purge_at_end() -> None:
+    from tests.db.question_helpers import purge_queued  # imports the app's models
+
+    engine = create_async_engine(db_url("migrator"))
+    try:
+        await purge_queued(engine)
+    finally:
+        await engine.dispose()
 
 
 @pytest.fixture
@@ -58,7 +111,4 @@ async def migrator_engine() -> AsyncIterator[AsyncEngine]:
 
 @pytest.fixture
 def alembic_config() -> Config:
-    config = Config(str(BACKEND / "alembic.ini"))
-    config.attributes["url"] = db_url("migrator").render_as_string(hide_password=False)
-    config.attributes["configure_logger"] = False
-    return config
+    return migrator_config()

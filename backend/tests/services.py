@@ -28,6 +28,13 @@ def _load_env() -> dict[str, str]:
 ENV = _load_env()
 HOST = ENV.get("TEST_SERVICES_HOST", "127.0.0.1")
 
+# Parallel runs (pytest -n) name their workers gw0, gw1, ...; one process alone counts as gw0.
+WORKER = int(os.environ.get("PYTEST_XDIST_WORKER", "gw0").removeprefix("gw"))
+# Each worker gets its own Redis database, counting down from 15 (the app itself uses 0), so
+# rate limits and counters of one worker never touch another's.
+REDIS_DB = 15 - WORKER
+assert REDIS_DB > 0, "too many test workers for Redis; use --maxprocesses 8"
+
 
 def require(port: int, name: str) -> None:
     """Skip (or fail in CI) unless a service is listening on HOST:port."""

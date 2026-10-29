@@ -6,7 +6,7 @@ from celery import Celery
 from celery.contrib.testing.worker import start_worker
 
 from app.core.logging import JsonFormatter
-from tests.services import ENV, HOST, require
+from tests.services import ENV, HOST, REDIS_DB, require
 from workers import queues
 from workers.celery_app import create_celery
 
@@ -41,8 +41,8 @@ def test_untrusted_workers_never_consume_trusted_queues() -> None:
 def live_app() -> Iterator[Celery]:
     require(REDIS_PORT, "Redis")
     password = ENV.get("REDIS_PASSWORD", "")
-    # Database 15 keeps test messages away from the real queues in database 0.
-    app = create_celery("test", redis_url=f"redis://:{password}@{HOST}:{REDIS_PORT}/15")
+    # A database of its own keeps test messages away from the real queues in database 0.
+    app = create_celery("test", redis_url=f"redis://:{password}@{HOST}:{REDIS_PORT}/{REDIS_DB}")
     import workers.app_worker.tasks  # noqa: F401  (registers the shared tasks)
 
     with start_worker(app, perform_ping_check=False, loglevel="WARNING"):
