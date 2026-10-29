@@ -31,24 +31,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import {
-  errorText,
-  roleLabel,
-  statusLabel,
-  unwrap,
-  useDebounced,
-  type Role,
-  type UserStatus,
-} from "./lib";
+import { errorText, unwrap, useDebounced } from "@/lib/api";
+import { roleLabel, statusLabel, type Role, type UserStatus } from "./lib";
 import {
   Busy,
   EmptyState,
   ErrorState,
   LoadingRows,
   PageHeader,
-  StatusBadge,
   TableCard,
-} from "./shared";
+} from "@/components/page";
+import { StatusBadge } from "./shared";
 
 const ALL = "all";
 

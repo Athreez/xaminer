@@ -36,14 +36,23 @@ const components: Components = {
   ),
 };
 
-export function MarkdownView({ text, className }: { text: string; className?: string }) {
+export function MarkdownView({
+  text,
+  className,
+  images,
+}: {
+  text: string;
+  className?: string;
+  /** Signed links for image references (`/api/v1/images/<id>`) in the text, from the API. */
+  images?: Record<string, string>;
+}) {
   return (
     <div className={cn("markdown", className)}>
       <Markdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeSanitize]}
         skipHtml
-        urlTransform={urlTransform}
+        urlTransform={(url) => urlTransform(images?.[url] ?? url)}
         components={components}
       >
         {text}

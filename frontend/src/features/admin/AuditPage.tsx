@@ -24,8 +24,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import { actionText, dayStart, formatDateTime, unwrap } from "./lib";
-import { Busy, EmptyState, ErrorState, LoadingRows, PageHeader, TableCard } from "./shared";
+import { actionText, dayStart } from "./lib";
+import { formatDateTime, unwrap } from "@/lib/api";
+import {
+  Busy,
+  EmptyState,
+  ErrorState,
+  LoadingRows,
+  PageHeader,
+  TableCard,
+} from "@/components/page";
 
 type Entry = components["schemas"]["AuditEntry"];
 

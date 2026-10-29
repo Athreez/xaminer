@@ -251,7 +251,7 @@ expired. Ask your admin for a new invitation." Password reset pages work the sam
 
 | Page | Contents |
 |---|---|
-| Question bank | Table: title (first line), type, tags, owner, visibility, used in N exams. Filters: type, tag, owner (mine / shared), search. Actions: new, edit, copy, archive |
+| Question bank | Table: title (first line), type, tags, owner, visibility, used in N exams (added with exams, E05). Filters: type, tag, owner (mine / shared), search, archived. Actions: new, edit, copy, archive. A colleague's shared question opens read-only with **Copy to edit** |
 | Question editor | Type picker, then: Markdown text with preview, images upload, points, negative marks, tags, visibility. MCQ/MSQ/TF: options with "correct" toggles, MSQ scoring mode. Descriptive: max length, rubric. If the question is used in a published exam, a banner: "Saving creates a new version. Published exams keep the old one." |
 | Coding editor | See § 5.3 |
 | Preview | Exactly the student view, with a "Preview" label |

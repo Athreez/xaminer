@@ -98,7 +98,11 @@ class QuestionView(BaseModel):
     archived_at: datetime | None
     created_at: datetime
     updated_at: datetime
-    version: VersionView = Field(description="The current version")
+    version: VersionView = Field(description="The current version, text exactly as stored")
+    image_urls: dict[str, str] = Field(
+        description="Signed link (valid an hour) for each image reference in the text. Show the "
+        "text with these swapped in; save it with the references unchanged."
+    )
 
 
 class QuestionSummary(BaseModel):

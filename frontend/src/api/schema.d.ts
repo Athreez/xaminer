@@ -1140,6 +1140,13 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /**
+             * Image Urls
+             * @description Signed link (valid an hour) for each image reference in the text. Show the text with these swapped in; save it with the references unchanged.
+             */
+            image_urls: {
+                [key: string]: string;
+            };
             /** Is Mine */
             is_mine: boolean;
             owner: components["schemas"]["Owner"];
@@ -1155,7 +1162,7 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
-            /** @description The current version */
+            /** @description The current version, text exactly as stored */
             version: components["schemas"]["VersionView"];
             /**
              * Visibility

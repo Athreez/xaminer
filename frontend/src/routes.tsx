@@ -98,7 +98,31 @@ export const router = createBrowserRouter([
         ),
         children: [
           { index: true, element: <PlaceholderPage title="Dashboard" ticket="TCK-0507" /> },
-          { path: "questions", element: <PlaceholderPage title="Questions" ticket="TCK-0408" /> },
+          {
+            path: "questions",
+            lazy: page(() => import("@/features/questions/QuestionBankPage"), "QuestionBankPage"),
+          },
+          {
+            path: "questions/new",
+            lazy: page(
+              () => import("@/features/questions/QuestionEditorPage"),
+              "QuestionEditorPage",
+            ),
+          },
+          {
+            path: "questions/:questionId",
+            lazy: page(
+              () => import("@/features/questions/QuestionEditorPage"),
+              "QuestionEditorPage",
+            ),
+          },
+          {
+            path: "questions/:questionId/preview",
+            lazy: page(
+              () => import("@/features/questions/QuestionPreviewPage"),
+              "QuestionPreviewPage",
+            ),
+          },
           { path: "exams", element: <PlaceholderPage title="Exams" ticket="TCK-0507" /> },
         ],
       },

@@ -90,3 +90,18 @@ def sign_refs(text: str, institution_id: uuid.UUID, storage: Storage, seconds: i
         ),
         text,
     )
+
+
+def signed_links(
+    texts: list[str], institution_id: uuid.UUID, storage: Storage, seconds: int
+) -> dict[str, str]:
+    """`{reference: signed link}` for every image referenced in `texts`.
+
+    For editors: the text keeps its permanent references (saving it never stores an expiring
+    link) and the page swaps them for these links only when showing it.
+    """
+    refs = {m.group(0): uuid.UUID(m.group(1)) for text in texts for m in REF.finditer(text)}
+    return {
+        ref: storage.signed_url(IMAGES, key_of(institution_id, image_id), seconds)
+        for ref, image_id in refs.items()
+    }

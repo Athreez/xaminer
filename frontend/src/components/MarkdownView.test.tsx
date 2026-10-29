@@ -72,4 +72,14 @@ describe("MarkdownView", () => {
     expect(html).toContain('loading="lazy"');
     expect(html).toContain('referrerPolicy="no-referrer"');
   });
+
+  it("swaps image references for the signed links it is given", () => {
+    const ref = "/api/v1/images/01a18670-115f-74ce-8ce1-4d136bfe1fe6";
+    const signed = "http://localhost:8080/images/x.webp?X-Amz-Signature=abc";
+    const html = renderToStaticMarkup(
+      <MarkdownView text={`![chart](${ref})`} images={{ [ref]: signed }} />,
+    );
+    expect(html).toContain(`src="${signed.replace("&", "&amp;")}"`);
+    expect(render(`![chart](${ref})`)).toContain(`src="${ref}"`); // no table: left as is
+  });
 });

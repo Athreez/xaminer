@@ -108,10 +108,15 @@ async def test_question_text_gets_signed_links(
         json={"type": "DESCRIPTIVE", "points": "1", "body": f"Read the chart:\n\n![chart]({ref})"},
         headers=teacher,
     ).json()
-    body = question["version"]["body"]
-    assert ref not in body and "X-Amz-Signature" in body
-    link = body.split("](")[1].rstrip(")")
-    assert httpx.get(link).status_code == 200
+    # Teachers edit the text, so it keeps the permanent reference; the links come alongside.
+    assert question["version"]["body"] == f"Read the chart:\n\n![chart]({ref})"
+    link = question["image_urls"][ref]
+    assert "X-Amz-Signature" in link and httpx.get(link).status_code == 200
+
+    # Students (and the preview) get the text with links already in place.
+    preview = client.get(f"/api/v1/questions/{question['id']}/preview", headers=teacher).json()
+    assert ref not in preview["body"] and "X-Amz-Signature" in preview["body"]
+    assert httpx.get(preview["body"].split("](")[1].rstrip(")")).status_code == 200
 
 
 async def test_another_colleges_image_cannot_be_borrowed(
@@ -125,7 +130,7 @@ async def test_another_colleges_image_cannot_be_borrowed(
         json={"type": "DESCRIPTIVE", "points": "1", "body": f"![x]({ref})"},
         headers=stranger,
     ).json()
-    link = question["version"]["body"].split("](")[1].rstrip(")")
+    link = question["image_urls"][ref]
     assert httpx.get(link).status_code == 404  # signed for the stranger's college: no such image
 
 

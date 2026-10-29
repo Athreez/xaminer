@@ -18,8 +18,8 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
-import { errorText, unwrap } from "./lib";
-import { Busy, PageHeader, TableCard } from "./shared";
+import { errorText, unwrap } from "@/lib/api";
+import { Busy, PageHeader, TableCard } from "@/components/page";
 
 type Result = components["schemas"]["ImportResult"];
 type Row = components["schemas"]["ImportRow"];

@@ -9,7 +9,8 @@ import { FormMessage } from "@/components/form";
 import { Button } from "@/components/ui/button";
 
 import { UserFields, type UserFieldValues } from "./UsersPage";
-import { errorText, formatDateTime, isNotFound, roleLabel, unwrap, type AdminUser } from "./lib";
+import { errorText, formatDateTime, isNotFound, unwrap } from "@/lib/api";
+import { roleLabel, type AdminUser } from "./lib";
 import {
   Busy,
   ConfirmDialog,
@@ -17,8 +18,8 @@ import {
   LoadingRows,
   NotFoundBlock,
   PageHeader,
-  StatusBadge,
-} from "./shared";
+} from "@/components/page";
+import { StatusBadge } from "./shared";
 
 type Action = "deactivate" | "reactivate" | "resend-invite" | "password-reset" | "unlock";
 

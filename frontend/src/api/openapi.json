@@ -1243,6 +1243,14 @@
             "title": "Id",
             "type": "string"
           },
+          "image_urls": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Signed link (valid an hour) for each image reference in the text. Show the text with these swapped in; save it with the references unchanged.",
+            "title": "Image Urls",
+            "type": "object"
+          },
           "is_mine": {
             "title": "Is Mine",
             "type": "boolean"
@@ -1275,7 +1283,7 @@
           },
           "version": {
             "$ref": "#/components/schemas/VersionView",
-            "description": "The current version"
+            "description": "The current version, text exactly as stored"
           },
           "visibility": {
             "enum": [
@@ -1296,7 +1304,8 @@
           "archived_at",
           "created_at",
           "updated_at",
-          "version"
+          "version",
+          "image_urls"
         ],
         "title": "QuestionView",
         "type": "object"

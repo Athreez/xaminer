@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
-import { errorText, unwrap } from "./lib";
-import { Busy, ErrorState, LoadingRows, PageHeader } from "./shared";
+import { errorText, unwrap } from "@/lib/api";
+import { Busy, ErrorState, LoadingRows, PageHeader } from "@/components/page";
 
 type Settings = components["schemas"]["InstitutionSettings"];
 

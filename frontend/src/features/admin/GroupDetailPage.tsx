@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/table";
 
 import { NameDialog } from "./GroupsPage";
-import { errorText, isNotFound, unwrap, useDebounced } from "./lib";
+import { errorText, isNotFound, unwrap, useDebounced } from "@/lib/api";
 import {
   Busy,
   ConfirmDialog,
@@ -36,9 +36,9 @@ import {
   LoadingRows,
   NotFoundBlock,
   PageHeader,
-  StatusBadge,
   TableCard,
-} from "./shared";
+} from "@/components/page";
+import { StatusBadge } from "./shared";
 
 type Group = components["schemas"]["GroupDetail"];
 

@@ -19,7 +19,7 @@ from app.authz.ownership import get_owned
 from app.core.errors import AppError
 from app.core.pagination import MAX_PAGE, decode_cursor, encode_cursor, like_pattern
 from app.core.storage import Storage
-from app.images.service import sign_refs
+from app.images.service import signed_links
 from app.questions import rules, student_view
 from app.questions.models import Question, QuestionOption, QuestionVersion
 from app.questions.schemas import (
@@ -116,14 +116,12 @@ async def _options(session: AsyncSession, version_id: uuid.UUID) -> list[Questio
 async def view(
     session: AsyncSession, principal: Principal, question: Question, storage: Storage
 ) -> QuestionView:
-    """The teacher's view. Image references become links valid for an hour."""
-
-    def signed(text: str) -> str:
-        return sign_refs(text, question.institution_id, storage, TEACHER_IMAGE_SECONDS)
-
+    """The teacher's view: text exactly as stored, plus signed links for its images."""
     await session.refresh(question)  # updated_at is set by the database on every change
     version = await _current(session, question)
     owner = await session.get(User, question.owner_id)
+    options = await _options(session, version.id)
+    texts = [version.body, version.rubric or "", *(o.label for o in options)]
     return QuestionView(
         id=question.id,
         type=question.type,  # type: ignore[arg-type]
@@ -137,24 +135,25 @@ async def view(
         version=VersionView(
             id=version.id,
             version_no=version.version_no,
-            body=signed(version.body),
+            body=version.body,
             points=version.points,
             negative_marks=version.negative_marks,
             msq_scoring=version.msq_scoring,  # type: ignore[arg-type]
             max_answer_length=version.max_answer_length,
-            rubric=signed(version.rubric) if version.rubric else None,
+            rubric=version.rubric,
             is_locked=version.is_locked,
             created_at=version.created_at,
             options=[
                 OptionView(
                     id=o.id,
-                    label=signed(o.label),
+                    label=o.label,
                     is_correct=o.is_correct,
                     order_index=o.order_index,
                 )
-                for o in await _options(session, version.id)
+                for o in options
             ],
         ),
+        image_urls=signed_links(texts, question.institution_id, storage, TEACHER_IMAGE_SECONDS),
     )
 
 

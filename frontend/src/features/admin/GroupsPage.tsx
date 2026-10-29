@@ -24,8 +24,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import { errorText, formatDateTime, unwrap, useDebounced } from "./lib";
-import { Busy, EmptyState, ErrorState, LoadingRows, PageHeader, TableCard } from "./shared";
+import { errorText, formatDateTime, unwrap, useDebounced } from "@/lib/api";
+import {
+  Busy,
+  EmptyState,
+  ErrorState,
+  LoadingRows,
+  PageHeader,
+  TableCard,
+} from "@/components/page";
 
 /** Groups with member counts (FRONTEND_SPEC § 5.1, PRD USR-02). */
 export function GroupsPage() {
