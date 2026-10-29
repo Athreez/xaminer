@@ -266,7 +266,7 @@ IntegrityOutcome       PENDING_REVIEW | NO_CONCERNS | CONCERNS_CONFIRMED
 | `question` | owner_id, type, visibility, tags `text[]`, current_version_id, archived_at | Stable identity |
 | `question_version` | question_id, version_no, body, points, negative_marks, msq_scoring, max_answer_length, rubric, is_locked, created_by | Locked once used in a published exam; DB triggers block any change to a locked row or its options (and unlocking) |
 | `question_option` | version_id, label, is_correct, order_index | MCQ / MSQ / TRUE_FALSE |
-| `coding_config` | version_id (PK), statement, input_format, output_format, constraints, allowed_languages `jsonb` (with starter code), time_limit_ms, memory_limit_mb, comparison_mode, partial_scoring, run_code_allowed, max_submissions, bundle_key, validation_status, validation_report `jsonb` | 1:1 with a coding question version |
+| `coding_config` | version_id (PK), input_format, output_format, constraints, allowed_languages `jsonb` (with starter code), time_limit_ms, memory_limit_mb, comparison_mode, partial_scoring, run_code_allowed, max_submissions, bundle_key, validation_status, validation_report `jsonb` | 1:1 with a coding question version. The statement is the version's `body`; examples are its public test cases |
 | `test_case` | version_id, visibility, weight, input, expected_output, order_index | Hidden cases are only read by a dedicated function that never feeds student views |
 | `reference_solution` | version_id, language_key, source | Teacher's answer key, used to validate test cases |
 

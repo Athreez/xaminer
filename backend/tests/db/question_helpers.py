@@ -18,6 +18,9 @@ TRIGGERS = (
     ("question_version", "question_version_locked"),
     ("question_option", "question_option_locked"),
     ("exam_version", "exam_version_frozen"),
+    ("coding_config", "coding_config_locked"),
+    ("test_case", "test_case_locked"),
+    ("reference_solution", "reference_solution_locked"),
 )
 
 

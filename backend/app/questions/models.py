@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime
 from decimal import Decimal
+from typing import Any
 
 from sqlalchemy import (
     CheckConstraint,
@@ -15,7 +16,7 @@ from sqlalchemy import (
     func,
     text,
 )
-from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, IdMixin, TenantMixin, TimestampMixin
@@ -98,3 +99,97 @@ class QuestionOption(IdMixin, TenantMixin, Base):
     label: Mapped[str] = mapped_column(Text)
     is_correct: Mapped[bool]
     order_index: Mapped[int] = mapped_column(SmallInteger)
+
+
+# ----------------------------------------------------------------------------- coding questions
+
+COMPARISON_MODES = ("EXACT", "TRIM", "TOKEN", "NUMERIC")
+VALIDATION_STATUSES = ("NEEDS_VALIDATION", "VALIDATING", "PASSED", "FAILED")
+TEST_VISIBILITIES = ("PUBLIC", "HIDDEN")
+MAX_CASE_BYTES = 1_048_576  # input and expected output, each (PRD CQ-04)
+MAX_SOURCE_BYTES = 262_144
+
+
+class CodingConfig(TenantMixin, Base):
+    """The coding part of a CODING question version (PRD CQ-01..09). 1:1 with the version.
+
+    The problem statement is the version's `body`; examples are its public test cases.
+    """
+
+    __tablename__ = "coding_config"
+    __table_args__ = (
+        CheckConstraint("time_limit_ms BETWEEN 100 AND 10000", name="time_limit_range"),
+        CheckConstraint("memory_limit_mb BETWEEN 16 AND 512", name="memory_limit_range"),
+        CheckConstraint("max_submissions BETWEEN 1 AND 100", name="max_submissions_range"),
+        CheckConstraint(f"comparison_mode IN {COMPARISON_MODES}", name="comparison_mode"),
+        CheckConstraint(f"validation_status IN {VALIDATION_STATUSES}", name="validation_status"),
+        CheckConstraint("jsonb_typeof(allowed_languages) = 'array'", name="allowed_languages_list"),
+    )
+
+    version_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("question_version.id", ondelete="CASCADE"), primary_key=True
+    )
+    input_format: Mapped[str] = mapped_column(Text, server_default="")
+    output_format: Mapped[str] = mapped_column(Text, server_default="")
+    constraints: Mapped[str] = mapped_column(Text, server_default="")
+    # [{"language_key": "python312", "starter_code": "..."}, ...] in the order students see them
+    allowed_languages: Mapped[list[dict[str, Any]]] = mapped_column(
+        JSONB, server_default=text("'[]'::jsonb")
+    )
+    time_limit_ms: Mapped[int] = mapped_column(Integer, server_default="2000")
+    memory_limit_mb: Mapped[int] = mapped_column(SmallInteger, server_default="256")
+    comparison_mode: Mapped[str] = mapped_column(String(16), server_default="TRIM")
+    partial_scoring: Mapped[bool] = mapped_column(server_default=text("true"))
+    run_code_allowed: Mapped[bool] = mapped_column(server_default=text("true"))
+    max_submissions: Mapped[int] = mapped_column(SmallInteger, server_default="10")
+    bundle_key: Mapped[str | None] = mapped_column(String(255))  # test bundle in storage (0704)
+    validation_status: Mapped[str] = mapped_column(String(16), server_default="NEEDS_VALIDATION")
+    validation_report: Mapped[dict[str, Any] | None] = mapped_column(JSONB(none_as_null=True))
+
+
+class TestCase(IdMixin, TenantMixin, Base):
+    """One test of a coding question version. Hidden ones are never shown to students (CQ-05):
+    only one function reads them (TCK-0703)."""
+
+    __tablename__ = "test_case"
+    __table_args__ = (
+        # Deferred, so a reorder can swap positions inside one transaction.
+        UniqueConstraint("version_id", "order_index", deferrable=True, initially="DEFERRED"),
+        CheckConstraint(f"visibility IN {TEST_VISIBILITIES}", name="visibility"),
+        CheckConstraint("weight BETWEEN 1 AND 1000", name="weight_range"),
+        CheckConstraint(f"octet_length(input) <= {MAX_CASE_BYTES}", name="input_size"),
+        CheckConstraint(
+            f"octet_length(expected_output) <= {MAX_CASE_BYTES}", name="expected_output_size"
+        ),
+    )
+    __test__ = False  # not a pytest test class, despite the name
+
+    # Indexed by the unique (version_id, order_index).
+    version_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("question_version.id", ondelete="CASCADE")
+    )
+    visibility: Mapped[str] = mapped_column(String(8), server_default="HIDDEN")
+    weight: Mapped[int] = mapped_column(SmallInteger, server_default="1")
+    input: Mapped[str] = mapped_column(Text)
+    expected_output: Mapped[str] = mapped_column(Text)
+    order_index: Mapped[int] = mapped_column(SmallInteger)
+
+
+class ReferenceSolution(IdMixin, TenantMixin, Base):
+    """The teacher's answer in one language, run against every test case to validate them (CQ-08).
+    Never shown to students."""
+
+    __tablename__ = "reference_solution"
+    __table_args__ = (
+        UniqueConstraint("version_id", "language_key"),
+        CheckConstraint(f"octet_length(source) <= {MAX_SOURCE_BYTES}", name="source_size"),
+    )
+
+    # Indexed by the unique (version_id, language_key).
+    version_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("question_version.id", ondelete="CASCADE")
+    )
+    language_key: Mapped[str] = mapped_column(
+        String(32), ForeignKey("language.key", ondelete="RESTRICT")
+    )
+    source: Mapped[str] = mapped_column(Text)
