@@ -50,7 +50,7 @@ export function AppShell({ roleLabel, nav, layout }: AppShellProps) {
           Skip to content
         </a>
         <header className="bg-card/60 border-b backdrop-blur">
-          <div className="mx-auto flex max-w-5xl items-center gap-6 px-4 py-3">
+          <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
             {brand}
             <nav aria-label="Main" className="flex gap-1">
               {links}

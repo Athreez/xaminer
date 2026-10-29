@@ -165,7 +165,24 @@ export const router = createBrowserRouter([
           </RequireRole>
         ),
         children: [
-          { index: true, element: <PlaceholderPage title="Dashboard" ticket="TCK-0613" /> },
+          {
+            index: true,
+            lazy: page(
+              () => import("@/features/student/StudentDashboardPage"),
+              "StudentDashboardPage",
+            ),
+          },
+          {
+            path: "exams/:examId",
+            lazy: page(
+              () => import("@/features/student/ExamInstructionsPage"),
+              "ExamInstructionsPage",
+            ),
+          },
+          {
+            path: "exams/:examId/precheck",
+            element: <PlaceholderPage title="Proctoring checks" ticket="TCK-1002" />,
+          },
           { path: "results", element: <PlaceholderPage title="Results" ticket="TCK-0910" /> },
         ],
       },
