@@ -2731,6 +2731,47 @@ export interface components {
             /** Roll No */
             roll_no: string | null;
         };
+        /** StudentCoding */
+        StudentCoding: {
+            /**
+             * Constraints
+             * @description Markdown
+             */
+            constraints: string;
+            /** Examples */
+            examples: components["schemas"]["StudentExample"][];
+            /**
+             * Input Format
+             * @description Markdown
+             */
+            input_format: string;
+            /**
+             * Languages
+             * @description Allowed languages, with starter code
+             */
+            languages: components["schemas"]["StudentLanguage"][];
+            /** Max Submissions */
+            max_submissions: number;
+            /** Memory Limit Mb */
+            memory_limit_mb: number;
+            /**
+             * Output Format
+             * @description Markdown
+             */
+            output_format: string;
+            /**
+             * Partial Scoring
+             * @description Marks for each test passed, not all or nothing
+             */
+            partial_scoring: boolean;
+            /** Run Code Allowed */
+            run_code_allowed: boolean;
+            /**
+             * Time Limit Ms
+             * @description Before each language's multiplier
+             */
+            time_limit_ms: number;
+        };
         /** StudentExam */
         StudentExam: {
             attempt: components["schemas"]["AttemptBrief"] | null;
@@ -2832,6 +2873,16 @@ export interface components {
             /** Total Points */
             total_points: string;
         };
+        /**
+         * StudentExample
+         * @description A public test case, shown in full (hidden ones never appear anywhere a student can see).
+         */
+        StudentExample: {
+            /** Expected Output */
+            expected_output: string;
+            /** Input */
+            input: string;
+        };
         /** StudentExams */
         StudentExams: {
             /**
@@ -2849,6 +2900,15 @@ export interface components {
              * @description Not open yet, soonest first
              */
             upcoming: components["schemas"]["StudentExam"][];
+        };
+        /** StudentLanguage */
+        StudentLanguage: {
+            /** Display Name */
+            display_name: string;
+            /** Key */
+            key: string;
+            /** Starter Code */
+            starter_code: string;
         };
         /** StudentOption */
         StudentOption: {
@@ -2870,6 +2930,8 @@ export interface components {
              * @description Markdown; image links are signed
              */
             body: string;
+            /** @description Coding questions only */
+            coding?: components["schemas"]["StudentCoding"] | null;
             /**
              * Id
              * Format: uuid

@@ -3493,6 +3493,76 @@
         "title": "StudentChoice",
         "type": "object"
       },
+      "StudentCoding": {
+        "properties": {
+          "constraints": {
+            "description": "Markdown",
+            "title": "Constraints",
+            "type": "string"
+          },
+          "examples": {
+            "items": {
+              "$ref": "#/components/schemas/StudentExample"
+            },
+            "title": "Examples",
+            "type": "array"
+          },
+          "input_format": {
+            "description": "Markdown",
+            "title": "Input Format",
+            "type": "string"
+          },
+          "languages": {
+            "description": "Allowed languages, with starter code",
+            "items": {
+              "$ref": "#/components/schemas/StudentLanguage"
+            },
+            "title": "Languages",
+            "type": "array"
+          },
+          "max_submissions": {
+            "title": "Max Submissions",
+            "type": "integer"
+          },
+          "memory_limit_mb": {
+            "title": "Memory Limit Mb",
+            "type": "integer"
+          },
+          "output_format": {
+            "description": "Markdown",
+            "title": "Output Format",
+            "type": "string"
+          },
+          "partial_scoring": {
+            "description": "Marks for each test passed, not all or nothing",
+            "title": "Partial Scoring",
+            "type": "boolean"
+          },
+          "run_code_allowed": {
+            "title": "Run Code Allowed",
+            "type": "boolean"
+          },
+          "time_limit_ms": {
+            "description": "Before each language's multiplier",
+            "title": "Time Limit Ms",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "input_format",
+          "output_format",
+          "constraints",
+          "languages",
+          "time_limit_ms",
+          "memory_limit_mb",
+          "run_code_allowed",
+          "max_submissions",
+          "partial_scoring",
+          "examples"
+        ],
+        "title": "StudentCoding",
+        "type": "object"
+      },
       "StudentExam": {
         "properties": {
           "attempt": {
@@ -3693,6 +3763,25 @@
         "title": "StudentExamDetail",
         "type": "object"
       },
+      "StudentExample": {
+        "description": "A public test case, shown in full (hidden ones never appear anywhere a student can see).",
+        "properties": {
+          "expected_output": {
+            "title": "Expected Output",
+            "type": "string"
+          },
+          "input": {
+            "title": "Input",
+            "type": "string"
+          }
+        },
+        "required": [
+          "input",
+          "expected_output"
+        ],
+        "title": "StudentExample",
+        "type": "object"
+      },
       "StudentExams": {
         "properties": {
           "available": {
@@ -3728,6 +3817,29 @@
         "title": "StudentExams",
         "type": "object"
       },
+      "StudentLanguage": {
+        "properties": {
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "starter_code": {
+            "title": "Starter Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "display_name",
+          "starter_code"
+        ],
+        "title": "StudentLanguage",
+        "type": "object"
+      },
       "StudentOption": {
         "properties": {
           "id": {
@@ -3754,6 +3866,17 @@
             "description": "Markdown; image links are signed",
             "title": "Body",
             "type": "string"
+          },
+          "coding": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StudentCoding"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Coding questions only"
           },
           "id": {
             "description": "The question version shown",

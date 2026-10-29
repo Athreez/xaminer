@@ -171,7 +171,12 @@ async def preview(
     question = await get_readable(session, principal, question_id)
     version = await current_version(session, question)
     options = await _options(session, version.id)
-    return student_view.build(question, version, options, storage, TEACHER_IMAGE_SECONDS)
+    coding = (
+        await student_view.coding_part(session, version.id) if question.type == "CODING" else None
+    )
+    return student_view.build(
+        question, version, options, storage, TEACHER_IMAGE_SECONDS, coding=coding
+    )
 
 
 # ----------------------------------------------------------------------------- listing

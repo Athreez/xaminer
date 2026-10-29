@@ -24,6 +24,7 @@ from app.core.errors import AppError
 from app.exams import publish_check
 from app.exams.models import Exam, ExamQuestion, ExamVersion
 from app.platform.models import Institution
+from app.questions import student_view
 from app.questions.models import Question, QuestionOption, QuestionVersion
 
 SNAPSHOT_FORMAT = 1
@@ -107,6 +108,10 @@ async def build_snapshot(
                     {"id": o.id, "label": o.label, "is_correct": o.is_correct}
                     for o in options[v.id]
                 ],
+                # Student-safe only: hidden test cases stay in their table, for grading.
+                "coding": await student_view.coding_part(session, v.id)
+                if question.type == "CODING"
+                else None,
             }
         )
     if publishing:

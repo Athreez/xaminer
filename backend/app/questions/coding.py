@@ -44,6 +44,7 @@ from app.questions.schemas import (
     TestCasePatch,
     TestCaseView,
 )
+from app.questions.test_cases import all_test_cases
 
 # Settings that can't change a run's outcome, so changing them keeps the validation.
 NO_REVALIDATION = {
@@ -95,13 +96,6 @@ async def _config(session: AsyncSession, version_id: uuid.UUID) -> CodingConfig:
         session.add(config)
         await session.flush()
     return config
-
-
-async def _cases(session: AsyncSession, version_id: uuid.UUID) -> list[TestCase]:
-    rows = await session.scalars(
-        select(TestCase).where(TestCase.version_id == version_id).order_by(TestCase.order_index)
-    )
-    return list(rows)
 
 
 async def _references(session: AsyncSession, version_id: uuid.UUID) -> list[ReferenceSolution]:
@@ -170,7 +164,7 @@ async def copy_setup(session: AsyncSession, source_id: uuid.UUID, target_id: uui
         )
     }
     session.add(CodingConfig(version_id=target_id, **copied))
-    for case in await _cases(session, source_id):
+    for case in await all_test_cases(session, source_id):
         session.add(
             TestCase(
                 version_id=target_id,
@@ -204,7 +198,7 @@ def _touch(question: Question) -> None:
 
 async def view(session: AsyncSession, version: QuestionVersion) -> CodingView:
     config = await _config(session, version.id)
-    cases = await _cases(session, version.id)
+    cases = await all_test_cases(session, version.id)
     references = await _references(session, version.id)
     allowed = [LanguageChoice(**choice) for choice in config.allowed_languages]
     hidden = sum(c.visibility == "HIDDEN" for c in cases)
@@ -344,7 +338,7 @@ async def list_cases(
     session: AsyncSession, principal: Principal, question_id: uuid.UUID
 ) -> list[TestCaseView]:
     version = await readable(session, principal, question_id)
-    return [case_view(c) for c in await _cases(session, version.id)]
+    return [case_view(c) for c in await all_test_cases(session, version.id)]
 
 
 async def add_case(
@@ -353,7 +347,7 @@ async def add_case(
     question, version, _ = await editable(session, principal, question_id)
     _check_size("input", body.input)
     _check_size("expected_output", body.expected_output)
-    cases = await _cases(session, version.id)
+    cases = await all_test_cases(session, version.id)
     if len(cases) >= MAX_TEST_CASES:
         raise _refuse("TOO_MANY_TEST_CASES", f"A question has {MAX_TEST_CASES} test cases at most.")
     case = TestCase(
@@ -446,7 +440,7 @@ async def delete_case(
     case = await _case_of(session, version, case_id)
     await session.delete(case)
     await session.flush()
-    for i, rest in enumerate(await _cases(session, version.id)):  # close the gap
+    for i, rest in enumerate(await all_test_cases(session, version.id)):  # close the gap
         rest.order_index = i
     _needs_validation(await _config(session, version.id))
     _touch(question)
@@ -458,7 +452,7 @@ async def reorder_cases(
     session: AsyncSession, principal: Principal, question_id: uuid.UUID, body: TestCaseOrder
 ) -> list[TestCaseView]:
     question, version, _ = await editable(session, principal, question_id)
-    cases = await _cases(session, version.id)
+    cases = await all_test_cases(session, version.id)
     wanted = [(await _case_of(session, version, case_id)).id for case_id in body.ids]
     if sorted(wanted) != sorted(c.id for c in cases):
         raise _refuse("VALIDATION_FAILED", "List every test case exactly once.", 422, "ids")
