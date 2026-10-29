@@ -243,7 +243,7 @@ requests with 12 fake addresses are still limited as one).
 
 | Upload | Checks |
 |---|---|
-| Question images | Type checked by file content (not extension): PNG/JPEG/WebP only, ≤ 2 MB, re-encoded on the server |
+| Question images | Type checked by file content (not extension): PNG/JPEG/WebP only, ≤ 2 MB, at most 40 million pixels. Re-encoded to WebP (EXIF and anything hidden removed, longest side ≤ 2000 px). Stored as `<institution>/<id>.webp`; question text keeps `/api/v1/images/<id>`, swapped for a signed link when sent. nginx serves `/images/` read-only from storage, so storage is never exposed |
 | Proctoring frames | JPEG only, ≤ 640×480, ≤ 512 KB each, ≤ 3 per event. Re-encoded on the server, which removes EXIF data (can contain GPS location). Stored with random names that contain no student information |
 | CSV import | ≤ 1 MB, ≤ 2,000 rows, sent as text in JSON (no file upload) and parsed strictly as text; cells beginning with `=`, `+`, `-`, `@` are escaped in any export |
 

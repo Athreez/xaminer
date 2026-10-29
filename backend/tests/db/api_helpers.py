@@ -7,6 +7,8 @@ from tests.services import ENV, HOST
 PASSWORD = "violet-tram-42-lantern"
 SECRET = "test-signing-secret-that-is-long-enough-123"
 REDIS_PORT = int(ENV.get("TEST_REDIS_PORT", ENV.get("REDIS_HOST_PORT", "16379")))
+S3_PORT = int(ENV.get("TEST_S3_PORT", "8333"))
+S3_URL = f"http://{HOST}:{S3_PORT}"
 
 
 def make_settings(**overrides: object) -> Settings:
@@ -23,6 +25,11 @@ def make_settings(**overrides: object) -> Settings:
         "public_base_url": "http://xaminer.test",
         # Every test request comes from the same fake address; the limit test sets its own.
         "login_rate_per_minute": 10_000,
+        # Storage is reached directly; there is no nginx in tests, so links point at it too.
+        "s3_endpoint": S3_URL,
+        "s3_public_url": S3_URL,
+        "s3_access_key": ENV.get("S3_ACCESS_KEY", ""),
+        "s3_secret_key": ENV.get("S3_SECRET_KEY", ""),
     }
     values.update(overrides)
     return Settings(**values)  # type: ignore[arg-type]

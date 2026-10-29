@@ -40,6 +40,7 @@ services:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       - api
+      - storage
     networks: [frontend]
     restart: unless-stopped
 
@@ -230,7 +231,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 30
-    networks: [backend, exec, inference]
+    # frontend: nginx serves signed image links from it (deploy/nginx.conf, /images/).
+    networks: [frontend, backend, exec, inference]
     restart: unless-stopped
 
   storage-init:

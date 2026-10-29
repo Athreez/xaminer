@@ -9,6 +9,7 @@ from app.auth.dependencies import TenantDB
 from app.auth.tokens import Principal
 from app.authz.guards import require
 from app.authz.permissions import P
+from app.images.router import AppStorage
 from app.questions import service
 from app.questions.schemas import (
     QuestionCreate,
@@ -55,14 +56,22 @@ async def list_questions(
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
-async def create_question(body: QuestionCreate, principal: Writer, db: TenantDB) -> QuestionView:
-    return await service.view(db, principal, await service.create_question(db, principal, body))
+async def create_question(
+    body: QuestionCreate, principal: Writer, db: TenantDB, storage: AppStorage
+) -> QuestionView:
+    return await service.view(
+        db, principal, await service.create_question(db, principal, body), storage
+    )
 
 
 @router.get("/{question_id}")
-async def get_question(question_id: uuid.UUID, principal: Reader, db: TenantDB) -> QuestionView:
+async def get_question(
+    question_id: uuid.UUID, principal: Reader, db: TenantDB, storage: AppStorage
+) -> QuestionView:
     """The full question with answer keys and rubric (teachers only)."""
-    return await service.view(db, principal, await service.get_readable(db, principal, question_id))
+    return await service.view(
+        db, principal, await service.get_readable(db, principal, question_id), storage
+    )
 
 
 @router.patch("/{question_id}")
@@ -71,6 +80,7 @@ async def update_question(
     body: QuestionUpdate,
     principal: Writer,
     db: TenantDB,
+    storage: AppStorage,
     response: Response,
 ) -> QuestionView:
     """Edit your question. If it's used by a published exam, content changes create a new version
@@ -78,27 +88,33 @@ async def update_question(
     question, new_version = await service.update_question(db, principal, question_id, body)
     if new_version:
         response.headers["X-New-Version"] = "true"
-    return await service.view(db, principal, question)
+    return await service.view(db, principal, question, storage)
 
 
 @router.post("/{question_id}/copy", status_code=status.HTTP_201_CREATED)
-async def copy_question(question_id: uuid.UUID, principal: Copier, db: TenantDB) -> QuestionView:
+async def copy_question(
+    question_id: uuid.UUID, principal: Copier, db: TenantDB, storage: AppStorage
+) -> QuestionView:
     """Make your own private copy of a question you can see."""
     return await service.view(
-        db, principal, await service.copy_question(db, principal, question_id)
+        db, principal, await service.copy_question(db, principal, question_id), storage
     )
 
 
 @router.post("/{question_id}/archive")
-async def archive_question(question_id: uuid.UUID, principal: Writer, db: TenantDB) -> QuestionView:
+async def archive_question(
+    question_id: uuid.UUID, principal: Writer, db: TenantDB, storage: AppStorage
+) -> QuestionView:
     """Hide it from the bank. Exams that already use it are not affected."""
     return await service.view(
-        db, principal, await service.set_archived(db, principal, question_id, True)
+        db, principal, await service.set_archived(db, principal, question_id, True), storage
     )
 
 
 @router.post("/{question_id}/restore")
-async def restore_question(question_id: uuid.UUID, principal: Writer, db: TenantDB) -> QuestionView:
+async def restore_question(
+    question_id: uuid.UUID, principal: Writer, db: TenantDB, storage: AppStorage
+) -> QuestionView:
     return await service.view(
-        db, principal, await service.set_archived(db, principal, question_id, False)
+        db, principal, await service.set_archived(db, principal, question_id, False), storage
     )

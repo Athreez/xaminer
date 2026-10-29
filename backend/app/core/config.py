@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     s3_endpoint: str = "http://localhost:8333"
     s3_access_key: str = ""
     s3_secret_key: SecretStr = SecretStr("")
+    # Base of signed links handed to browsers. Empty: the app's own address (nginx proxies
+    # /images/ to storage). Tests point it straight at storage.
+    s3_public_url: str = ""
 
     smtp_host: str = "localhost"
     smtp_port: int = 1025

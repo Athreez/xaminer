@@ -18,6 +18,8 @@ from app.auth.tokens import Principal
 from app.authz.ownership import get_owned
 from app.core.errors import AppError
 from app.core.pagination import MAX_PAGE, decode_cursor, encode_cursor, like_pattern
+from app.core.storage import Storage
+from app.images.service import sign_refs
 from app.questions import rules
 from app.questions.models import Question, QuestionOption, QuestionVersion
 from app.questions.schemas import (
@@ -32,6 +34,8 @@ from app.questions.schemas import (
     VersionView,
 )
 from app.users.models import User
+
+TEACHER_IMAGE_SECONDS = 3600
 
 # Fields that belong to a version (content), as opposed to the question row (visibility, tags).
 CONTENT_FIELDS = ("body", "points", "negative_marks", "msq_scoring", "max_answer_length", "rubric")
@@ -108,7 +112,14 @@ async def _options(session: AsyncSession, version_id: uuid.UUID) -> list[Questio
     return list(rows)
 
 
-async def view(session: AsyncSession, principal: Principal, question: Question) -> QuestionView:
+async def view(
+    session: AsyncSession, principal: Principal, question: Question, storage: Storage
+) -> QuestionView:
+    """The teacher's view. Image references become links valid for an hour."""
+
+    def signed(text: str) -> str:
+        return sign_refs(text, question.institution_id, storage, TEACHER_IMAGE_SECONDS)
+
     await session.refresh(question)  # updated_at is set by the database on every change
     version = await _current(session, question)
     owner = await session.get(User, question.owner_id)
@@ -125,17 +136,20 @@ async def view(session: AsyncSession, principal: Principal, question: Question) 
         version=VersionView(
             id=version.id,
             version_no=version.version_no,
-            body=version.body,
+            body=signed(version.body),
             points=version.points,
             negative_marks=version.negative_marks,
             msq_scoring=version.msq_scoring,  # type: ignore[arg-type]
             max_answer_length=version.max_answer_length,
-            rubric=version.rubric,
+            rubric=signed(version.rubric) if version.rubric else None,
             is_locked=version.is_locked,
             created_at=version.created_at,
             options=[
                 OptionView(
-                    id=o.id, label=o.label, is_correct=o.is_correct, order_index=o.order_index
+                    id=o.id,
+                    label=signed(o.label),
+                    is_correct=o.is_correct,
+                    order_index=o.order_index,
                 )
                 for o in await _options(session, version.id)
             ],

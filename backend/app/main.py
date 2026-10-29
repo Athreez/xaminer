@@ -14,7 +14,9 @@ from app.core.config import Settings, get_settings
 from app.core.errors import UnhandledErrorMiddleware, register_error_handlers
 from app.core.logging import AccessLogMiddleware, configure_logging
 from app.core.request_id import RequestIdMiddleware
+from app.core.storage import Storage
 from app.db.session import create_engine, create_session_factory
+from app.images.router import router as images_router
 from app.platform.settings import router as settings_router
 from app.questions.router import router as questions_router
 from app.users.router import groups_router
@@ -46,6 +48,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         lifespan=lifespan,
     )
     app.state.settings = settings
+    app.state.storage = Storage(settings)  # no connection is made until it's used
 
     register_error_handlers(app)
     # Added innermost first. Request flows: RequestId -> AccessLog -> UnhandledError -> routes,
@@ -61,6 +64,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(settings_router, prefix=API_PREFIX)
     app.include_router(audit_router, prefix=API_PREFIX)
     app.include_router(questions_router, prefix=API_PREFIX)
+    app.include_router(images_router, prefix=API_PREFIX)
     # Refuse to start if any route forgot to declare who may call it (SECURITY § 3.1).
     assert_routes_declared(app)
     return app

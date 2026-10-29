@@ -452,6 +452,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/uploads/images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload Image
+         * @description Upload an image for a question. It is checked, cleaned (EXIF removed) and stored as WebP.
+         */
+        post: operations["upload_image_api_v1_uploads_images_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users": {
         parameters: {
             query?: never;
@@ -719,6 +739,14 @@ export interface components {
             data: components["schemas"]["AuditEntry"][];
             /** Next Cursor */
             next_cursor: string | null;
+        };
+        /** Body_upload_image_api_v1_uploads_images_post */
+        Body_upload_image_api_v1_uploads_images_post: {
+            /**
+             * File
+             * @description PNG, JPEG or WebP, at most 2 MB
+             */
+            file: string;
         };
         /** CreateUserRequest */
         CreateUserRequest: {
@@ -1153,6 +1181,30 @@ export interface components {
             role?: ("ADMIN" | "TEACHER" | "STUDENT") | null;
             /** Roll No */
             roll_no?: string | null;
+        };
+        /** UploadedImage */
+        UploadedImage: {
+            /** Height */
+            height: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Ref
+             * @description Put this in the Markdown: ![description](ref)
+             */
+            ref: string;
+            /** Size Bytes */
+            size_bytes: number;
+            /**
+             * Url
+             * @description A link valid for an hour, for the editor's preview
+             */
+            url: string;
+            /** Width */
+            width: number;
         };
         /** UserPage */
         UserPage: {
@@ -2086,6 +2138,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["QuestionView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_image_api_v1_uploads_images_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_image_api_v1_uploads_images_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadedImage"];
                 };
             };
             /** @description Validation Error */
