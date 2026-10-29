@@ -41,7 +41,13 @@ from app.db.session import SessionFactory, create_session_factory, system_sessio
 from app.exams.models import Exam, ExamAssignment, ExamQuestion, ExamVersion
 from app.main import create_app
 from app.platform.models import Institution
-from app.questions.models import Question, QuestionVersion
+from app.questions.models import (
+    CodingConfig,
+    Question,
+    QuestionVersion,
+    ReferenceSolution,
+    TestCase,
+)
 from app.users import service as users_service
 from app.users.models import User, UserGroup, UserGroupMember
 from cli import commands
@@ -142,6 +148,46 @@ async def _question(world: World) -> Question:
         question.current_version_id = version.id
         await s.commit()
         return question
+
+
+async def _coding_question(world: World) -> Question:
+    """A private coding question owned by `world.owner`: Python allowed, one test case and a
+    reference solution. The test case's id goes in `world.notes["case"]`."""
+    async with tenant_session(world.factory, world.owner.institution_id) as s:
+        question = Question(owner_id=world.owner.id, type="CODING")
+        s.add(question)
+        await s.flush()
+        version = QuestionVersion(
+            question_id=question.id, version_no=1, body="Add.", points=5, created_by=world.owner.id
+        )
+        s.add(version)
+        await s.flush()
+        s.add(
+            CodingConfig(
+                version_id=version.id,
+                allowed_languages=[{"language_key": "python312", "starter_code": ""}],
+            )
+        )
+        case = TestCase(version_id=version.id, input="1 2", expected_output="3", order_index=0)
+        s.add(case)
+        s.add(ReferenceSolution(version_id=version.id, language_key="python312", source="print(3)"))
+        question.current_version_id = version.id
+        await s.commit()
+        world.notes["case"] = str(case.id)
+        return question
+
+
+def _coding_url(suffix: str = "", case: bool = False) -> Callable[[World], Awaitable[str]]:
+    async def setup(world: World) -> str:
+        question = await _coding_question(world)
+        tail = f"/{world.notes['case']}" if case else ""
+        return f"/api/v1/questions/{question.id}{suffix}{tail}"
+
+    return setup
+
+
+async def _order_body(world: World) -> dict[str, Any]:
+    return {"ids": [world.notes["case"]]}
 
 
 def _question_url(suffix: str = "") -> Callable[[World], Awaitable[str]]:
@@ -442,6 +488,50 @@ OWNED_ROUTES: list[OwnedRoute] = [
     OwnedRoute(f"POST {QUESTIONS}/copy", "TEACHER", _question_url("/copy")),
     OwnedRoute(f"POST {QUESTIONS}/archive", "TEACHER", _question_url("/archive")),
     OwnedRoute(f"POST {QUESTIONS}/restore", "TEACHER", _question_url("/restore")),
+    OwnedRoute(
+        f"PUT {QUESTIONS}/coding",
+        "TEACHER",
+        _coding_url("/coding"),
+        body={"allowed_languages": [{"language_key": "python312"}]},
+    ),
+    OwnedRoute(f"GET {QUESTIONS}/test-cases", "TEACHER", _coding_url("/test-cases")),
+    OwnedRoute(
+        f"POST {QUESTIONS}/test-cases",
+        "TEACHER",
+        _coding_url("/test-cases"),
+        body={"expected_output": "1"},
+    ),
+    OwnedRoute(
+        f"PUT {QUESTIONS}/test-cases/order",
+        "TEACHER",
+        _coding_url("/test-cases/order"),
+        per_caller=True,
+        make_body=_order_body,
+    ),
+    OwnedRoute(
+        f"PATCH {QUESTIONS}/test-cases/{{case_id}}",
+        "TEACHER",
+        _coding_url("/test-cases", case=True),
+        body={"weight": 2},
+    ),
+    OwnedRoute(
+        f"DELETE {QUESTIONS}/test-cases/{{case_id}}",
+        "TEACHER",
+        _coding_url("/test-cases", case=True),
+        per_caller=True,
+    ),
+    OwnedRoute(
+        f"PUT {QUESTIONS}/reference-solutions/{{language_key}}",
+        "TEACHER",
+        _coding_url("/reference-solutions/python312"),
+        body={"source": "print(1 + 2)"},
+    ),
+    OwnedRoute(
+        f"DELETE {QUESTIONS}/reference-solutions/{{language_key}}",
+        "TEACHER",
+        _coding_url("/reference-solutions/python312"),
+        per_caller=True,
+    ),
     OwnedRoute(f"GET {EXAMS}", "TEACHER", _exam_url()),
     OwnedRoute(f"PATCH {EXAMS}", "TEACHER", _exam_url(), body={"title": "Renamed"}),
     OwnedRoute(f"DELETE {EXAMS}", "TEACHER", _exam_url(), per_caller=True),

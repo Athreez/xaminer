@@ -15,7 +15,7 @@ from app.auth.tokens import Principal
 from app.exams.models import Exam, ExamAssignment, ExamQuestion
 from app.exams.service import get_own
 from app.platform.models import Institution
-from app.questions.models import Question, QuestionVersion
+from app.questions.models import CodingConfig, Question, QuestionVersion
 from app.questions.service import title_of
 
 SECONDS_PER_QUESTION = 60  # less than this on average is "very short"
@@ -65,8 +65,13 @@ async def check(session: AsyncSession, exam: Exam, now: datetime | None = None) 
         block("NO_QUESTIONS", "Add at least one question.", "questions")
     for position, (_, question, version) in enumerate(rows, start=1):
         name = f"Question {position} “{title_of(version.body, 50)}”"
-        if question.type == "CODING":
-            # Validation arrives with coding questions (E07); until then none has passed it.
+        if (
+            question.type == "CODING"
+            and await session.scalar(
+                select(CodingConfig.validation_status).where(CodingConfig.version_id == version.id)
+            )
+            != "PASSED"
+        ):
             block(
                 "CODING_NOT_VALIDATED",
                 f"{name} hasn't passed validation yet.",

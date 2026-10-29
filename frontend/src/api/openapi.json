@@ -776,6 +776,209 @@
         "title": "Body_upload_image_api_v1_uploads_images_post",
         "type": "object"
       },
+      "CodingIn": {
+        "additionalProperties": false,
+        "description": "The whole coding setup; PUT replaces it. Limits per PRD CQ-03, CQ-06, CQ-07.",
+        "properties": {
+          "allowed_languages": {
+            "description": "In the order students see them",
+            "items": {
+              "$ref": "#/components/schemas/LanguageChoice"
+            },
+            "maxItems": 4,
+            "minItems": 1,
+            "title": "Allowed Languages",
+            "type": "array"
+          },
+          "comparison_mode": {
+            "default": "TRIM",
+            "enum": [
+              "EXACT",
+              "TRIM",
+              "TOKEN",
+              "NUMERIC"
+            ],
+            "title": "Comparison Mode",
+            "type": "string"
+          },
+          "constraints": {
+            "default": "",
+            "description": "Markdown",
+            "maxLength": 5000,
+            "title": "Constraints",
+            "type": "string"
+          },
+          "input_format": {
+            "default": "",
+            "description": "Markdown",
+            "maxLength": 5000,
+            "title": "Input Format",
+            "type": "string"
+          },
+          "max_submissions": {
+            "default": 10,
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Max Submissions",
+            "type": "integer"
+          },
+          "memory_limit_mb": {
+            "default": 256,
+            "maximum": 512.0,
+            "minimum": 16.0,
+            "title": "Memory Limit Mb",
+            "type": "integer"
+          },
+          "output_format": {
+            "default": "",
+            "description": "Markdown",
+            "maxLength": 5000,
+            "title": "Output Format",
+            "type": "string"
+          },
+          "partial_scoring": {
+            "default": true,
+            "title": "Partial Scoring",
+            "type": "boolean"
+          },
+          "run_code_allowed": {
+            "default": true,
+            "title": "Run Code Allowed",
+            "type": "boolean"
+          },
+          "time_limit_ms": {
+            "default": 2000,
+            "maximum": 10000.0,
+            "minimum": 100.0,
+            "title": "Time Limit Ms",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "allowed_languages"
+        ],
+        "title": "CodingIn",
+        "type": "object"
+      },
+      "CodingView": {
+        "description": "The coding setup of the current version, for the teacher's editor.",
+        "properties": {
+          "allowed_languages": {
+            "items": {
+              "$ref": "#/components/schemas/LanguageChoice"
+            },
+            "title": "Allowed Languages",
+            "type": "array"
+          },
+          "blocks": {
+            "description": "What has to be fixed before the question can be validated",
+            "items": {
+              "type": "string"
+            },
+            "title": "Blocks",
+            "type": "array"
+          },
+          "comparison_mode": {
+            "enum": [
+              "EXACT",
+              "TRIM",
+              "TOKEN",
+              "NUMERIC"
+            ],
+            "title": "Comparison Mode",
+            "type": "string"
+          },
+          "constraints": {
+            "title": "Constraints",
+            "type": "string"
+          },
+          "hidden_test_case_count": {
+            "title": "Hidden Test Case Count",
+            "type": "integer"
+          },
+          "input_format": {
+            "title": "Input Format",
+            "type": "string"
+          },
+          "max_submissions": {
+            "title": "Max Submissions",
+            "type": "integer"
+          },
+          "memory_limit_mb": {
+            "title": "Memory Limit Mb",
+            "type": "integer"
+          },
+          "output_format": {
+            "title": "Output Format",
+            "type": "string"
+          },
+          "partial_scoring": {
+            "title": "Partial Scoring",
+            "type": "boolean"
+          },
+          "reference_solutions": {
+            "items": {
+              "$ref": "#/components/schemas/ReferenceView"
+            },
+            "title": "Reference Solutions",
+            "type": "array"
+          },
+          "run_code_allowed": {
+            "title": "Run Code Allowed",
+            "type": "boolean"
+          },
+          "test_case_count": {
+            "title": "Test Case Count",
+            "type": "integer"
+          },
+          "time_limit_ms": {
+            "title": "Time Limit Ms",
+            "type": "integer"
+          },
+          "validation_report": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Validation Report"
+          },
+          "validation_status": {
+            "enum": [
+              "NEEDS_VALIDATION",
+              "VALIDATING",
+              "PASSED",
+              "FAILED"
+            ],
+            "title": "Validation Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "input_format",
+          "output_format",
+          "constraints",
+          "allowed_languages",
+          "time_limit_ms",
+          "memory_limit_mb",
+          "comparison_mode",
+          "partial_scoring",
+          "run_code_allowed",
+          "max_submissions",
+          "validation_status",
+          "validation_report",
+          "test_case_count",
+          "hidden_test_case_count",
+          "reference_solutions",
+          "blocks"
+        ],
+        "title": "CodingView",
+        "type": "object"
+      },
       "CreateUserRequest": {
         "additionalProperties": false,
         "properties": {
@@ -2276,6 +2479,51 @@
         "title": "Issue",
         "type": "object"
       },
+      "LanguageChoice": {
+        "additionalProperties": false,
+        "properties": {
+          "language_key": {
+            "maxLength": 32,
+            "title": "Language Key",
+            "type": "string"
+          },
+          "starter_code": {
+            "default": "",
+            "maxLength": 65536,
+            "title": "Starter Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "language_key"
+        ],
+        "title": "LanguageChoice",
+        "type": "object"
+      },
+      "LanguageView": {
+        "properties": {
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "time_multiplier": {
+            "description": "Time limit multiplier for this language",
+            "title": "Time Multiplier",
+            "type": "number"
+          }
+        },
+        "required": [
+          "key",
+          "display_name",
+          "time_multiplier"
+        ],
+        "title": "LanguageView",
+        "type": "object"
+      },
       "LoginRequest": {
         "additionalProperties": false,
         "properties": {
@@ -2909,6 +3157,17 @@
             ],
             "title": "Archived At"
           },
+          "coding": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CodingView"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Coding questions only: setup, references, what blocks validation. Test cases are listed by GET /questions/{id}/test-cases"
+          },
           "created_at": {
             "format": "date-time",
             "title": "Created At",
@@ -2981,6 +3240,7 @@
           "created_at",
           "updated_at",
           "version",
+          "coding",
           "image_urls"
         ],
         "title": "QuestionView",
@@ -3053,6 +3313,40 @@
           "code"
         ],
         "title": "Receipt",
+        "type": "object"
+      },
+      "ReferenceIn": {
+        "additionalProperties": false,
+        "properties": {
+          "source": {
+            "maxLength": 262144,
+            "minLength": 1,
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source"
+        ],
+        "title": "ReferenceIn",
+        "type": "object"
+      },
+      "ReferenceView": {
+        "properties": {
+          "language_key": {
+            "title": "Language Key",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "language_key",
+          "source"
+        ],
+        "title": "ReferenceView",
         "type": "object"
       },
       "SaveResult": {
@@ -3540,6 +3834,167 @@
           "options"
         ],
         "title": "StudentQuestion",
+        "type": "object"
+      },
+      "TestCaseIn": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_output": {
+            "maxLength": 1048576,
+            "title": "Expected Output",
+            "type": "string"
+          },
+          "input": {
+            "default": "",
+            "maxLength": 1048576,
+            "title": "Input",
+            "type": "string"
+          },
+          "visibility": {
+            "default": "HIDDEN",
+            "enum": [
+              "PUBLIC",
+              "HIDDEN"
+            ],
+            "title": "Visibility",
+            "type": "string"
+          },
+          "weight": {
+            "default": 1,
+            "maximum": 1000.0,
+            "minimum": 1.0,
+            "title": "Weight",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "expected_output"
+        ],
+        "title": "TestCaseIn",
+        "type": "object"
+      },
+      "TestCaseOrder": {
+        "additionalProperties": false,
+        "properties": {
+          "ids": {
+            "description": "Every test case, in order",
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 50,
+            "title": "Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "ids"
+        ],
+        "title": "TestCaseOrder",
+        "type": "object"
+      },
+      "TestCasePatch": {
+        "additionalProperties": false,
+        "description": "Only the fields sent change.",
+        "properties": {
+          "expected_output": {
+            "anyOf": [
+              {
+                "maxLength": 1048576,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Output"
+          },
+          "input": {
+            "anyOf": [
+              {
+                "maxLength": 1048576,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input"
+          },
+          "visibility": {
+            "anyOf": [
+              {
+                "enum": [
+                  "PUBLIC",
+                  "HIDDEN"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Visibility"
+          },
+          "weight": {
+            "anyOf": [
+              {
+                "maximum": 1000.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weight"
+          }
+        },
+        "title": "TestCasePatch",
+        "type": "object"
+      },
+      "TestCaseView": {
+        "description": "Teacher-only: includes hidden test cases in full.",
+        "properties": {
+          "expected_output": {
+            "title": "Expected Output",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "title": "Input",
+            "type": "string"
+          },
+          "order_index": {
+            "title": "Order Index",
+            "type": "integer"
+          },
+          "visibility": {
+            "enum": [
+              "PUBLIC",
+              "HIDDEN"
+            ],
+            "title": "Visibility",
+            "type": "string"
+          },
+          "weight": {
+            "title": "Weight",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "visibility",
+          "weight",
+          "input",
+          "expected_output",
+          "order_index"
+        ],
+        "title": "TestCaseView",
         "type": "object"
       },
       "TokenRequest": {
@@ -6438,6 +6893,37 @@
         ]
       }
     },
+    "/api/v1/languages": {
+      "get": {
+        "description": "Languages a coding question can allow (PRD CQ-02), with their time multipliers.",
+        "operationId": "list_languages_api_v1_languages_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/LanguageView"
+                  },
+                  "title": "Response List Languages Api V1 Languages Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Languages",
+        "tags": [
+          "questions"
+        ]
+      }
+    },
     "/api/v1/questions": {
       "get": {
         "description": "The question bank, newest first.",
@@ -6792,6 +7278,65 @@
         ]
       }
     },
+    "/api/v1/questions/{question_id}/coding": {
+      "put": {
+        "description": "Replace the coding setup: formats, languages and starter code, limits, comparison, scoring.\nChanges that affect results mark the question \"needs validation\" again.",
+        "operationId": "set_coding_api_v1_questions__question_id__coding_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "question_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Question Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CodingIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestionView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Set Coding",
+        "tags": [
+          "questions"
+        ]
+      }
+    },
     "/api/v1/questions/{question_id}/copy": {
       "post": {
         "description": "Make your own private copy of a question you can see.",
@@ -6890,6 +7435,131 @@
         ]
       }
     },
+    "/api/v1/questions/{question_id}/reference-solutions/{language_key}": {
+      "delete": {
+        "operationId": "delete_reference_solution_api_v1_questions__question_id__reference_solutions__language_key__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "question_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Question Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "language_key",
+            "required": true,
+            "schema": {
+              "maxLength": 32,
+              "title": "Language Key",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestionView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Reference Solution",
+        "tags": [
+          "questions"
+        ]
+      },
+      "put": {
+        "description": "Save your solution in one of the allowed languages; validation runs it on every test case.",
+        "operationId": "set_reference_solution_api_v1_questions__question_id__reference_solutions__language_key__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "question_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Question Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "language_key",
+            "required": true,
+            "schema": {
+              "maxLength": 32,
+              "title": "Language Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReferenceIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestionView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Set Reference Solution",
+        "tags": [
+          "questions"
+        ]
+      }
+    },
     "/api/v1/questions/{question_id}/restore": {
       "post": {
         "operationId": "restore_question_api_v1_questions__question_id__restore_post",
@@ -6933,6 +7603,296 @@
           }
         ],
         "summary": "Restore Question",
+        "tags": [
+          "questions"
+        ]
+      }
+    },
+    "/api/v1/questions/{question_id}/test-cases": {
+      "get": {
+        "description": "Every test case of the current version, hidden ones included (teachers only).",
+        "operationId": "list_test_cases_api_v1_questions__question_id__test_cases_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "question_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Question Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TestCaseView"
+                  },
+                  "title": "Response List Test Cases Api V1 Questions  Question Id  Test Cases Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Test Cases",
+        "tags": [
+          "questions"
+        ]
+      },
+      "post": {
+        "description": "Add a test case at the end (50 at most). Public ones are the examples students see.",
+        "operationId": "add_test_case_api_v1_questions__question_id__test_cases_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "question_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Question Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestCaseIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestCaseView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Add Test Case",
+        "tags": [
+          "questions"
+        ]
+      }
+    },
+    "/api/v1/questions/{question_id}/test-cases/order": {
+      "put": {
+        "description": "Set the order: every test case's id, once each.",
+        "operationId": "reorder_test_cases_api_v1_questions__question_id__test_cases_order_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "question_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Question Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestCaseOrder"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TestCaseView"
+                  },
+                  "title": "Response Reorder Test Cases Api V1 Questions  Question Id  Test Cases Order Put",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Reorder Test Cases",
+        "tags": [
+          "questions"
+        ]
+      }
+    },
+    "/api/v1/questions/{question_id}/test-cases/{case_id}": {
+      "delete": {
+        "operationId": "delete_test_case_api_v1_questions__question_id__test_cases__case_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "question_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Question Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "case_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Case Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Delete Test Case",
+        "tags": [
+          "questions"
+        ]
+      },
+      "patch": {
+        "operationId": "update_test_case_api_v1_questions__question_id__test_cases__case_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "question_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Question Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "case_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Case Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestCasePatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestCaseView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Update Test Case",
         "tags": [
           "questions"
         ]

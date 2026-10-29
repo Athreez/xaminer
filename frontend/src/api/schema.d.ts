@@ -789,6 +789,26 @@ export interface paths {
         patch: operations["patch_settings_api_v1_institution_settings_patch"];
         trace?: never;
     };
+    "/api/v1/languages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Languages
+         * @description Languages a coding question can allow (PRD CQ-02), with their time multipliers.
+         */
+        get: operations["list_languages_api_v1_languages_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/questions": {
         parameters: {
             query?: never;
@@ -855,6 +875,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/questions/{question_id}/coding": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Coding
+         * @description Replace the coding setup: formats, languages and starter code, limits, comparison, scoring.
+         *     Changes that affect results mark the question "needs validation" again.
+         */
+        put: operations["set_coding_api_v1_questions__question_id__coding_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/questions/{question_id}/copy": {
         parameters: {
             query?: never;
@@ -895,6 +936,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/questions/{question_id}/reference-solutions/{language_key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Reference Solution
+         * @description Save your solution in one of the allowed languages; validation runs it on every test case.
+         */
+        put: operations["set_reference_solution_api_v1_questions__question_id__reference_solutions__language_key__put"];
+        post?: never;
+        /** Delete Reference Solution */
+        delete: operations["delete_reference_solution_api_v1_questions__question_id__reference_solutions__language_key__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/questions/{question_id}/restore": {
         parameters: {
             query?: never;
@@ -910,6 +972,68 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/questions/{question_id}/test-cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Test Cases
+         * @description Every test case of the current version, hidden ones included (teachers only).
+         */
+        get: operations["list_test_cases_api_v1_questions__question_id__test_cases_get"];
+        put?: never;
+        /**
+         * Add Test Case
+         * @description Add a test case at the end (50 at most). Public ones are the examples students see.
+         */
+        post: operations["add_test_case_api_v1_questions__question_id__test_cases_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/questions/{question_id}/test-cases/order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Reorder Test Cases
+         * @description Set the order: every test case's id, once each.
+         */
+        put: operations["reorder_test_cases_api_v1_questions__question_id__test_cases_order_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/questions/{question_id}/test-cases/{case_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Test Case */
+        delete: operations["delete_test_case_api_v1_questions__question_id__test_cases__case_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Test Case */
+        patch: operations["update_test_case_api_v1_questions__question_id__test_cases__case_id__patch"];
         trace?: never;
     };
     "/api/v1/student/exams": {
@@ -1489,6 +1613,115 @@ export interface components {
              * @description PNG, JPEG or WebP, at most 2 MB
              */
             file: string;
+        };
+        /**
+         * CodingIn
+         * @description The whole coding setup; PUT replaces it. Limits per PRD CQ-03, CQ-06, CQ-07.
+         */
+        CodingIn: {
+            /**
+             * Allowed Languages
+             * @description In the order students see them
+             */
+            allowed_languages: components["schemas"]["LanguageChoice"][];
+            /**
+             * Comparison Mode
+             * @default TRIM
+             * @enum {string}
+             */
+            comparison_mode: "EXACT" | "TRIM" | "TOKEN" | "NUMERIC";
+            /**
+             * Constraints
+             * @description Markdown
+             * @default
+             */
+            constraints: string;
+            /**
+             * Input Format
+             * @description Markdown
+             * @default
+             */
+            input_format: string;
+            /**
+             * Max Submissions
+             * @default 10
+             */
+            max_submissions: number;
+            /**
+             * Memory Limit Mb
+             * @default 256
+             */
+            memory_limit_mb: number;
+            /**
+             * Output Format
+             * @description Markdown
+             * @default
+             */
+            output_format: string;
+            /**
+             * Partial Scoring
+             * @default true
+             */
+            partial_scoring: boolean;
+            /**
+             * Run Code Allowed
+             * @default true
+             */
+            run_code_allowed: boolean;
+            /**
+             * Time Limit Ms
+             * @default 2000
+             */
+            time_limit_ms: number;
+        };
+        /**
+         * CodingView
+         * @description The coding setup of the current version, for the teacher's editor.
+         */
+        CodingView: {
+            /** Allowed Languages */
+            allowed_languages: components["schemas"]["LanguageChoice"][];
+            /**
+             * Blocks
+             * @description What has to be fixed before the question can be validated
+             */
+            blocks: string[];
+            /**
+             * Comparison Mode
+             * @enum {string}
+             */
+            comparison_mode: "EXACT" | "TRIM" | "TOKEN" | "NUMERIC";
+            /** Constraints */
+            constraints: string;
+            /** Hidden Test Case Count */
+            hidden_test_case_count: number;
+            /** Input Format */
+            input_format: string;
+            /** Max Submissions */
+            max_submissions: number;
+            /** Memory Limit Mb */
+            memory_limit_mb: number;
+            /** Output Format */
+            output_format: string;
+            /** Partial Scoring */
+            partial_scoring: boolean;
+            /** Reference Solutions */
+            reference_solutions: components["schemas"]["ReferenceView"][];
+            /** Run Code Allowed */
+            run_code_allowed: boolean;
+            /** Test Case Count */
+            test_case_count: number;
+            /** Time Limit Ms */
+            time_limit_ms: number;
+            /** Validation Report */
+            validation_report: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Validation Status
+             * @enum {string}
+             */
+            validation_status: "NEEDS_VALIDATION" | "VALIDATING" | "PASSED" | "FAILED";
         };
         /** CreateUserRequest */
         CreateUserRequest: {
@@ -2096,6 +2329,28 @@ export interface components {
              */
             question_id: string | null;
         };
+        /** LanguageChoice */
+        LanguageChoice: {
+            /** Language Key */
+            language_key: string;
+            /**
+             * Starter Code
+             * @default
+             */
+            starter_code: string;
+        };
+        /** LanguageView */
+        LanguageView: {
+            /** Display Name */
+            display_name: string;
+            /** Key */
+            key: string;
+            /**
+             * Time Multiplier
+             * @description Time limit multiplier for this language
+             */
+            time_multiplier: number;
+        };
         /** LoginRequest */
         LoginRequest: {
             /** Email */
@@ -2324,6 +2579,8 @@ export interface components {
         QuestionView: {
             /** Archived At */
             archived_at: string | null;
+            /** @description Coding questions only: setup, references, what blocks validation. Test cases are listed by GET /questions/{id}/test-cases */
+            coding: components["schemas"]["CodingView"] | null;
             /**
              * Created At
              * Format: date-time
@@ -2406,6 +2663,18 @@ export interface components {
             submitted_at: string;
             /** Total */
             total: number;
+        };
+        /** ReferenceIn */
+        ReferenceIn: {
+            /** Source */
+            source: string;
+        };
+        /** ReferenceView */
+        ReferenceView: {
+            /** Language Key */
+            language_key: string;
+            /** Source */
+            source: string;
         };
         /** SaveResult */
         SaveResult: {
@@ -2636,6 +2905,73 @@ export interface components {
              * @enum {string}
              */
             type: "MCQ" | "MSQ" | "TRUE_FALSE" | "DESCRIPTIVE" | "CODING";
+        };
+        /** TestCaseIn */
+        TestCaseIn: {
+            /** Expected Output */
+            expected_output: string;
+            /**
+             * Input
+             * @default
+             */
+            input: string;
+            /**
+             * Visibility
+             * @default HIDDEN
+             * @enum {string}
+             */
+            visibility: "PUBLIC" | "HIDDEN";
+            /**
+             * Weight
+             * @default 1
+             */
+            weight: number;
+        };
+        /** TestCaseOrder */
+        TestCaseOrder: {
+            /**
+             * Ids
+             * @description Every test case, in order
+             */
+            ids: string[];
+        };
+        /**
+         * TestCasePatch
+         * @description Only the fields sent change.
+         */
+        TestCasePatch: {
+            /** Expected Output */
+            expected_output?: string | null;
+            /** Input */
+            input?: string | null;
+            /** Visibility */
+            visibility?: ("PUBLIC" | "HIDDEN") | null;
+            /** Weight */
+            weight?: number | null;
+        };
+        /**
+         * TestCaseView
+         * @description Teacher-only: includes hidden test cases in full.
+         */
+        TestCaseView: {
+            /** Expected Output */
+            expected_output: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Input */
+            input: string;
+            /** Order Index */
+            order_index: number;
+            /**
+             * Visibility
+             * @enum {string}
+             */
+            visibility: "PUBLIC" | "HIDDEN";
+            /** Weight */
+            weight: number;
         };
         /**
          * TokenRequest
@@ -4263,6 +4599,26 @@ export interface operations {
             };
         };
     };
+    list_languages_api_v1_languages_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LanguageView"][];
+                };
+            };
+        };
+    };
     list_questions_api_v1_questions_get: {
         parameters: {
             query?: {
@@ -4433,6 +4789,41 @@ export interface operations {
             };
         };
     };
+    set_coding_api_v1_questions__question_id__coding_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                question_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CodingIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuestionView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     copy_question_api_v1_questions__question_id__copy_post: {
         parameters: {
             query?: never;
@@ -4495,6 +4886,74 @@ export interface operations {
             };
         };
     };
+    set_reference_solution_api_v1_questions__question_id__reference_solutions__language_key__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                question_id: string;
+                language_key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReferenceIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuestionView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_reference_solution_api_v1_questions__question_id__reference_solutions__language_key__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                question_id: string;
+                language_key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuestionView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     restore_question_api_v1_questions__question_id__restore_post: {
         parameters: {
             query?: never;
@@ -4513,6 +4972,173 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["QuestionView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_test_cases_api_v1_questions__question_id__test_cases_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                question_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestCaseView"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_test_case_api_v1_questions__question_id__test_cases_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                question_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TestCaseIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestCaseView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reorder_test_cases_api_v1_questions__question_id__test_cases_order_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                question_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TestCaseOrder"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestCaseView"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_test_case_api_v1_questions__question_id__test_cases__case_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                question_id: string;
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_test_case_api_v1_questions__question_id__test_cases__case_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                question_id: string;
+                case_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TestCasePatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestCaseView"];
                 };
             };
             /** @description Validation Error */

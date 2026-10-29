@@ -22,6 +22,7 @@ from app.exams.router import admin_router as admin_exams_router
 from app.exams.router import router as exams_router
 from app.images.router import router as images_router
 from app.platform.settings import router as settings_router
+from app.questions.router import languages_router
 from app.questions.router import router as questions_router
 from app.users.router import groups_router
 from app.users.router import router as users_router
@@ -68,6 +69,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(settings_router, prefix=API_PREFIX)
     app.include_router(audit_router, prefix=API_PREFIX)
     app.include_router(questions_router, prefix=API_PREFIX)
+    app.include_router(languages_router, prefix=API_PREFIX)
     app.include_router(images_router, prefix=API_PREFIX)
     app.include_router(exams_router, prefix=API_PREFIX)
     app.include_router(admin_exams_router, prefix=API_PREFIX)

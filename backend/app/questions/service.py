@@ -21,7 +21,7 @@ from app.core.pagination import MAX_PAGE, decode_cursor, encode_cursor, like_pat
 from app.core.storage import Storage
 from app.images.service import signed_links
 from app.questions import rules, student_view
-from app.questions.models import Question, QuestionOption, QuestionVersion
+from app.questions.models import CodingConfig, Question, QuestionOption, QuestionVersion
 from app.questions.schemas import (
     OptionIn,
     OptionView,
@@ -97,7 +97,7 @@ async def get_writable(
     return question
 
 
-async def _current(session: AsyncSession, question: Question) -> QuestionVersion:
+async def current_version(session: AsyncSession, question: Question) -> QuestionVersion:
     version = await session.get(QuestionVersion, question.current_version_id)
     if version is None:  # every question is created with a version; this is a broken row
         raise AppError("INTERNAL_ERROR", "Question has no version.", status_code=500)
@@ -118,10 +118,16 @@ async def view(
 ) -> QuestionView:
     """The teacher's view: text exactly as stored, plus signed links for its images."""
     await session.refresh(question)  # updated_at is set by the database on every change
-    version = await _current(session, question)
+    version = await current_version(session, question)
     owner = await session.get(User, question.owner_id)
     options = await _options(session, version.id)
     texts = [version.body, version.rubric or "", *(o.label for o in options)]
+    coding = None
+    if question.type == "CODING":
+        from app.questions import coding as coding_service  # imports this module
+
+        coding = await coding_service.view(session, version)
+        texts += [coding.input_format, coding.output_format, coding.constraints]
     return QuestionView(
         id=question.id,
         type=question.type,  # type: ignore[arg-type]
@@ -153,6 +159,7 @@ async def view(
                 for o in options
             ],
         ),
+        coding=coding,
         image_urls=signed_links(texts, question.institution_id, storage, TEACHER_IMAGE_SECONDS),
     )
 
@@ -162,7 +169,7 @@ async def preview(
 ) -> StudentQuestion:
     """Exactly what a student will see of the current version (PRD QB-08)."""
     question = await get_readable(session, principal, question_id)
-    version = await _current(session, question)
+    version = await current_version(session, question)
     options = await _options(session, version.id)
     return student_view.build(question, version, options, storage, TEACHER_IMAGE_SECONDS)
 
@@ -270,6 +277,7 @@ async def _new_question(
     tags: list[str],
     content: dict[str, Any],
     options: list[OptionIn],
+    coding_defaults: bool = True,
 ) -> Question:
     question = Question(
         owner_id=principal.user_id, type=type, visibility=visibility, tags=_unique_tags(tags)
@@ -282,6 +290,8 @@ async def _new_question(
     session.add(version)
     await session.flush()
     _add_options(session, version.id, options)
+    if type == "CODING" and coding_defaults:
+        session.add(CodingConfig(version_id=version.id))  # defaults; set up with PUT .../coding
     question.current_version_id = version.id
     return question
 
@@ -318,7 +328,7 @@ async def update_question(
 ) -> tuple[Question, bool]:
     """Apply the changes. Returns the question and whether a new version was created."""
     question = await get_writable(session, principal, question_id)
-    version = await _current(session, question)
+    version = await current_version(session, question)
     sent = body.model_fields_set
     changes: dict[str, Any] = {}
 
@@ -371,6 +381,10 @@ async def update_question(
         session.add(version)
         await session.flush()
         _add_options(session, version.id, options)
+        if question.type == "CODING":
+            from app.questions import coding  # imports this module
+
+            await coding.copy_setup(session, question.current_version_id, version.id)  # type: ignore[arg-type]
         question.current_version_id = version.id
         changes["version_no"] = {"old": version.version_no - 1, "new": version.version_no}
     elif content_changed:
@@ -393,7 +407,7 @@ async def copy_question(
 ) -> Question:
     """A private copy owned by the caller, starting at version 1 (PRD QB-09)."""
     source = await get_readable(session, principal, question_id)
-    version = await _current(session, source)
+    version = await current_version(session, source)
     options = [
         OptionIn(label=o.label, is_correct=o.is_correct)
         for o in await _options(session, version.id)
@@ -406,7 +420,12 @@ async def copy_question(
         tags=source.tags,
         content={field: getattr(version, field) for field in CONTENT_FIELDS},
         options=options,
+        coding_defaults=False,
     )
+    if source.type == "CODING":
+        from app.questions import coding  # imports this module
+
+        await coding.copy_setup(session, version.id, copy.current_version_id)  # type: ignore[arg-type]
     _audit(
         session,
         principal,
