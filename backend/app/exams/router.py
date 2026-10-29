@@ -12,6 +12,7 @@ from app.authz.guards import require
 from app.authz.permissions import P
 from app.core.errors import AppError
 from app.exams import assignments, composition, service
+from app.exams import publish as publishing
 from app.exams import publish_check as publish_checks
 from app.exams.assignments import (
     Assignments,
@@ -129,6 +130,14 @@ async def student_choices(
 async def publish_check(exam_id: uuid.UUID, principal: Author, db: TenantDB) -> PublishCheck:
     """What blocks publishing and what is only a warning (PRD § 6.4), each naming what to fix."""
     return await publish_checks.check_own(db, principal, exam_id)
+
+
+@router.post("/{exam_id}/publish")
+async def publish_exam(exam_id: uuid.UUID, principal: Author, db: TenantDB) -> ExamView:
+    """Publish: refused with 409 `PUBLISH_BLOCKED` (listing each block) until the publish check
+    passes. Pins and locks question versions and freezes the exam. Afterwards only the window's
+    end and the assignments can change."""
+    return await service.view(db, await publishing.publish(db, principal, exam_id))
 
 
 @admin_router.get("")

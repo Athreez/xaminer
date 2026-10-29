@@ -353,6 +353,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/exams/{exam_id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Publish Exam
+         * @description Publish: refused with 409 `PUBLISH_BLOCKED` (listing each block) until the publish check
+         *     passes. Pins and locks question versions and freezes the exam. Afterwards only the window's
+         *     end and the assignments can change.
+         */
+        post: operations["publish_exam_api_v1_exams__exam_id__publish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/exams/{exam_id}/publish-check": {
         parameters: {
             query?: never;
@@ -2682,6 +2704,37 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    publish_exam_api_v1_exams__exam_id__publish_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exam_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamView"];
+                };
             };
             /** @description Validation Error */
             422: {

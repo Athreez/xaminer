@@ -4199,6 +4199,55 @@
         ]
       }
     },
+    "/api/v1/exams/{exam_id}/publish": {
+      "post": {
+        "description": "Publish: refused with 409 `PUBLISH_BLOCKED` (listing each block) until the publish check\npasses. Pins and locks question versions and freezes the exam. Afterwards only the window's\nend and the assignments can change.",
+        "operationId": "publish_exam_api_v1_exams__exam_id__publish_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "exam_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Exam Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExamView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Publish Exam",
+        "tags": [
+          "exams"
+        ]
+      }
+    },
     "/api/v1/exams/{exam_id}/publish-check": {
       "get": {
         "description": "What blocks publishing and what is only a warning (PRD \u00a7 6.4), each naming what to fix.",

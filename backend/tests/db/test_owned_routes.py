@@ -22,22 +22,22 @@ can't be skipped as routes are added.
 import uuid
 from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
 from dataclasses import dataclass, field
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pytest
 from fastapi import Depends
 from fastapi.testclient import TestClient
-from sqlalchemy import delete, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from app.auth.dependencies import CurrentPrincipal, TenantDB
-from app.auth.models import AuthToken, RefreshToken
 from app.auth.tokens import Principal, create_access_token
 from app.authz.guards import access_table, require
 from app.authz.ownership import get_owned, not_found
 from app.authz.permissions import P
 from app.db.session import SessionFactory, create_session_factory, system_session, tenant_session
-from app.exams.models import Exam, ExamAssignment
+from app.exams.models import Exam, ExamAssignment, ExamQuestion
 from app.main import create_app
 from app.platform.models import Institution
 from app.questions.models import Question, QuestionVersion
@@ -45,6 +45,7 @@ from app.users import service as users_service
 from app.users.models import User, UserGroup, UserGroupMember
 from cli import commands
 from tests.db.api_helpers import SECRET, make_settings
+from tests.db.question_helpers import purge_institutions
 
 
 @dataclass
@@ -174,6 +175,27 @@ async def _assign_body(world: World) -> dict[str, Any]:
     return {"student_ids": [str((await _target(world)).id)]}
 
 
+async def _publishable_exam_url(world: World) -> str:
+    """The owner's exam that passes the publish check: a question, a window, a student."""
+    question = await _question(world)
+    student = await _target(world)
+    start = datetime.now(UTC) + timedelta(days=1)
+    async with tenant_session(world.factory, world.owner.institution_id) as s:
+        exam = Exam(
+            owner_id=world.owner.id,
+            title="Owned routes exam",
+            open_at=start,
+            close_at=start + timedelta(hours=2),
+            duration_min=60,
+        )
+        s.add(exam)
+        await s.flush()
+        s.add(ExamQuestion(exam_id=exam.id, question_id=question.id, order_index=0))
+        s.add(ExamAssignment(exam_id=exam.id, student_id=student.id, assigned_by=world.owner.id))
+        await s.commit()
+        return f"/api/v1/exams/{exam.id}/publish"
+
+
 USERS = "/api/v1/users/{user_id}"
 EXAMS = "/api/v1/exams/{exam_id}"
 QUESTIONS = "/api/v1/questions/{question_id}"
@@ -221,6 +243,7 @@ OWNED_ROUTES: list[OwnedRoute] = [
     ),
     OwnedRoute(f"GET {EXAMS}/student-choices", "TEACHER", _exam_url("/student-choices")),
     OwnedRoute(f"GET {EXAMS}/publish-check", "TEACHER", _exam_url("/publish-check")),
+    OwnedRoute(f"POST {EXAMS}/publish", "TEACHER", _publishable_exam_url, per_caller=True),
     OwnedRoute(
         f"PUT {EXAMS}/questions", "TEACHER", _exam_url("/questions"), body={"questions": []}
     ),
@@ -281,25 +304,19 @@ def client() -> Iterator[TestClient]:
 
 
 @pytest.fixture
-async def factory(app_engine: AsyncEngine) -> AsyncIterator[SessionFactory]:
+async def factory(
+    app_engine: AsyncEngine, migrator_engine: AsyncEngine
+) -> AsyncIterator[SessionFactory]:
     factory = create_session_factory(app_engine)
     yield factory
     async with system_session(factory) as s:
-        ids = select(Institution.id).where(Institution.name.like("Owned routes test%"))
-        # Deleting a question removes its versions and options too.
-        for model in (
-            AuthToken,
-            RefreshToken,
-            UserGroupMember,
-            UserGroup,
-            ExamAssignment,
-            Exam,
-            Question,
-            User,
-        ):
-            await s.execute(delete(model).where(model.institution_id.in_(ids)))
-        await s.execute(delete(Institution).where(Institution.name.like("Owned routes test%")))
-        await s.commit()
+        ids = list(
+            await s.scalars(
+                select(Institution.id).where(Institution.name.like("Owned routes test%"))
+            )
+        )
+    # Published exams and locked question versions need the owner's clean-up.
+    await purge_institutions(migrator_engine, ids)
 
 
 async def _user(factory: SessionFactory, institution: Institution, role: str) -> User:
