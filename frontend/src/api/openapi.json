@@ -1795,6 +1795,51 @@
         "title": "InvitationInfo",
         "type": "object"
       },
+      "Issue": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The exam setting to fix, if it's a setting",
+            "title": "Field"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "question_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The question to fix, if it's a question",
+            "title": "Question Id"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "field",
+          "question_id"
+        ],
+        "title": "Issue",
+        "type": "object"
+      },
       "LoginRequest": {
         "additionalProperties": false,
         "properties": {
@@ -1938,6 +1983,37 @@
           "email"
         ],
         "title": "PasswordResetRequest",
+        "type": "object"
+      },
+      "PublishCheck": {
+        "properties": {
+          "blocks": {
+            "description": "Must be fixed before publishing",
+            "items": {
+              "$ref": "#/components/schemas/Issue"
+            },
+            "title": "Blocks",
+            "type": "array"
+          },
+          "can_publish": {
+            "title": "Can Publish",
+            "type": "boolean"
+          },
+          "warnings": {
+            "description": "Worth a look; publishing is still allowed",
+            "items": {
+              "$ref": "#/components/schemas/Issue"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "can_publish",
+          "blocks",
+          "warnings"
+        ],
+        "title": "PublishCheck",
         "type": "object"
       },
       "QuestionCreate": {
@@ -4118,6 +4194,55 @@
           }
         ],
         "summary": "Unassign Student",
+        "tags": [
+          "exams"
+        ]
+      }
+    },
+    "/api/v1/exams/{exam_id}/publish-check": {
+      "get": {
+        "description": "What blocks publishing and what is only a warning (PRD \u00a7 6.4), each naming what to fix.",
+        "operationId": "publish_check_api_v1_exams__exam_id__publish_check_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "exam_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Exam Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublishCheck"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Publish Check",
         "tags": [
           "exams"
         ]

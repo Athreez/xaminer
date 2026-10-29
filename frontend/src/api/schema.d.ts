@@ -353,6 +353,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/exams/{exam_id}/publish-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Publish Check
+         * @description What blocks publishing and what is only a warning (PRD § 6.4), each naming what to fix.
+         */
+        get: operations["publish_check_api_v1_exams__exam_id__publish_check_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/exams/{exam_id}/questions": {
         parameters: {
             query?: never;
@@ -1538,6 +1558,23 @@ export interface components {
             /** Institution Name */
             institution_name: string;
         };
+        /** Issue */
+        Issue: {
+            /** Code */
+            code: string;
+            /**
+             * Field
+             * @description The exam setting to fix, if it's a setting
+             */
+            field: string | null;
+            /** Message */
+            message: string;
+            /**
+             * Question Id
+             * @description The question to fix, if it's a question
+             */
+            question_id: string | null;
+        };
         /** LoginRequest */
         LoginRequest: {
             /** Email */
@@ -1598,6 +1635,21 @@ export interface components {
         PasswordResetRequest: {
             /** Email */
             email: string;
+        };
+        /** PublishCheck */
+        PublishCheck: {
+            /**
+             * Blocks
+             * @description Must be fixed before publishing
+             */
+            blocks: components["schemas"]["Issue"][];
+            /** Can Publish */
+            can_publish: boolean;
+            /**
+             * Warnings
+             * @description Worth a look; publishing is still allowed
+             */
+            warnings: components["schemas"]["Issue"][];
         };
         /** QuestionCreate */
         QuestionCreate: {
@@ -2630,6 +2682,37 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    publish_check_api_v1_exams__exam_id__publish_check_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exam_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublishCheck"];
+                };
             };
             /** @description Validation Error */
             422: {

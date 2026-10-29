@@ -220,6 +220,7 @@ OWNED_ROUTES: list[OwnedRoute] = [
         per_caller=True,
     ),
     OwnedRoute(f"GET {EXAMS}/student-choices", "TEACHER", _exam_url("/student-choices")),
+    OwnedRoute(f"GET {EXAMS}/publish-check", "TEACHER", _exam_url("/publish-check")),
     OwnedRoute(
         f"PUT {EXAMS}/questions", "TEACHER", _exam_url("/questions"), body={"questions": []}
     ),

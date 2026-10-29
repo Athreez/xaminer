@@ -12,6 +12,7 @@ from app.authz.guards import require
 from app.authz.permissions import P
 from app.core.errors import AppError
 from app.exams import assignments, composition, service
+from app.exams import publish_check as publish_checks
 from app.exams.assignments import (
     Assignments,
     AssignRequest,
@@ -19,6 +20,7 @@ from app.exams.assignments import (
     StudentChoice,
 )
 from app.exams.composition import ExamQuestions, ExamQuestionsIn
+from app.exams.publish_check import PublishCheck
 from app.exams.schemas import AdminExamPage, ExamCreate, ExamPage, ExamStatus, ExamUpdate, ExamView
 
 router = APIRouter(prefix="/exams", tags=["exams"])
@@ -121,6 +123,12 @@ async def student_choices(
 ) -> list[StudentChoice]:
     """Students who could be assigned to this exam, for the picker (name, email, roll no.)."""
     return await assignments.search_students(db, principal, exam_id, q, limit)
+
+
+@router.get("/{exam_id}/publish-check")
+async def publish_check(exam_id: uuid.UUID, principal: Author, db: TenantDB) -> PublishCheck:
+    """What blocks publishing and what is only a warning (PRD § 6.4), each naming what to fix."""
+    return await publish_checks.check_own(db, principal, exam_id)
 
 
 @admin_router.get("")
