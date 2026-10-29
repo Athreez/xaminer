@@ -392,6 +392,128 @@
         "title": "AttemptBrief",
         "type": "object"
       },
+      "AttemptItem": {
+        "properties": {
+          "answer": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SavedAnswer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "exam_question_id": {
+            "format": "uuid",
+            "title": "Exam Question Id",
+            "type": "string"
+          },
+          "marked_for_review": {
+            "title": "Marked For Review",
+            "type": "boolean"
+          },
+          "position": {
+            "description": "1 for the first question this student sees",
+            "title": "Position",
+            "type": "integer"
+          },
+          "question": {
+            "$ref": "#/components/schemas/StudentQuestion"
+          }
+        },
+        "required": [
+          "exam_question_id",
+          "position",
+          "marked_for_review",
+          "question",
+          "answer"
+        ],
+        "title": "AttemptItem",
+        "type": "object"
+      },
+      "AttemptView": {
+        "description": "Everything the exam screen needs, in one response (architecture \u00a7 9).",
+        "properties": {
+          "deadline_at": {
+            "format": "date-time",
+            "title": "Deadline At",
+            "type": "string"
+          },
+          "exam_id": {
+            "format": "uuid",
+            "title": "Exam Id",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "navigation_mode": {
+            "enum": [
+              "FREE",
+              "SEQUENTIAL"
+            ],
+            "title": "Navigation Mode",
+            "type": "string"
+          },
+          "questions": {
+            "items": {
+              "$ref": "#/components/schemas/AttemptItem"
+            },
+            "title": "Questions",
+            "type": "array"
+          },
+          "run_code_enabled": {
+            "title": "Run Code Enabled",
+            "type": "boolean"
+          },
+          "seconds_left": {
+            "title": "Seconds Left",
+            "type": "integer"
+          },
+          "server_time": {
+            "description": "The timer counts from this, not the device clock",
+            "format": "date-time",
+            "title": "Server Time",
+            "type": "string"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "total_points": {
+            "title": "Total Points",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "exam_id",
+          "title",
+          "status",
+          "started_at",
+          "deadline_at",
+          "server_time",
+          "seconds_left",
+          "navigation_mode",
+          "run_code_enabled",
+          "total_points",
+          "questions"
+        ],
+        "title": "AttemptView",
+        "type": "object"
+      },
       "AuditActor": {
         "properties": {
           "email": {
@@ -2559,6 +2681,47 @@
         "title": "QuestionView",
         "type": "object"
       },
+      "SavedAnswer": {
+        "properties": {
+          "client_revision": {
+            "title": "Client Revision",
+            "type": "integer"
+          },
+          "selected_option_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selected Option Ids"
+          },
+          "text_answer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text Answer"
+          }
+        },
+        "required": [
+          "selected_option_ids",
+          "text_answer",
+          "client_revision"
+        ],
+        "title": "SavedAnswer",
+        "type": "object"
+      },
       "SetPasswordRequest": {
         "additionalProperties": false,
         "properties": {
@@ -3441,6 +3604,55 @@
         "summary": "List Exams For Admin",
         "tags": [
           "exams"
+        ]
+      }
+    },
+    "/api/v1/attempts/{attempt_id}": {
+      "get": {
+        "description": "Your attempt as you left it: same questions, order, answers and deadline (resume).",
+        "operationId": "get_attempt_api_v1_attempts__attempt_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "attempt_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Attempt Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttemptView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Attempt",
+        "tags": [
+          "attempts"
         ]
       }
     },
@@ -5811,6 +6023,55 @@
           }
         ],
         "summary": "My Exam",
+        "tags": [
+          "student"
+        ]
+      }
+    },
+    "/api/v1/student/exams/{exam_id}/attempts": {
+      "post": {
+        "description": "Start the exam, or get your attempt back if it's already started (safe to repeat).\n\nRefused with 409 `EXAM_NOT_OPEN`, `EXAM_CLOSED`, `TOO_LATE_TO_START` (under 5 min left) or\n`ALREADY_SUBMITTED`. The response has every question in your order, without answers.",
+        "operationId": "start_attempt_api_v1_student_exams__exam_id__attempts_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "exam_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Exam Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttemptView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Start Attempt",
         "tags": [
           "student"
         ]

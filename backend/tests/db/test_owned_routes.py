@@ -31,6 +31,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from app.attempts.models import ExamAttempt
 from app.auth.dependencies import CurrentPrincipal, TenantDB
 from app.auth.tokens import Principal, create_access_token
 from app.authz.guards import access_table, require
@@ -219,8 +220,15 @@ async def _assigned_exam_url(world: World) -> str:
             exam_id=exam.id,
             version_no=1,
             snapshot={
-                "settings": {"navigation_mode": "FREE", "run_code_enabled": True},
+                "title": "Assigned exam",
+                "total_points": "0",
                 "questions": [],
+                "settings": {
+                    "navigation_mode": "FREE",
+                    "run_code_enabled": True,
+                    "shuffle_questions": False,
+                    "shuffle_options": False,
+                },
             },
             content_hash="0" * 64,
         )
@@ -230,6 +238,32 @@ async def _assigned_exam_url(world: World) -> str:
         s.add(ExamAssignment(exam_id=exam.id, student_id=world.owner.id, assigned_by=teacher.id))
         await s.commit()
         return f"/api/v1/student/exams/{exam.id}"
+
+
+def _assigned(suffix: str = "") -> Callable[[World], Awaitable[str]]:
+    async def setup(world: World) -> str:
+        return f"{await _assigned_exam_url(world)}{suffix}"
+
+    return setup
+
+
+async def _attempt_url(world: World) -> str:
+    """`world.owner`'s attempt at an open exam."""
+    exam_url = await _assigned_exam_url(world)
+    exam_id = uuid.UUID(exam_url.rsplit("/", 1)[1])
+    async with tenant_session(world.factory, world.owner.institution_id) as s:
+        exam = await s.get(Exam, exam_id)
+        assert exam is not None and exam.published_version_id is not None
+        attempt = ExamAttempt(
+            exam_id=exam.id,
+            exam_version_id=exam.published_version_id,
+            student_id=world.owner.id,
+            deadline_at=datetime.now(UTC) + timedelta(hours=1),
+            shuffle_seed=1,
+        )
+        s.add(attempt)
+        await s.commit()
+        return f"/api/v1/attempts/{attempt.id}"
 
 
 USERS = "/api/v1/users/{user_id}"
@@ -284,6 +318,8 @@ OWNED_ROUTES: list[OwnedRoute] = [
         f"PUT {EXAMS}/questions", "TEACHER", _exam_url("/questions"), body={"questions": []}
     ),
     OwnedRoute("GET /api/v1/student/exams/{exam_id}", "STUDENT", _assigned_exam_url),
+    OwnedRoute("POST /api/v1/student/exams/{exam_id}/attempts", "STUDENT", _assigned("/attempts")),
+    OwnedRoute("GET /api/v1/attempts/{attempt_id}", "STUDENT", _attempt_url),
     OwnedRoute(f"GET {GROUPS}", "TEACHER", _group_url(), scope="institution"),
     OwnedRoute(
         f"PATCH {GROUPS}",

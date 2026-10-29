@@ -24,6 +24,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/attempts/{attempt_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Attempt
+         * @description Your attempt as you left it: same questions, order, answers and deadline (resume).
+         */
+        get: operations["get_attempt_api_v1_attempts__attempt_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/audit-logs": {
         parameters: {
             query?: never;
@@ -728,6 +748,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/student/exams/{exam_id}/attempts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Attempt
+         * @description Start the exam, or get your attempt back if it's already started (safe to repeat).
+         *
+         *     Refused with 409 `EXAM_NOT_OPEN`, `EXAM_CLOSED`, `TOO_LATE_TO_START` (under 5 min left) or
+         *     `ALREADY_SUBMITTED`. The response has every question in your order, without answers.
+         */
+        post: operations["start_attempt_api_v1_student_exams__exam_id__attempts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/uploads/images": {
         parameters: {
             query?: never;
@@ -1085,6 +1128,72 @@ export interface components {
             status: "IN_PROGRESS" | "SUBMITTED" | "AUTO_SUBMITTED";
             /** Submitted At */
             submitted_at: string | null;
+        };
+        /** AttemptItem */
+        AttemptItem: {
+            answer: components["schemas"]["SavedAnswer"] | null;
+            /**
+             * Exam Question Id
+             * Format: uuid
+             */
+            exam_question_id: string;
+            /** Marked For Review */
+            marked_for_review: boolean;
+            /**
+             * Position
+             * @description 1 for the first question this student sees
+             */
+            position: number;
+            question: components["schemas"]["StudentQuestion"];
+        };
+        /**
+         * AttemptView
+         * @description Everything the exam screen needs, in one response (architecture § 9).
+         */
+        AttemptView: {
+            /**
+             * Deadline At
+             * Format: date-time
+             */
+            deadline_at: string;
+            /**
+             * Exam Id
+             * Format: uuid
+             */
+            exam_id: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Navigation Mode
+             * @enum {string}
+             */
+            navigation_mode: "FREE" | "SEQUENTIAL";
+            /** Questions */
+            questions: components["schemas"]["AttemptItem"][];
+            /** Run Code Enabled */
+            run_code_enabled: boolean;
+            /** Seconds Left */
+            seconds_left: number;
+            /**
+             * Server Time
+             * Format: date-time
+             * @description The timer counts from this, not the device clock
+             */
+            server_time: string;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /** Status */
+            status: string;
+            /** Title */
+            title: string;
+            /** Total Points */
+            total_points: string;
         };
         /** AuditActor */
         AuditActor: {
@@ -1910,6 +2019,15 @@ export interface components {
              */
             visibility: "PRIVATE" | "INSTITUTION";
         };
+        /** SavedAnswer */
+        SavedAnswer: {
+            /** Client Revision */
+            client_revision: number;
+            /** Selected Option Ids */
+            selected_option_ids: string[] | null;
+            /** Text Answer */
+            text_answer: string | null;
+        };
         /** SetPasswordRequest */
         SetPasswordRequest: {
             /** Password */
@@ -2279,6 +2397,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminExamPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_attempt_api_v1_attempts__attempt_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttemptView"];
                 };
             };
             /** @description Validation Error */
@@ -3669,6 +3818,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StudentExamDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_attempt_api_v1_student_exams__exam_id__attempts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exam_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttemptView"];
                 };
             };
             /** @description Validation Error */
