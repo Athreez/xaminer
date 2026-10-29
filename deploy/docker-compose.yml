@@ -96,7 +96,7 @@ services:
   # ---------------------------------------------------------------- untrusted-input workers (Z2)
   exec-worker:
     build: { context: ../backend, target: exec }
-    # TODO(TCK-0803): replace with the execution worker.
+    # TODO(TCK-0803): replace with the execution worker. The sandbox it drives: workers/exec_worker.
     command: ["sleep", "infinity"]
     environment:
       <<: *untrusted-env
@@ -104,7 +104,7 @@ services:
       DOCKER_TLS_VERIFY: "1"
       DOCKER_CERT_PATH: /certs/client
     volumes:
-      - sandbox-certs:/certs/client:ro
+      - sandbox-tls:/certs:ro  # only client/ is used: the client certificate and the CA
     depends_on:
       redis: { condition: service_healthy }
       sandbox-docker: { condition: service_healthy }
@@ -117,8 +117,12 @@ services:
     privileged: true
     environment:
       DOCKER_TLS_CERTDIR: /certs
+      # The worker reaches it by this name, so the server certificate must carry it.
+      DOCKER_TLS_SAN: DNS:sandbox-docker
     volumes:
-      - sandbox-certs:/certs/client
+      # The whole TLS folder (CA, server, client) in one volume: they're made together on first
+      # start and must stay matched, or the worker can't connect after the container is recreated.
+      - sandbox-tls:/certs
       - sandbox-data:/var/lib/docker
     # In memory, so a stale containerd pid file from an unclean shutdown can't survive a restart
     # (otherwise the engine waits forever for a containerd that isn't running).
@@ -266,4 +270,4 @@ volumes:
   redis-data:
   storage-data:
   sandbox-data:
-  sandbox-certs:
+  sandbox-tls:

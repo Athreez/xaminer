@@ -4,9 +4,9 @@ The single source in code. The `language` table holds a copy (seeded and updated
 `tests/db/test_languages_db.py` checks the two agree), and `runners/smoke_test.py` uses this to
 compile and run a hello-world in every image.
 
-Runner images are built from `runners/<key>/Dockerfile` (`make runners`). Student code is written to
-`/work` (a small writable folder at run time) and compiled and run there as a non-root user, with
-the rest of the filesystem read-only. Bump `RUNNER_VERSION` whenever a Dockerfile changes.
+Runner images are built from `runners/<key>/Dockerfile` (`make runners`). Student code sits in
+`/work` and is compiled and run there as a non-root user, with the rest of the filesystem read-only
+and a small private `/tmp`. Bump `RUNNER_VERSION` whenever a Dockerfile changes.
 
 No imports from the rest of the app: the smoke test loads this file on its own.
 """
@@ -14,7 +14,7 @@ No imports from the rest of the app: the smoke test loads this file on its own.
 from dataclasses import dataclass
 from decimal import Decimal
 
-RUNNER_VERSION = 1
+RUNNER_VERSION = 2
 
 
 @dataclass(frozen=True)

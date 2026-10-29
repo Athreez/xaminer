@@ -2,7 +2,7 @@
 .PHONY: setup check lint typecheck test format \
         backend-lint backend-typecheck backend-test frontend-lint frontend-typecheck frontend-test \
         up down ps logs platform-admin api-client \
-        create-institution create-admin invite-user list-institutions list-languages \n        runners runners-check
+        create-institution create-admin invite-user list-institutions list-languages \n        runners runners-check sandbox-check
 
 # Regenerate the frontend's typed API client after changing backend endpoints. Commit the result.
 api-client:
@@ -20,6 +20,12 @@ runners:
 runners-check:
 	cd backend && uv run python ../runners/smoke_test.py
 	cd backend && uv run python ../runners/smoke_test.py --sandbox
+
+# The sandbox on real containers: the profile as the engine applies it, and programs that try to
+# escape, flood output, fork, allocate or loop (needs `make runners` first; uses this machine's Docker).
+sandbox-check: export SANDBOX_TESTS = 1
+sandbox-check:
+	cd backend && uv run pytest -q -p no:randomly tests/sandbox
 
 # Hide Docker Desktop's "What's next: Debug this with Gordon" advert after failed commands.
 export DOCKER_CLI_HINTS = false

@@ -1,7 +1,7 @@
 # One Dockerfile, three targets. Each service image gets only what it needs, and none of them
 # contains database settings at build time (they come from the environment at run time).
 #   app        -> api, app-worker, scheduler
-#   exec       -> exec-worker (adds the Docker client in TCK-0803)
+#   exec       -> exec-worker (drives sandbox-docker through the Docker SDK, a normal dependency)
 #   inference  -> inference-worker (adds PyTorch / ONNX Runtime in TCK-1103)
 
 FROM ghcr.io/astral-sh/uv:0.13 AS uv

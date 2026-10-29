@@ -39,6 +39,7 @@ SANDBOX = [
     "--network", "none",
     "--read-only",
     "--tmpfs", "/work:rw,exec,nosuid,size=64m,uid=10001,gid=10001,mode=0700",
+    "--tmpfs", "/tmp:rw,noexec,nosuid,size=16m,uid=10001,gid=10001,mode=0700",
     "--user", "10001:10001",
     "--cap-drop", "ALL",
     "--security-opt", "no-new-privileges",

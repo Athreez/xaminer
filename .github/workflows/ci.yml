@@ -166,7 +166,7 @@ jobs:
           "import app.main, app.questions.bundles, domain_core.timer, domain_core.shuffle, workers.app_worker.tasks, cli.commands; print('imports ok')"
 
   runners:
-    name: Runner images (hello-world in each language, sandboxed)
+    name: Runner images and sandbox (hello-world in each language, break-out checks)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -178,3 +178,18 @@ jobs:
       # Compile and run a hello-world in each, with the sandbox's container restrictions.
       - name: Hello-world in every language
         run: python3 runners/smoke_test.py
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      # The sandbox profile as the engine applies it, and programs that try to break out.
+      - name: Sandbox checks
+        working-directory: backend
+        env:
+          SANDBOX_TESTS: "1"
+        run: |
+          uv python install 3.12
+          uv sync --locked
+          uv run pytest -q -p no:randomly tests/sandbox

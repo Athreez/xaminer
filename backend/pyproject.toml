@@ -9,6 +9,7 @@ dependencies = [
     "asyncpg>=0.32.0",
     "boto3>=1.43.121",
     "celery[redis]>=5.4",
+    "docker>=7.1",
     "email-validator>=2.3.0",
     "fastapi>=0.162.0",
     "pillow>=13.0.0",
@@ -28,7 +29,9 @@ dev = [
     "pytest>=8.3",
     "pytest-asyncio>=1.4.0",
     "pytest-xdist>=3.8.0",
+    "pywin32>=306 ; sys_platform == 'win32'",
     "ruff>=0.8",
+    "types-docker>=7.2.0.20261006",
 ]
 
 [tool.uv]
@@ -56,6 +59,9 @@ known-third-party = ["alembic"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "S105", "S106"]  # asserts and made-up passwords are fine in tests
+# Paths inside sandbox containers (their own private /tmp), not this machine's temp folder.
+"workers/exec_worker/**" = ["S108"]
+"tests/{sandbox/**,test_sandbox_settings.py}" = ["S101", "S108"]
 
 [tool.mypy]
 python_version = "3.12"

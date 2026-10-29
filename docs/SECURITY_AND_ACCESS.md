@@ -298,8 +298,8 @@ reach the network, crash the machine, or forge a grade.
 
 | Layer | Protection |
 |---|---|
-| Container | Fresh container **per test case**: no network, read-only filesystem, small temporary work folder, non-root user, all Linux capabilities dropped, no privilege escalation, default seccomp filter |
-| Limits | Memory (no swap), 1 CPU, 64 processes, 64 KB output, wall-clock kill at 2× time limit |
+| Container | Fresh container **per test case**: no network, read-only filesystem, small private `/tmp`, non-root user, all Linux capabilities dropped, no privilege escalation, default seccomp filter. The compiled program is mounted read-only; each case's input sits in a volume of its own, so no case sees another's input, and expected outputs never enter the sandbox |
+| Limits | Memory (no swap), 1 CPU, 64 processes, 64 MB per file, 64 KB output, wall-clock kill at 2× time limit |
 | Engine | Containers run on `sandbox-docker`, a separate Docker engine, not the host's |
 | Network | `exec-worker` and `sandbox-docker` sit on a Docker network that has no route to Postgres |
 | Credentials | `exec-worker` holds no DB or storage credentials; one 5-minute link per job, for one bundle file |
