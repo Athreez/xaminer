@@ -4,6 +4,7 @@ import smtplib
 import uuid
 from datetime import UTC, datetime
 from email.message import EmailMessage
+from typing import Any
 
 from celery import shared_task
 
@@ -100,3 +101,22 @@ async def _build_bundle(version_id: uuid.UUID) -> str | None:
         return await build(create_session_factory(engine), Storage(settings), version_id)
     finally:
         await engine.dispose()
+
+
+@shared_task(name="exec.result")
+def receive_execution_result(result: dict[str, Any]) -> None:
+    """Raw results from exec-worker. Comparing, scoring and saving arrive with TCK-0806; until then
+    the result is checked and summed up in the log (no outputs or code in logs)."""
+    from workers.exec_messages import ExecResult
+
+    parsed = ExecResult.model_validate(result)
+    logger.info(
+        "execution result received",
+        extra={
+            "job_id": parsed.job_id,
+            "status": parsed.status,
+            "compiled": parsed.compiled,
+            "cases": len(parsed.cases),
+            "timed_out": sum(c.timed_out for c in parsed.cases),
+        },
+    )

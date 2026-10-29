@@ -51,6 +51,13 @@ class Storage:
             CacheControl="private, max-age=3600",
         )
 
+    def internal_url(self, bucket: str, key: str, seconds: int) -> str:
+        """A link for other services on the storage network (the exec-worker fetching a test
+        bundle), not for browsers. Made locally, like `signed_url`."""
+        return self._direct.generate_presigned_url(
+            "get_object", Params={"Bucket": bucket, "Key": key}, ExpiresIn=seconds
+        )
+
     def signed_url(self, bucket: str, key: str, seconds: int) -> str:
         """A link that works for `seconds`. Made locally: no request to storage."""
         return self._signer.generate_presigned_url(

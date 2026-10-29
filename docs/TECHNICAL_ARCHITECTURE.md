@@ -419,6 +419,9 @@ Student clicks Run / Submit
 
 If Run Code becomes slow under load, start a second `exec-worker` that listens only to `exec.run`.
 
+Job and result formats: `backend/workers/exec_messages.py`. Infrastructure failures come back as `FAILED`;
+a compile error is a normal result. Memory per case isn't measured yet (`memory_kb` empty).
+
 **Test bundle.** When a coding question version is saved, `app-worker` builds one tar file
 (`001.in`, `001.out`, …, `manifest.json`) and stores it in object storage. The worker gets a pre-signed URL for that
 one file only. Bundles never change, so the worker can cache them by hash: the key is

@@ -96,8 +96,8 @@ services:
   # ---------------------------------------------------------------- untrusted-input workers (Z2)
   exec-worker:
     build: { context: ../backend, target: exec }
-    # TODO(TCK-0803): replace with the execution worker. The sandbox it drives: workers/exec_worker.
-    command: ["sleep", "infinity"]
+    # Runs untrusted code on sandbox-docker; holds no database or storage credentials.
+    command: ["celery", "-A", "workers.exec_worker", "worker", "--queues=exec.validation,exec.submit,exec.run", "--concurrency=2", "--hostname=exec@%h", "--loglevel=INFO"]
     environment:
       <<: *untrusted-env
       DOCKER_HOST: tcp://sandbox-docker:2376

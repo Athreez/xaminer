@@ -141,6 +141,10 @@ class Sandbox:
         """The engine named by DOCKER_HOST (sandbox-docker over TLS in the stack)."""
         return cls(docker.from_env(timeout=60), os.environ.get("EXEC_RUNTIME") or None)
 
+    def image_id(self, image: str) -> str:
+        """The exact image a tag points to on this engine, recorded with every evaluation."""
+        return str(self.client.images.get(image).id)
+
     @contextmanager
     def workspace(self) -> Iterator[Workspace]:
         """A job's volume, removed afterwards whatever happens."""
