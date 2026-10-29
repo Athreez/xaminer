@@ -272,11 +272,11 @@ Tabs: **Problem** · **Languages & limits** · **Test cases** · **Validate**.
 | Page | Contents |
 |---|---|
 | Exam list | Title, status, window state, students, has coding, proctoring mode. Actions: new, open, archive |
-| Overview | Status, window, counts (assigned / started / submitted / graded), shortcuts to the next action (e.g. "3 answers need marking") |
-| Questions | Left: question bank picker with search. Right: exam's questions with drag-to-reorder, points, negative marks; total points |
+| Overview | Status, window, counts (assigned / started / submitted / graded; attempt counts arrive with E06), shortcuts to the next action (e.g. "3 answers need marking"; before publishing, the first publish-check block with a **Fix it** link). Archive; delete while a draft |
+| Questions | Exam's questions with drag-to-reorder (or arrows), points, negative marks, total; one **Save** sends the whole list. Beside it: question bank picker with search |
 | Settings | All settings from PRD § 6.3, grouped: Schedule · Navigation · Coding · Results · Proctoring (mode, sensitivity, gaze on/off, books on/off, consent text). Locked after publish except window end |
 | Students | Assign groups or individual students; list of assigned students |
-| Publish | Run check → list of blocks (each linked to the setting or question to fix) and warnings. Publish confirmation summarises questions, points, students, window, proctoring. Also "Take a preview attempt" |
+| Publish | Run check → list of blocks (each linked to the setting or question to fix) and warnings. Publish confirmation summarises questions, points, students, window, proctoring. "Take a preview attempt" arrives with E06 |
 | Monitor (S) | Table refreshed every 10 s: student, status, answered / total, time left, connection (Online / Weak / Offline), unsynced answers, event count. Row actions: extend time, force-submit, void (all ask for a reason) |
 | Grading | Pick a descriptive question → one answer at a time, student name hidden ("Student 14"), rubric on the side, mark (0–points) and feedback, then next. Progress "23 / 60 marked". Toggle to show names |
 | Results | Table: student, score, %, pass/fail, grading status, integrity outcome, released. Release button (disabled with the reason if grading is incomplete). Attempt detail page: every answer with score; coding submissions with source, all test case details, and the score calculation |

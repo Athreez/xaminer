@@ -112,6 +112,8 @@ class ExamSummary(BaseModel):
     duration_min: int | None
     question_count: int
     assigned_count: int
+    proctoring_mode: ProctoringMode
+    has_coding: bool
     updated_at: datetime
 
 

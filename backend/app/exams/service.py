@@ -111,6 +111,15 @@ def _question_count(exam_id: Any) -> Any:
     return select(func.count()).where(ExamQuestion.exam_id == exam_id).scalar_subquery()
 
 
+def _has_coding(exam_id: Any) -> Any:
+    return (
+        select(ExamQuestion.id)
+        .join(Question, Question.id == ExamQuestion.question_id)
+        .where(ExamQuestion.exam_id == exam_id, Question.type == "CODING")
+        .exists()
+    )
+
+
 def _assigned_count(exam_id: Any) -> Any:
     return select(func.count()).where(ExamAssignment.exam_id == exam_id).scalar_subquery()
 
@@ -188,9 +197,9 @@ async def list_own(
 ) -> ExamPage:
     """The caller's exams, newest first."""
     limit = max(1, min(limit, MAX_PAGE))
-    query = select(Exam, _question_count(Exam.id), _assigned_count(Exam.id)).where(
-        Exam.owner_id == principal.user_id
-    )
+    query = select(
+        Exam, _question_count(Exam.id), _assigned_count(Exam.id), _has_coding(Exam.id)
+    ).where(Exam.owner_id == principal.user_id)
     rows = (
         await session.execute(_filtered(query, status=status, q=q, cursor=cursor, limit=limit))
     ).all()
@@ -206,9 +215,11 @@ async def list_own(
                 duration_min=e.duration_min,
                 question_count=nq,
                 assigned_count=na,
+                proctoring_mode=e.proctoring_mode,
+                has_coding=coding,
                 updated_at=e.updated_at,
             )
-            for e, nq, na in page
+            for e, nq, na, coding in page
         ],
         next_cursor=encode_cursor(page[-1][0].id) if len(rows) > limit and page else None,
     )

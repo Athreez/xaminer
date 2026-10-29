@@ -125,7 +125,36 @@ export const router = createBrowserRouter([
               "QuestionPreviewPage",
             ),
           },
-          { path: "exams", element: <PlaceholderPage title="Exams" ticket="TCK-0507" /> },
+          {
+            path: "exams",
+            lazy: page(() => import("@/features/exams/ExamListPage"), "ExamListPage"),
+          },
+          {
+            path: "exams/:examId",
+            lazy: page(() => import("@/features/exams/ExamLayout"), "ExamLayout"),
+            children: [
+              {
+                index: true,
+                lazy: page(() => import("@/features/exams/ExamOverviewPage"), "ExamOverviewPage"),
+              },
+              {
+                path: "questions",
+                lazy: page(() => import("@/features/exams/ExamQuestionsPage"), "ExamQuestionsPage"),
+              },
+              {
+                path: "settings",
+                lazy: page(() => import("@/features/exams/ExamSettingsPage"), "ExamSettingsPage"),
+              },
+              {
+                path: "students",
+                lazy: page(() => import("@/features/exams/ExamStudentsPage"), "ExamStudentsPage"),
+              },
+              {
+                path: "publish",
+                lazy: page(() => import("@/features/exams/ExamPublishPage"), "ExamPublishPage"),
+              },
+            ],
+          },
         ],
       },
       {

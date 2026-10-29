@@ -1289,6 +1289,8 @@ export interface components {
             close_at: string | null;
             /** Duration Min */
             duration_min: number | null;
+            /** Has Coding */
+            has_coding: boolean;
             /**
              * Id
              * Format: uuid
@@ -1296,6 +1298,11 @@ export interface components {
             id: string;
             /** Open At */
             open_at: string | null;
+            /**
+             * Proctoring Mode
+             * @enum {string}
+             */
+            proctoring_mode: "OFF" | "VIDEO" | "VIDEO_AUDIO";
             /** Question Count */
             question_count: number;
             /**

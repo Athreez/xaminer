@@ -999,6 +999,10 @@
             ],
             "title": "Duration Min"
           },
+          "has_coding": {
+            "title": "Has Coding",
+            "type": "boolean"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -1015,6 +1019,15 @@
               }
             ],
             "title": "Open At"
+          },
+          "proctoring_mode": {
+            "enum": [
+              "OFF",
+              "VIDEO",
+              "VIDEO_AUDIO"
+            ],
+            "title": "Proctoring Mode",
+            "type": "string"
           },
           "question_count": {
             "title": "Question Count",
@@ -1048,6 +1061,8 @@
           "duration_min",
           "question_count",
           "assigned_count",
+          "proctoring_mode",
+          "has_coding",
           "updated_at"
         ],
         "title": "ExamSummary",
