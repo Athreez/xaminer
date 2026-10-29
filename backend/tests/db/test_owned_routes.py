@@ -335,11 +335,17 @@ async def _attempt(world: World) -> str:
         return str(attempt.id)
 
 
-def _attempt_url(suffix: str = "") -> Callable[[World], Awaitable[str]]:
+def _attempt_url(suffix: str = "", submitted: bool = False) -> Callable[[World], Awaitable[str]]:
     """The attempt's URL; `{written}` / `{coding}` in `suffix` become those exam-question ids."""
 
     async def setup(world: World) -> str:
         attempt_id = await _attempt(world)
+        if submitted:
+            async with tenant_session(world.factory, world.owner.institution_id) as s:
+                attempt = await s.get(ExamAttempt, uuid.UUID(attempt_id))
+                assert attempt is not None
+                attempt.status, attempt.submitted_at = "SUBMITTED", datetime.now(UTC)
+                await s.commit()
         return f"/api/v1/attempts/{attempt_id}" + suffix.format(**world.notes)
 
     return setup
@@ -407,6 +413,12 @@ OWNED_ROUTES: list[OwnedRoute] = [
     OwnedRoute("GET /api/v1/student/exams/{exam_id}", "STUDENT", _assigned_exam_url),
     OwnedRoute("POST /api/v1/student/exams/{exam_id}/attempts", "STUDENT", _assigned("/attempts")),
     OwnedRoute("GET /api/v1/attempts/{attempt_id}", "STUDENT", _attempt_url()),
+    OwnedRoute("POST /api/v1/attempts/{attempt_id}/submit", "STUDENT", _attempt_url("/submit")),
+    OwnedRoute(
+        "GET /api/v1/attempts/{attempt_id}/receipt",
+        "STUDENT",
+        _attempt_url("/receipt", submitted=True),
+    ),
     OwnedRoute(
         "POST /api/v1/attempts/{attempt_id}/heartbeat",
         "STUDENT",

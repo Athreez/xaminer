@@ -17,6 +17,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.attempts.models import MAX_TEXT_ANSWER, Answer, AttemptQuestion, CodeDraft, ExamAttempt
+from app.attempts.submit import finalize_if_overdue
 from app.auth.tokens import Principal
 from app.authz.ownership import get_owned, not_found
 from app.core.errors import AppError
@@ -97,6 +98,8 @@ async def _open_attempt(
     )
     if attempt.status == "VOIDED":
         raise not_found()
+    if await finalize_if_overdue(session, attempt, now):
+        raise AppError("TIME_UP", "Time is up: answers can't be changed any more.", status_code=409)
     if attempt.status != "IN_PROGRESS":
         raise AppError(
             "ATTEMPT_SUBMITTED", "This exam has already been submitted.", status_code=409

@@ -19,6 +19,7 @@ from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.attempts.models import ExamAttempt
+from app.attempts.submit import finalize_if_overdue
 from app.auth.tokens import AttemptGrant, Principal, create_attempt_token
 from app.authz.ownership import get_owned
 from domain_core import timer
@@ -70,6 +71,7 @@ async def beat(
         owned=lambda a: a.student_id == principal.user_id,
     )
     # A voided or submitted attempt still answers, so the screen learns what the teacher did.
+    await finalize_if_overdue(session, attempt, now)  # an overdue attempt ends here, if not already
     in_progress = attempt.status == "IN_PROGRESS"
     if in_progress:
         await redis.set(

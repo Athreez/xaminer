@@ -153,3 +153,12 @@ jobs:
 
       - name: Build all images
         run: docker compose -f deploy/docker-compose.yml --env-file deploy/.env.example build
+
+      # Import every backend package inside the built image from another folder, so they are found
+      # only if the image itself puts them on the path (as a Celery worker needs). Catches code that
+      # only works when run from the source tree.
+      - name: Packages import inside the image
+        run: >
+          docker compose -f deploy/docker-compose.yml --env-file deploy/.env.example
+          run --rm --no-deps --workdir /tmp --entrypoint python app-worker -c
+          "import app.main, domain_core.timer, domain_core.shuffle, workers.app_worker.tasks, cli.commands; print('imports ok')"

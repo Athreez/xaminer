@@ -18,6 +18,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.attempts.models import Answer, AttemptQuestion, ExamAttempt
+from app.attempts.submit import finalize_if_overdue
 from app.audit.service import record
 from app.auth.tokens import Principal
 from app.authz.ownership import get_owned, not_found
@@ -113,6 +114,8 @@ async def start(
     exam, version = await _load_exam(session, principal, exam_id)
 
     attempt = await _existing(session, exam.id, principal.user_id)
+    if attempt is not None:
+        await finalize_if_overdue(session, attempt, now)
     if attempt is None:
         if exam.open_at is None or exam.close_at is None or exam.duration_min is None:
             raise AppError("INTERNAL_ERROR", "A published exam has no schedule.", status_code=500)
@@ -281,6 +284,7 @@ async def resume(
     )
     if attempt.status == "VOIDED":
         raise not_found()
+    await finalize_if_overdue(session, attempt, now)
     if attempt.status in ("SUBMITTED", "AUTO_SUBMITTED"):
         raise _refuse(
             "ALREADY_SUBMITTED", "You have already submitted this exam.", attempt_id=str(attempt.id)

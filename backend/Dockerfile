@@ -14,6 +14,10 @@ ENV PYTHONUNBUFFERED=1 \
     UV_PROJECT_ENVIRONMENT=/opt/venv \
     PATH=/opt/venv/bin:$PATH
 WORKDIR /srv
+# Every process finds app, domain_core, workers and cli however it was started: the celery command
+# only puts its folder on the path while loading, so a package first imported later inside a task
+# (domain_core for the sweeper) was otherwise not found.
+ENV PYTHONPATH=/srv
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 COPY . .

@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import smtplib
 from datetime import UTC, datetime
@@ -48,3 +49,27 @@ def send_email(to: str, subject: str, text: str, html: str) -> None:
             smtp.login(settings.smtp_username, settings.smtp_password.get_secret_value())
         smtp.send_message(message)
     logger.info("email sent", extra={"subject_length": len(subject)})
+
+
+@shared_task(name="attempts.sweep")
+def sweep_attempts() -> None:
+    """Every 30 s: submit attempts past their deadline + 60 s grace that nobody touched (ATT-11).
+
+    Safe to run twice or overlap: each attempt is ended by one guarded update.
+    """
+    ended = asyncio.run(_sweep())
+    if ended:
+        logger.info("overdue attempts submitted", extra={"count": ended})
+
+
+async def _sweep() -> int:
+    # A fresh engine per run: Celery tasks are synchronous, and asyncpg connections belong to the
+    # event loop that opened them.
+    from app.attempts.submit import sweep
+    from app.db.session import create_engine, create_session_factory
+
+    engine = create_engine(get_settings().database_url("app"))
+    try:
+        return await sweep(create_session_factory(engine))
+    finally:
+        await engine.dispose()

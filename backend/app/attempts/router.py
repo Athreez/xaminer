@@ -10,10 +10,12 @@ from redis.asyncio import Redis
 
 from app.attempts import attempt, saving, student_exams
 from app.attempts import heartbeat as heartbeats
+from app.attempts import submit as submitting
 from app.attempts.attempt import AttemptView
 from app.attempts.heartbeat import HeartbeatIn, HeartbeatOut
 from app.attempts.saving import AnswersIn, DraftIn, DraftResult, FlagIn, SaveResult
 from app.attempts.student_exams import StudentExamDetail, StudentExams
+from app.attempts.submit import Receipt
 from app.auth.dependencies import TenantDB, redis_of, settings_of
 from app.auth.tokens import Principal
 from app.authz.guards import require
@@ -104,3 +106,15 @@ async def heartbeat(
     return await heartbeats.beat(
         db, redis, principal, attempt_id, body, settings.jwt_secret.get_secret_value()
     )
+
+
+@attempts_router.post("/{attempt_id}/submit")
+async def submit_attempt(attempt_id: uuid.UUID, principal: Taker, db: TenantDB) -> Receipt:
+    """Submit your exam. Safe to repeat: a second submit returns the same receipt."""
+    return await submitting.submit(db, principal, attempt_id)
+
+
+@attempts_router.get("/{attempt_id}/receipt")
+async def attempt_receipt(attempt_id: uuid.UUID, principal: Taker, db: TenantDB) -> Receipt:
+    """The receipt of your submitted attempt (404 while it's still in progress)."""
+    return await submitting.get_receipt(db, principal, attempt_id)
