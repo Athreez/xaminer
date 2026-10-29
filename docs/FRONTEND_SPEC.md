@@ -31,7 +31,7 @@ come from `PRD.md`; API and data from `TECHNICAL_ARCHITECTURE.md`; permissions f
 
 ### 2.1 Stack
 
-Vite + React 19 + TypeScript 5.9 · React Router 7 · TanStack Query · Zustand · `idb` (IndexedDB) ·
+Vite + React 19 + TypeScript 5.9 · React Router 7 · TanStack Query · IndexedDB (plain API) ·
 Tailwind CSS 4 + shadcn/ui (Radix-based; `cn()` = `clsx` + `tailwind-merge`) · CodeMirror 6 · MediaPipe
 Tasks Vision · `react-markdown` + sanitiser · `openapi-fetch` client typed from the backend's OpenAPI spec
 (`make api-client`).
@@ -66,7 +66,7 @@ Imports use the `@/` alias for `src/`. shadcn components live in `src/components
 | Server data | TanStack Query for all fetching and polling. Polling interval comes from the server's `poll_after_ms` |
 | Auth | Access token kept in memory. On `401` the wrapper calls `/auth/refresh` (the cookie is sent automatically) and retries the request. Only one refresh runs at a time across all tabs (Web Locks API, `navigator.locks`); on `TOKEN_ALREADY_ROTATED` it retries the refresh once. Any other refresh failure → `SESSION_EXPIRED`. After a page reload the session is restored from the refresh cookie (`src/auth/session.ts`). Areas are wrapped in `RequireRole`: not logged in → `/login?next=…`, then back; wrong role → `/403`. `next` must be a path on this site, or it's ignored (open-redirect protection, unit-tested) |
 | Route guards | Each route declares its role; wrong role → `/403`. The server checks again anyway |
-| Exam state | Zustand store for the runner: answers, current question, flags, timer offset, connection status |
+| Exam state | One hook for the runner (`useExamSession`): answers, flags, save and connection status, timer. The open question is kept on the device |
 | Outbox | IndexedDB queue of unsent answers, drafts and proctoring uploads. Survives reload and crash. One uploader sends in priority order: answers/drafts → heartbeat → code run/submit → proctoring events → spot checks |
 | Time sync | `offset = server_time − Date.now()` from every attempt response; remaining = `deadline_at − (Date.now() + offset)` |
 | Proctoring | MediaPipe runs in a **Web Worker** so the exam screen stays responsive. Detectors produce events; the uploader sends them |
@@ -364,6 +364,8 @@ not just icons.
 - Coding questions show a small "submitted" tick once a submission exists ("wrote code" ≠ "submitted").
 - Screen reader name, e.g. "Question 7, answered, marked for review". Arrow keys move, Enter opens.
 - Sequential mode: earlier questions are disabled, with a note at the top explaining forward-only.
+  The furthest question reached is kept on the device; on another device the exam reopens at the
+  last question answered or marked.
 
 ### 6.5 Answer controls
 

@@ -46,7 +46,7 @@ These are the rules the whole design is built around. Every later section follow
 
 | Layer | Choice |
 |---|---|
-| Frontend | Vite + React 19 + TypeScript 5.9 (not 6: tools like `openapi-typescript` don't support it yet), React Router 7, TanStack Query, Zustand, `idb` (IndexedDB), Tailwind CSS 4 + shadcn/ui (Radix) |
+| Frontend | Vite + React 19 + TypeScript 5.9 (not 6: tools like `openapi-typescript` don't support it yet), React Router 7, TanStack Query, IndexedDB (plain API), Tailwind CSS 4 + shadcn/ui (Radix) |
 | Code editor | CodeMirror 6 (lighter than Monaco, which matters while proctoring models also run in the browser) |
 | Browser AI | MediaPipe Tasks Vision (face landmarks, head pose), a WebRTC-style voice activity detector |
 | Backend API | Python 3.12, FastAPI, Pydantic v2 |

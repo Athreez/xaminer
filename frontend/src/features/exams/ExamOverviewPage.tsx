@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { ArrowRight, Archive, CheckCircle2, Trash2 } from "lucide-react";
+import { ArrowRight, Archive, CheckCircle2, Eye, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 
@@ -53,11 +53,23 @@ export function ExamOverviewPage() {
     onError: () => setConfirm(null),
   });
 
+  // A preview attempt of your own: the real exam screen, never counted (replaces the last one).
+  const preview = useMutation({
+    mutationFn: async () =>
+      unwrap(
+        await api.POST("/api/v1/exams/{exam_id}/preview-attempt", {
+          params: { path: { exam_id: exam.id } },
+        }),
+      ),
+    onSuccess: (attempt) => navigate(`/attempt/${attempt.id}`),
+  });
+
   const next = check.data?.blocks[0];
 
   return (
     <div className="space-y-6">
       {act.isError && <FormMessage tone="error">{errorText(act.error)}</FormMessage>}
+      {preview.isError && <FormMessage tone="error">{errorText(preview.error)}</FormMessage>}
 
       <dl className="grid gap-3 sm:grid-cols-4">
         <Stat label="Questions" value={exam.question_count} />
@@ -103,6 +115,13 @@ export function ExamOverviewPage() {
 
       {exam.status !== "ARCHIVED" && (
         <div className="flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            disabled={preview.isPending || exam.question_count === 0}
+            onClick={() => preview.mutate()}
+          >
+            <Eye /> {preview.isPending ? "Opening…" : "Try it as a student"}
+          </Button>
           <Button variant="outline" onClick={() => setConfirm("archive")}>
             <Archive /> Archive
           </Button>

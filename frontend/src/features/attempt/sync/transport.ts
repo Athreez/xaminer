@@ -8,9 +8,11 @@ export const TIMEOUT_MS = 10_000;
 /** The attempt no longer takes changes: retrying won't help. */
 const CLOSED = new Set(["TIME_UP", "ATTEMPT_SUBMITTED"]);
 
-function failure(response: Response, error: unknown): SendError {
+export function failure(response: Response, error: unknown): SendError {
   if (CLOSED.has(errorCode(error) ?? "")) return new SendError("closed", errorCode(error));
   if (response.status === 404) return new SendError("closed", "NOT_FOUND"); // voided
+  // The session ran out and couldn't be refreshed: keep the change and retry after logging in.
+  if (response.status === 401) return new SendError("network", "SESSION_EXPIRED");
   if (
     response.status >= 400 &&
     response.status < 500 &&

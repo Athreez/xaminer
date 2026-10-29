@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { BASE_MS, MAX_MS, backoffMs } from "./backoff";
 import { ServerClock } from "./clock";
 import { Outbox } from "./outbox";
+import { failure } from "./transport";
 import { FAILING_AFTER_MS, SendError, Uploader, type AnswerOut, type Transport } from "./uploader";
 
 const ATTEMPT = "attempt-1";
@@ -265,11 +266,50 @@ describe("Uploader", () => {
     expect(calls.map((c) => c.kind)).toEqual(["answers"]);
   });
 
+  it("one invalid answer in a batch doesn't take the others with it", async () => {
+    const { calls, transport } = fakeTransport();
+    const picky: Transport = {
+      ...transport,
+      saveAnswers: async (attempt, answers) => {
+        if (answers.some((a) => a.exam_question_id === "bad")) {
+          calls.push({ kind: "refused", detail: answers });
+          throw new SendError("invalid", "VALIDATION_FAILED");
+        }
+        return transport.saveAnswers(attempt, answers);
+      },
+    };
+    await outbox.put(ATTEMPT, "answer", "q1", { exam_question_id: "q1" }, 1);
+    await outbox.put(ATTEMPT, "answer", "bad", { exam_question_id: "bad" }, 2);
+    await outbox.put(ATTEMPT, "answer", "q3", { exam_question_id: "q3" }, 3);
+    const status = await make(picky).flush();
+    expect(status).toEqual({ state: "saved", unsent: 0, refused: 1 });
+    expect((await outbox.rejected(ATTEMPT)).map((e) => e.target)).toEqual(["bad"]);
+    expect(calls.map((c) => c.kind)).toEqual(["refused", "answers", "refused", "answers"]);
+  });
+
   it("passes response times to the clock", async () => {
     const seen: [number, number, string][] = [];
     const { transport } = fakeTransport();
     await outbox.put(ATTEMPT, "answer", "q1", { exam_question_id: "q1" });
     await make(transport, { onServerTime: (a, b, t) => seen.push([a, b, t]) }).flush();
     expect(seen).toEqual([[now, now, "2026-11-01T10:00:00Z"]]);
+  });
+});
+
+// ----------------------------------------------------------------------------- transport
+
+describe("failure", () => {
+  const response = (status: number) => new Response(null, { status });
+  const body = (code: string) => ({ error: { code, message: code } });
+
+  it("sorts server answers into retry, give up on this change, or the attempt is over", () => {
+    expect(failure(response(409), body("TIME_UP")).failure).toBe("closed");
+    expect(failure(response(409), body("ATTEMPT_SUBMITTED")).failure).toBe("closed");
+    expect(failure(response(404), body("NOT_FOUND")).failure).toBe("closed");
+    expect(failure(response(422), body("VALIDATION_FAILED")).failure).toBe("invalid");
+    // An expired session keeps the change for after the student logs in again.
+    expect(failure(response(401), body("UNAUTHENTICATED")).failure).toBe("network");
+    expect(failure(response(429), body("RATE_LIMITED")).failure).toBe("network");
+    expect(failure(response(503), undefined).failure).toBe("network");
   });
 });

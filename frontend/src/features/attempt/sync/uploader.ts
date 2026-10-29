@@ -149,6 +149,11 @@ export class Uploader {
       // Saved, or the server already had something at least as new: either way, done here.
       await this.outbox.confirm(batch);
     } catch (error) {
+      // One bad answer refuses the whole batch: send them one by one so only that one is set aside.
+      if (error instanceof SendError && error.failure === "invalid" && batch.length > 1) {
+        for (const entry of batch) await this.sendAnswers([entry]);
+        return;
+      }
       await this.handle(error, batch);
     }
   }

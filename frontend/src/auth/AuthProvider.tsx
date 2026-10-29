@@ -25,7 +25,7 @@ function FullPageLoading() {
  * Only lets the given role in. Not logged in → /login, then back here. Wrong role → /403.
  * The server checks every request anyway; this is for a clear experience, not security.
  */
-export function RequireRole({ role, children }: { role: string; children: ReactNode }) {
+export function RequireRole({ role, children }: { role: string | string[]; children: ReactNode }) {
   const session = useSession();
   const location = useLocation();
   if (session.status === "loading") return <FullPageLoading />;
@@ -33,7 +33,7 @@ export function RequireRole({ role, children }: { role: string; children: ReactN
     const next = encodeURIComponent(location.pathname + location.search);
     return <Navigate to={`/login?next=${next}`} replace />;
   }
-  if (session.user.role !== role) return <Navigate to="/403" replace />;
+  if (![role].flat().includes(session.user.role)) return <Navigate to="/403" replace />;
   return children;
 }
 

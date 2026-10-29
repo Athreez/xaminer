@@ -7,6 +7,21 @@ export type StudentQuestion = components["schemas"]["StudentQuestion"];
 export type QuestionType = Question["type"];
 export type Visibility = Question["visibility"];
 
+/** A student's answer to one question, as the attempt API stores it. */
+export interface AnswerValue {
+  selected_option_ids: string[] | null;
+  text_answer: string | null;
+}
+
+export const NO_ANSWER: AnswerValue = { selected_option_ids: null, text_answer: null };
+
+/** The multiple-choice marking rule in one sentence (PRD § 6.1). */
+export function msqRule(scoring: StudentQuestion["msq_scoring"]): string {
+  return scoring === "PARTIAL"
+    ? "Tick every correct option: each one you tick earns its share of the marks, but any wrong tick loses them all."
+    : "Tick every correct option: marks are given only if you tick exactly the correct ones.";
+}
+
 /** Types teachers can create here. Coding questions get their own editor (E07). */
 export const EDITABLE_TYPES = ["MCQ", "MSQ", "TRUE_FALSE", "DESCRIPTIVE"] as const;
 

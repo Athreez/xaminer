@@ -169,6 +169,21 @@ export const router = createBrowserRouter([
           { path: "results", element: <PlaceholderPage title="Results" ticket="TCK-0910" /> },
         ],
       },
+      {
+        // The exam screen: no app navigation (§ 4). Teachers come here for their own previews.
+        path: "/attempt/:attemptId",
+        element: (
+          <RequireRole role={["STUDENT", "TEACHER"]}>
+            <Outlet />
+          </RequireRole>
+        ),
+        children: [
+          {
+            index: true,
+            lazy: page(() => import("@/features/attempt/ExamScreenPage"), "ExamScreenPage"),
+          },
+        ],
+      },
       { path: "/403", element: <ForbiddenPage /> },
       { path: "*", element: <NotFoundPage /> },
     ],
