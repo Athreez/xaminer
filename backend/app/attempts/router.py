@@ -8,11 +8,12 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from redis.asyncio import Redis
 
-from app.attempts import attempt, saving, student_exams
+from app.attempts import attempt, manage, saving, student_exams
 from app.attempts import heartbeat as heartbeats
 from app.attempts import submit as submitting
 from app.attempts.attempt import AttemptView
 from app.attempts.heartbeat import HeartbeatIn, HeartbeatOut
+from app.attempts.manage import ExtendIn, ManagedAttempt, ReasonIn
 from app.attempts.saving import AnswersIn, DraftIn, DraftResult, FlagIn, SaveResult
 from app.attempts.student_exams import StudentExamDetail, StudentExams
 from app.attempts.submit import Receipt
@@ -118,3 +119,33 @@ async def submit_attempt(attempt_id: uuid.UUID, principal: Taker, db: TenantDB) 
 async def attempt_receipt(attempt_id: uuid.UUID, principal: Taker, db: TenantDB) -> Receipt:
     """The receipt of your submitted attempt (404 while it's still in progress)."""
     return await submitting.get_receipt(db, principal, attempt_id)
+
+
+# ----------------------------------------------------------------------------- teacher actions
+
+Manager = Annotated[Principal, Depends(require(P.ATTEMPT_MANAGE))]
+
+
+@attempts_router.post("/{attempt_id}/extend")
+async def extend_attempt(
+    attempt_id: uuid.UUID, body: ExtendIn, principal: Manager, db: TenantDB
+) -> ManagedAttempt:
+    """Give extra minutes (reason required). Never past the window's end: 409
+    `WINDOW_ENDS_FIRST` says to move it first. The student sees it on the next heartbeat."""
+    return await manage.extend(db, principal, attempt_id, body)
+
+
+@attempts_router.post("/{attempt_id}/force-submit")
+async def force_submit_attempt(
+    attempt_id: uuid.UUID, body: ReasonIn, principal: Manager, db: TenantDB
+) -> ManagedAttempt:
+    """End an attempt in progress now (reason required)."""
+    return await manage.force_submit(db, principal, attempt_id, body)
+
+
+@attempts_router.post("/{attempt_id}/void")
+async def void_attempt(
+    attempt_id: uuid.UUID, body: ReasonIn, principal: Manager, db: TenantDB
+) -> ManagedAttempt:
+    """Cancel an attempt (reason required). The student may then start the exam again."""
+    return await manage.void(db, principal, attempt_id, body)

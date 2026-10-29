@@ -359,6 +359,43 @@ async def _answer_body(world: World) -> dict[str, Any]:
     }
 
 
+def _managed_attempt_url(suffix: str) -> Callable[[World], Awaitable[str]]:
+    """A student's attempt at an exam owned by `world.owner` (a teacher)."""
+
+    async def setup(world: World) -> str:
+        start = datetime.now(UTC) - timedelta(minutes=10)
+        async with tenant_session(world.factory, world.owner.institution_id) as s:
+            student = User(email=f"{uuid.uuid4().hex[:8]}@x.edu", full_name="Stu", role="STUDENT")
+            s.add(student)
+            exam = Exam(
+                owner_id=world.owner.id,
+                title="Managed exam",
+                status="PUBLISHED",
+                open_at=start,
+                close_at=start + timedelta(hours=3),
+                duration_min=60,
+            )
+            s.add(exam)
+            await s.flush()
+            version = ExamVersion(exam_id=exam.id, version_no=1, snapshot={}, content_hash="0" * 64)
+            s.add(version)
+            await s.flush()
+            exam.published_version_id = version.id
+            attempt = ExamAttempt(
+                exam_id=exam.id,
+                exam_version_id=version.id,
+                student_id=student.id,
+                started_at=start,
+                deadline_at=start + timedelta(minutes=60),
+                shuffle_seed=1,
+            )
+            s.add(attempt)
+            await s.commit()
+            return f"/api/v1/attempts/{attempt.id}{suffix}"
+
+    return setup
+
+
 USERS = "/api/v1/users/{user_id}"
 EXAMS = "/api/v1/exams/{exam_id}"
 QUESTIONS = "/api/v1/questions/{question_id}"
@@ -414,6 +451,24 @@ OWNED_ROUTES: list[OwnedRoute] = [
     OwnedRoute("POST /api/v1/student/exams/{exam_id}/attempts", "STUDENT", _assigned("/attempts")),
     OwnedRoute("GET /api/v1/attempts/{attempt_id}", "STUDENT", _attempt_url()),
     OwnedRoute("POST /api/v1/attempts/{attempt_id}/submit", "STUDENT", _attempt_url("/submit")),
+    OwnedRoute(
+        "POST /api/v1/attempts/{attempt_id}/extend",
+        "TEACHER",
+        _managed_attempt_url("/extend"),
+        body={"minutes": 5, "reason": "Wi-Fi dropped"},
+    ),
+    OwnedRoute(
+        "POST /api/v1/attempts/{attempt_id}/force-submit",
+        "TEACHER",
+        _managed_attempt_url("/force-submit"),
+        body={"reason": "Left the room"},
+    ),
+    OwnedRoute(
+        "POST /api/v1/attempts/{attempt_id}/void",
+        "TEACHER",
+        _managed_attempt_url("/void"),
+        body={"reason": "Wrong student"},
+    ),
     OwnedRoute(
         "GET /api/v1/attempts/{attempt_id}/receipt",
         "STUDENT",

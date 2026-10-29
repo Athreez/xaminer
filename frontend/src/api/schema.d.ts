@@ -85,6 +85,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/attempts/{attempt_id}/extend": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Extend Attempt
+         * @description Give extra minutes (reason required). Never past the window's end: 409
+         *     `WINDOW_ENDS_FIRST` says to move it first. The student sees it on the next heartbeat.
+         */
+        post: operations["extend_attempt_api_v1_attempts__attempt_id__extend_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/attempts/{attempt_id}/flags/{exam_question_id}": {
         parameters: {
             query?: never;
@@ -99,6 +120,26 @@ export interface paths {
          */
         put: operations["set_flag_api_v1_attempts__attempt_id__flags__exam_question_id__put"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/attempts/{attempt_id}/force-submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Force Submit Attempt
+         * @description End an attempt in progress now (reason required).
+         */
+        post: operations["force_submit_attempt_api_v1_attempts__attempt_id__force_submit_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -160,6 +201,26 @@ export interface paths {
          * @description Submit your exam. Safe to repeat: a second submit returns the same receipt.
          */
         post: operations["submit_attempt_api_v1_attempts__attempt_id__submit_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/attempts/{attempt_id}/void": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Void Attempt
+         * @description Cancel an attempt (reason required). The student may then start the exam again.
+         */
+        post: operations["void_attempt_api_v1_attempts__attempt_id__void_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1773,6 +1834,16 @@ export interface components {
              */
             updated_at: string;
         };
+        /** ExtendIn */
+        ExtendIn: {
+            /** Minutes */
+            minutes: number;
+            /**
+             * Reason
+             * @description Why; kept in the audit log
+             */
+            reason: string;
+        };
         /** FlagIn */
         FlagIn: {
             /** Marked */
@@ -2029,6 +2100,33 @@ export interface components {
             token_type: string;
             user: components["schemas"]["UserView"];
         };
+        /** ManagedAttempt */
+        ManagedAttempt: {
+            /**
+             * Deadline At
+             * Format: date-time
+             */
+            deadline_at: string;
+            /** Extra Minutes */
+            extra_minutes: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "IN_PROGRESS" | "SUBMITTED" | "AUTO_SUBMITTED" | "VOIDED";
+            /**
+             * Student Id
+             * Format: uuid
+             */
+            student_id: string;
+            /** Submitted At */
+            submitted_at: string | null;
+        };
         /** OptionIn */
         OptionIn: {
             /** Is Correct */
@@ -2244,6 +2342,14 @@ export interface components {
              * @enum {string}
              */
             visibility: "PRIVATE" | "INSTITUTION";
+        };
+        /** ReasonIn */
+        ReasonIn: {
+            /**
+             * Reason
+             * @description Why; kept in the audit log
+             */
+            reason: string;
         };
         /**
          * Receipt
@@ -2793,6 +2899,41 @@ export interface operations {
             };
         };
     };
+    extend_attempt_api_v1_attempts__attempt_id__extend_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExtendIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagedAttempt"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     set_flag_api_v1_attempts__attempt_id__flags__exam_question_id__put: {
         parameters: {
             query?: never;
@@ -2815,6 +2956,41 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    force_submit_attempt_api_v1_attempts__attempt_id__force_submit_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagedAttempt"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -2911,6 +3087,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Receipt"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    void_attempt_api_v1_attempts__attempt_id__void_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReasonIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagedAttempt"];
                 };
             };
             /** @description Validation Error */

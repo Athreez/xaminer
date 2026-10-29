@@ -1756,6 +1756,30 @@
         "title": "ExamView",
         "type": "object"
       },
+      "ExtendIn": {
+        "additionalProperties": false,
+        "properties": {
+          "minutes": {
+            "maximum": 120.0,
+            "minimum": 1.0,
+            "title": "Minutes",
+            "type": "integer"
+          },
+          "reason": {
+            "description": "Why; kept in the audit log",
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason",
+          "minutes"
+        ],
+        "title": "ExtendIn",
+        "type": "object"
+      },
       "FlagIn": {
         "additionalProperties": false,
         "properties": {
@@ -2311,6 +2335,61 @@
           "user"
         ],
         "title": "LoginResponse",
+        "type": "object"
+      },
+      "ManagedAttempt": {
+        "properties": {
+          "deadline_at": {
+            "format": "date-time",
+            "title": "Deadline At",
+            "type": "string"
+          },
+          "extra_minutes": {
+            "title": "Extra Minutes",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "IN_PROGRESS",
+              "SUBMITTED",
+              "AUTO_SUBMITTED",
+              "VOIDED"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "student_id": {
+            "format": "uuid",
+            "title": "Student Id",
+            "type": "string"
+          },
+          "submitted_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Submitted At"
+          }
+        },
+        "required": [
+          "id",
+          "student_id",
+          "status",
+          "deadline_at",
+          "extra_minutes",
+          "submitted_at"
+        ],
+        "title": "ManagedAttempt",
         "type": "object"
       },
       "OptionIn": {
@@ -2905,6 +2984,23 @@
           "image_urls"
         ],
         "title": "QuestionView",
+        "type": "object"
+      },
+      "ReasonIn": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "description": "Why; kept in the audit log",
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "ReasonIn",
         "type": "object"
       },
       "Receipt": {
@@ -4101,6 +4197,65 @@
         ]
       }
     },
+    "/api/v1/attempts/{attempt_id}/extend": {
+      "post": {
+        "description": "Give extra minutes (reason required). Never past the window's end: 409\n`WINDOW_ENDS_FIRST` says to move it first. The student sees it on the next heartbeat.",
+        "operationId": "extend_attempt_api_v1_attempts__attempt_id__extend_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "attempt_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Attempt Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExtendIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagedAttempt"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Extend Attempt",
+        "tags": [
+          "attempts"
+        ]
+      }
+    },
     "/api/v1/attempts/{attempt_id}/flags/{exam_question_id}": {
       "put": {
         "description": "Mark or unmark a question for review.",
@@ -4158,6 +4313,65 @@
           }
         ],
         "summary": "Set Flag",
+        "tags": [
+          "attempts"
+        ]
+      }
+    },
+    "/api/v1/attempts/{attempt_id}/force-submit": {
+      "post": {
+        "description": "End an attempt in progress now (reason required).",
+        "operationId": "force_submit_attempt_api_v1_attempts__attempt_id__force_submit_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "attempt_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Attempt Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReasonIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagedAttempt"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Force Submit Attempt",
         "tags": [
           "attempts"
         ]
@@ -4315,6 +4529,65 @@
           }
         ],
         "summary": "Submit Attempt",
+        "tags": [
+          "attempts"
+        ]
+      }
+    },
+    "/api/v1/attempts/{attempt_id}/void": {
+      "post": {
+        "description": "Cancel an attempt (reason required). The student may then start the exam again.",
+        "operationId": "void_attempt_api_v1_attempts__attempt_id__void_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "attempt_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Attempt Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReasonIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagedAttempt"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Void Attempt",
         "tags": [
           "attempts"
         ]
