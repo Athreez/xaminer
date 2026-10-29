@@ -37,7 +37,7 @@ from app.authz.guards import access_table, require
 from app.authz.ownership import get_owned, not_found
 from app.authz.permissions import P
 from app.db.session import SessionFactory, create_session_factory, system_session, tenant_session
-from app.exams.models import Exam, ExamAssignment, ExamQuestion
+from app.exams.models import Exam, ExamAssignment, ExamQuestion, ExamVersion
 from app.main import create_app
 from app.platform.models import Institution
 from app.questions.models import Question, QuestionVersion
@@ -196,6 +196,42 @@ async def _publishable_exam_url(world: World) -> str:
         return f"/api/v1/exams/{exam.id}/publish"
 
 
+async def _assigned_exam_url(world: World) -> str:
+    """A published exam assigned to `world.owner` (a student)."""
+    question = await _question(world)
+    start = datetime.now(UTC) - timedelta(hours=1)
+    async with tenant_session(world.factory, world.owner.institution_id) as s:
+        teacher = User(email=f"{uuid.uuid4().hex[:8]}@x.edu", full_name="Tea Cher", role="TEACHER")
+        s.add(teacher)
+        await s.flush()
+        exam = Exam(
+            owner_id=teacher.id,
+            title="Assigned exam",
+            status="PUBLISHED",
+            open_at=start,
+            close_at=start + timedelta(hours=3),
+            duration_min=60,
+        )
+        s.add(exam)
+        await s.flush()
+        s.add(ExamQuestion(exam_id=exam.id, question_id=question.id, order_index=0))
+        version = ExamVersion(
+            exam_id=exam.id,
+            version_no=1,
+            snapshot={
+                "settings": {"navigation_mode": "FREE", "run_code_enabled": True},
+                "questions": [],
+            },
+            content_hash="0" * 64,
+        )
+        s.add(version)
+        await s.flush()
+        exam.published_version_id = version.id
+        s.add(ExamAssignment(exam_id=exam.id, student_id=world.owner.id, assigned_by=teacher.id))
+        await s.commit()
+        return f"/api/v1/student/exams/{exam.id}"
+
+
 USERS = "/api/v1/users/{user_id}"
 EXAMS = "/api/v1/exams/{exam_id}"
 QUESTIONS = "/api/v1/questions/{question_id}"
@@ -247,6 +283,7 @@ OWNED_ROUTES: list[OwnedRoute] = [
     OwnedRoute(
         f"PUT {EXAMS}/questions", "TEACHER", _exam_url("/questions"), body={"questions": []}
     ),
+    OwnedRoute("GET /api/v1/student/exams/{exam_id}", "STUDENT", _assigned_exam_url),
     OwnedRoute(f"GET {GROUPS}", "TEACHER", _group_url(), scope="institution"),
     OwnedRoute(
         f"PATCH {GROUPS}",

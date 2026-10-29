@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from redis.asyncio import Redis
 
+from app.attempts.router import router as student_exams_router
 from app.audit.router import router as audit_router
 from app.auth.router import router as auth_router
 from app.authz.guards import assert_routes_declared
@@ -69,6 +70,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(images_router, prefix=API_PREFIX)
     app.include_router(exams_router, prefix=API_PREFIX)
     app.include_router(admin_exams_router, prefix=API_PREFIX)
+    app.include_router(student_exams_router, prefix=API_PREFIX)
     # Refuse to start if any route forgot to declare who may call it (SECURITY § 3.1).
     assert_routes_declared(app)
     return app

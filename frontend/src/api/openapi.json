@@ -343,6 +343,55 @@
         "title": "Assignments",
         "type": "object"
       },
+      "AttemptBrief": {
+        "properties": {
+          "deadline_at": {
+            "format": "date-time",
+            "title": "Deadline At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "IN_PROGRESS",
+              "SUBMITTED",
+              "AUTO_SUBMITTED"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "submitted_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Submitted At"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "started_at",
+          "deadline_at",
+          "submitted_at"
+        ],
+        "title": "AttemptBrief",
+        "type": "object"
+      },
       "AuditActor": {
         "properties": {
           "email": {
@@ -2572,6 +2621,241 @@
           "assigned"
         ],
         "title": "StudentChoice",
+        "type": "object"
+      },
+      "StudentExam": {
+        "properties": {
+          "attempt": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AttemptBrief"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "close_at": {
+            "format": "date-time",
+            "title": "Close At",
+            "type": "string"
+          },
+          "duration_min": {
+            "title": "Duration Min",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "open_at": {
+            "format": "date-time",
+            "title": "Open At",
+            "type": "string"
+          },
+          "proctoring_mode": {
+            "enum": [
+              "OFF",
+              "VIDEO",
+              "VIDEO_AUDIO"
+            ],
+            "title": "Proctoring Mode",
+            "type": "string"
+          },
+          "question_count": {
+            "title": "Question Count",
+            "type": "integer"
+          },
+          "state": {
+            "description": "AVAILABLE: can start \u00b7 IN_PROGRESS: can resume \u00b7 TOO_LATE: open but under 5 min left \u00b7 UPCOMING \u00b7 SUBMITTED \u00b7 MISSED: closed without an attempt",
+            "enum": [
+              "AVAILABLE",
+              "IN_PROGRESS",
+              "TOO_LATE",
+              "UPCOMING",
+              "SUBMITTED",
+              "MISSED"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "teacher_name": {
+            "title": "Teacher Name",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "teacher_name",
+          "open_at",
+          "close_at",
+          "duration_min",
+          "question_count",
+          "proctoring_mode",
+          "state",
+          "attempt"
+        ],
+        "title": "StudentExam",
+        "type": "object"
+      },
+      "StudentExamDetail": {
+        "description": "What the instructions page shows before starting (FRONTEND_SPEC \u00a7 5.6).",
+        "properties": {
+          "attempt": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AttemptBrief"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "close_at": {
+            "format": "date-time",
+            "title": "Close At",
+            "type": "string"
+          },
+          "duration_min": {
+            "title": "Duration Min",
+            "type": "integer"
+          },
+          "has_coding": {
+            "title": "Has Coding",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "instructions": {
+            "description": "Markdown",
+            "title": "Instructions",
+            "type": "string"
+          },
+          "navigation_mode": {
+            "enum": [
+              "FREE",
+              "SEQUENTIAL"
+            ],
+            "title": "Navigation Mode",
+            "type": "string"
+          },
+          "open_at": {
+            "format": "date-time",
+            "title": "Open At",
+            "type": "string"
+          },
+          "proctoring_mode": {
+            "enum": [
+              "OFF",
+              "VIDEO",
+              "VIDEO_AUDIO"
+            ],
+            "title": "Proctoring Mode",
+            "type": "string"
+          },
+          "question_count": {
+            "title": "Question Count",
+            "type": "integer"
+          },
+          "run_code_enabled": {
+            "title": "Run Code Enabled",
+            "type": "boolean"
+          },
+          "server_time": {
+            "description": "For a countdown that ignores the device's clock",
+            "format": "date-time",
+            "title": "Server Time",
+            "type": "string"
+          },
+          "state": {
+            "description": "AVAILABLE: can start \u00b7 IN_PROGRESS: can resume \u00b7 TOO_LATE: open but under 5 min left \u00b7 UPCOMING \u00b7 SUBMITTED \u00b7 MISSED: closed without an attempt",
+            "enum": [
+              "AVAILABLE",
+              "IN_PROGRESS",
+              "TOO_LATE",
+              "UPCOMING",
+              "SUBMITTED",
+              "MISSED"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "teacher_name": {
+            "title": "Teacher Name",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "total_points": {
+            "title": "Total Points",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "teacher_name",
+          "open_at",
+          "close_at",
+          "duration_min",
+          "question_count",
+          "proctoring_mode",
+          "state",
+          "attempt",
+          "instructions",
+          "navigation_mode",
+          "run_code_enabled",
+          "has_coding",
+          "total_points",
+          "server_time"
+        ],
+        "title": "StudentExamDetail",
+        "type": "object"
+      },
+      "StudentExams": {
+        "properties": {
+          "available": {
+            "description": "Open now (start, resume, or too late)",
+            "items": {
+              "$ref": "#/components/schemas/StudentExam"
+            },
+            "title": "Available",
+            "type": "array"
+          },
+          "completed": {
+            "description": "Submitted or missed, latest first",
+            "items": {
+              "$ref": "#/components/schemas/StudentExam"
+            },
+            "title": "Completed",
+            "type": "array"
+          },
+          "upcoming": {
+            "description": "Not open yet, soonest first",
+            "items": {
+              "$ref": "#/components/schemas/StudentExam"
+            },
+            "title": "Upcoming",
+            "type": "array"
+          }
+        },
+        "required": [
+          "available",
+          "upcoming",
+          "completed"
+        ],
+        "title": "StudentExams",
         "type": "object"
       },
       "StudentOption": {
@@ -5453,6 +5737,82 @@
         "summary": "Restore Question",
         "tags": [
           "questions"
+        ]
+      }
+    },
+    "/api/v1/student/exams": {
+      "get": {
+        "description": "Your exams: available now, upcoming and completed.",
+        "operationId": "my_exams_api_v1_student_exams_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentExams"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "My Exams",
+        "tags": [
+          "student"
+        ]
+      }
+    },
+    "/api/v1/student/exams/{exam_id}": {
+      "get": {
+        "description": "One of your exams, for the instructions page.",
+        "operationId": "my_exam_api_v1_student_exams__exam_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "exam_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Exam Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentExamDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "My Exam",
+        "tags": [
+          "student"
         ]
       }
     },

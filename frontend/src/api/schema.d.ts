@@ -688,6 +688,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/student/exams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My Exams
+         * @description Your exams: available now, upcoming and completed.
+         */
+        get: operations["my_exams_api_v1_student_exams_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student/exams/{exam_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My Exam
+         * @description One of your exams, for the instructions page.
+         */
+        get: operations["my_exam_api_v1_student_exams__exam_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/uploads/images": {
         parameters: {
             query?: never;
@@ -1020,6 +1060,31 @@ export interface components {
              * @description By roll number, then name
              */
             students: components["schemas"]["AssignedStudent"][];
+        };
+        /** AttemptBrief */
+        AttemptBrief: {
+            /**
+             * Deadline At
+             * Format: date-time
+             */
+            deadline_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "IN_PROGRESS" | "SUBMITTED" | "AUTO_SUBMITTED";
+            /** Submitted At */
+            submitted_at: string | null;
         };
         /** AuditActor */
         AuditActor: {
@@ -1870,6 +1935,125 @@ export interface components {
             id: string;
             /** Roll No */
             roll_no: string | null;
+        };
+        /** StudentExam */
+        StudentExam: {
+            attempt: components["schemas"]["AttemptBrief"] | null;
+            /**
+             * Close At
+             * Format: date-time
+             */
+            close_at: string;
+            /** Duration Min */
+            duration_min: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Open At
+             * Format: date-time
+             */
+            open_at: string;
+            /**
+             * Proctoring Mode
+             * @enum {string}
+             */
+            proctoring_mode: "OFF" | "VIDEO" | "VIDEO_AUDIO";
+            /** Question Count */
+            question_count: number;
+            /**
+             * State
+             * @description AVAILABLE: can start · IN_PROGRESS: can resume · TOO_LATE: open but under 5 min left · UPCOMING · SUBMITTED · MISSED: closed without an attempt
+             * @enum {string}
+             */
+            state: "AVAILABLE" | "IN_PROGRESS" | "TOO_LATE" | "UPCOMING" | "SUBMITTED" | "MISSED";
+            /** Teacher Name */
+            teacher_name: string;
+            /** Title */
+            title: string;
+        };
+        /**
+         * StudentExamDetail
+         * @description What the instructions page shows before starting (FRONTEND_SPEC § 5.6).
+         */
+        StudentExamDetail: {
+            attempt: components["schemas"]["AttemptBrief"] | null;
+            /**
+             * Close At
+             * Format: date-time
+             */
+            close_at: string;
+            /** Duration Min */
+            duration_min: number;
+            /** Has Coding */
+            has_coding: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Instructions
+             * @description Markdown
+             */
+            instructions: string;
+            /**
+             * Navigation Mode
+             * @enum {string}
+             */
+            navigation_mode: "FREE" | "SEQUENTIAL";
+            /**
+             * Open At
+             * Format: date-time
+             */
+            open_at: string;
+            /**
+             * Proctoring Mode
+             * @enum {string}
+             */
+            proctoring_mode: "OFF" | "VIDEO" | "VIDEO_AUDIO";
+            /** Question Count */
+            question_count: number;
+            /** Run Code Enabled */
+            run_code_enabled: boolean;
+            /**
+             * Server Time
+             * Format: date-time
+             * @description For a countdown that ignores the device's clock
+             */
+            server_time: string;
+            /**
+             * State
+             * @description AVAILABLE: can start · IN_PROGRESS: can resume · TOO_LATE: open but under 5 min left · UPCOMING · SUBMITTED · MISSED: closed without an attempt
+             * @enum {string}
+             */
+            state: "AVAILABLE" | "IN_PROGRESS" | "TOO_LATE" | "UPCOMING" | "SUBMITTED" | "MISSED";
+            /** Teacher Name */
+            teacher_name: string;
+            /** Title */
+            title: string;
+            /** Total Points */
+            total_points: string;
+        };
+        /** StudentExams */
+        StudentExams: {
+            /**
+             * Available
+             * @description Open now (start, resume, or too late)
+             */
+            available: components["schemas"]["StudentExam"][];
+            /**
+             * Completed
+             * @description Submitted or missed, latest first
+             */
+            completed: components["schemas"]["StudentExam"][];
+            /**
+             * Upcoming
+             * @description Not open yet, soonest first
+             */
+            upcoming: components["schemas"]["StudentExam"][];
         };
         /** StudentOption */
         StudentOption: {
@@ -3434,6 +3618,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["QuestionView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_exams_api_v1_student_exams_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentExams"];
+                };
+            };
+        };
+    };
+    my_exam_api_v1_student_exams__exam_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exam_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentExamDetail"];
                 };
             };
             /** @description Validation Error */
