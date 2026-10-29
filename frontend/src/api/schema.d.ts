@@ -311,6 +311,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/exams/{exam_id}/questions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Exam Questions
+         * @description The exam's questions in order, with the marks each is worth here.
+         */
+        get: operations["get_exam_questions_api_v1_exams__exam_id__questions_get"];
+        /**
+         * Set Exam Questions
+         * @description Replace the whole ordered list in one step: add, remove, reorder and set marks. Drafts
+         *     only. Your own questions and those shared with the institution can be used.
+         */
+        put: operations["set_exam_questions_api_v1_exams__exam_id__questions_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/groups": {
         parameters: {
             query?: never;
@@ -1005,6 +1030,87 @@ export interface components {
             data: components["schemas"]["ExamSummary"][];
             /** Next Cursor */
             next_cursor: string | null;
+        };
+        /** ExamQuestionIn */
+        ExamQuestionIn: {
+            /**
+             * Negative Marks
+             * @description Null: the question's own
+             */
+            negative_marks?: number | string | null;
+            /**
+             * Points
+             * @description Null: the question's own points
+             */
+            points?: number | string | null;
+            /**
+             * Question Id
+             * Format: uuid
+             */
+            question_id: string;
+        };
+        /** ExamQuestionView */
+        ExamQuestionView: {
+            /** Is Mine */
+            is_mine: boolean;
+            /** Negative Marks */
+            negative_marks: string;
+            /** Negative Marks Override */
+            negative_marks_override: string | null;
+            /** Owner Name */
+            owner_name: string;
+            /**
+             * Points
+             * @description Marks in this exam
+             */
+            points: string;
+            /**
+             * Points Override
+             * @description Set by this exam, or null
+             */
+            points_override: string | null;
+            /**
+             * Position
+             * @description 1 for the first question
+             */
+            position: number;
+            /**
+             * Question Id
+             * Format: uuid
+             */
+            question_id: string;
+            /**
+             * Question Points
+             * @description The question's own points
+             */
+            question_points: string;
+            /** Title */
+            title: string;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "MCQ" | "MSQ" | "TRUE_FALSE" | "DESCRIPTIVE" | "CODING";
+            /**
+             * Version No
+             * @description Pinned version once published, else the current one
+             */
+            version_no: number;
+        };
+        /** ExamQuestions */
+        ExamQuestions: {
+            /** Questions */
+            questions: components["schemas"]["ExamQuestionView"][];
+            /** Total Points */
+            total_points: string;
+        };
+        /** ExamQuestionsIn */
+        ExamQuestionsIn: {
+            /**
+             * Questions
+             * @description In exam order
+             */
+            questions: components["schemas"]["ExamQuestionIn"][];
         };
         /** ExamSummary */
         ExamSummary: {
@@ -2281,6 +2387,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ExamView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_exam_questions_api_v1_exams__exam_id__questions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exam_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamQuestions"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_exam_questions_api_v1_exams__exam_id__questions_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exam_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExamQuestionsIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamQuestions"];
                 };
             };
             /** @description Validation Error */

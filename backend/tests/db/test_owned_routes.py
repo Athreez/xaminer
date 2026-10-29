@@ -192,6 +192,10 @@ OWNED_ROUTES: list[OwnedRoute] = [
     OwnedRoute(f"PATCH {EXAMS}", "TEACHER", _exam_url(), body={"title": "Renamed"}),
     OwnedRoute(f"DELETE {EXAMS}", "TEACHER", _exam_url(), per_caller=True),
     OwnedRoute(f"POST {EXAMS}/archive", "TEACHER", _exam_url("/archive")),
+    OwnedRoute(f"GET {EXAMS}/questions", "TEACHER", _exam_url("/questions")),
+    OwnedRoute(
+        f"PUT {EXAMS}/questions", "TEACHER", _exam_url("/questions"), body={"questions": []}
+    ),
     OwnedRoute(f"GET {GROUPS}", "TEACHER", _group_url(), scope="institution"),
     OwnedRoute(
         f"PATCH {GROUPS}",

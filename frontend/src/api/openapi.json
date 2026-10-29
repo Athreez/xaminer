@@ -652,6 +652,190 @@
         "title": "ExamPage",
         "type": "object"
       },
+      "ExamQuestionIn": {
+        "additionalProperties": false,
+        "properties": {
+          "negative_marks": {
+            "anyOf": [
+              {
+                "maximum": 1000.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Null: the question's own",
+            "title": "Negative Marks"
+          },
+          "points": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "maximum": 1000.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Null: the question's own points",
+            "title": "Points"
+          },
+          "question_id": {
+            "format": "uuid",
+            "title": "Question Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "question_id"
+        ],
+        "title": "ExamQuestionIn",
+        "type": "object"
+      },
+      "ExamQuestionView": {
+        "properties": {
+          "is_mine": {
+            "title": "Is Mine",
+            "type": "boolean"
+          },
+          "negative_marks": {
+            "title": "Negative Marks",
+            "type": "string"
+          },
+          "negative_marks_override": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Negative Marks Override"
+          },
+          "owner_name": {
+            "title": "Owner Name",
+            "type": "string"
+          },
+          "points": {
+            "description": "Marks in this exam",
+            "title": "Points",
+            "type": "string"
+          },
+          "points_override": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Set by this exam, or null",
+            "title": "Points Override"
+          },
+          "position": {
+            "description": "1 for the first question",
+            "title": "Position",
+            "type": "integer"
+          },
+          "question_id": {
+            "format": "uuid",
+            "title": "Question Id",
+            "type": "string"
+          },
+          "question_points": {
+            "description": "The question's own points",
+            "title": "Question Points",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "MCQ",
+              "MSQ",
+              "TRUE_FALSE",
+              "DESCRIPTIVE",
+              "CODING"
+            ],
+            "title": "Type",
+            "type": "string"
+          },
+          "version_no": {
+            "description": "Pinned version once published, else the current one",
+            "title": "Version No",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "question_id",
+          "position",
+          "title",
+          "type",
+          "owner_name",
+          "is_mine",
+          "version_no",
+          "points",
+          "negative_marks",
+          "points_override",
+          "negative_marks_override",
+          "question_points"
+        ],
+        "title": "ExamQuestionView",
+        "type": "object"
+      },
+      "ExamQuestions": {
+        "properties": {
+          "questions": {
+            "items": {
+              "$ref": "#/components/schemas/ExamQuestionView"
+            },
+            "title": "Questions",
+            "type": "array"
+          },
+          "total_points": {
+            "title": "Total Points",
+            "type": "string"
+          }
+        },
+        "required": [
+          "questions",
+          "total_points"
+        ],
+        "title": "ExamQuestions",
+        "type": "object"
+      },
+      "ExamQuestionsIn": {
+        "additionalProperties": false,
+        "properties": {
+          "questions": {
+            "description": "In exam order",
+            "items": {
+              "$ref": "#/components/schemas/ExamQuestionIn"
+            },
+            "maxItems": 200,
+            "title": "Questions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "questions"
+        ],
+        "title": "ExamQuestionsIn",
+        "type": "object"
+      },
       "ExamSummary": {
         "properties": {
           "assigned_count": {
@@ -3601,6 +3785,112 @@
           }
         ],
         "summary": "Archive Exam",
+        "tags": [
+          "exams"
+        ]
+      }
+    },
+    "/api/v1/exams/{exam_id}/questions": {
+      "get": {
+        "description": "The exam's questions in order, with the marks each is worth here.",
+        "operationId": "get_exam_questions_api_v1_exams__exam_id__questions_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "exam_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Exam Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExamQuestions"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Exam Questions",
+        "tags": [
+          "exams"
+        ]
+      },
+      "put": {
+        "description": "Replace the whole ordered list in one step: add, remove, reorder and set marks. Drafts\nonly. Your own questions and those shared with the institution can be used.",
+        "operationId": "set_exam_questions_api_v1_exams__exam_id__questions_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "exam_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Exam Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExamQuestionsIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExamQuestions"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Set Exam Questions",
         "tags": [
           "exams"
         ]

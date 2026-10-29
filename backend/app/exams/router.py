@@ -11,7 +11,8 @@ from app.auth.tokens import Principal
 from app.authz.guards import require
 from app.authz.permissions import P
 from app.core.errors import AppError
-from app.exams import service
+from app.exams import composition, service
+from app.exams.composition import ExamQuestions, ExamQuestionsIn
 from app.exams.schemas import AdminExamPage, ExamCreate, ExamPage, ExamStatus, ExamUpdate, ExamView
 
 router = APIRouter(prefix="/exams", tags=["exams"])
@@ -65,6 +66,21 @@ async def delete_exam(exam_id: uuid.UUID, principal: Author, db: TenantDB) -> No
 @router.post("/{exam_id}/archive")
 async def archive_exam(exam_id: uuid.UUID, principal: Author, db: TenantDB) -> ExamView:
     return await service.view(db, await service.archive_exam(db, principal, exam_id))
+
+
+@router.get("/{exam_id}/questions")
+async def get_exam_questions(exam_id: uuid.UUID, principal: Author, db: TenantDB) -> ExamQuestions:
+    """The exam's questions in order, with the marks each is worth here."""
+    return await composition.get_questions(db, principal, exam_id)
+
+
+@router.put("/{exam_id}/questions")
+async def set_exam_questions(
+    exam_id: uuid.UUID, body: ExamQuestionsIn, principal: Author, db: TenantDB
+) -> ExamQuestions:
+    """Replace the whole ordered list in one step: add, remove, reorder and set marks. Drafts
+    only. Your own questions and those shared with the institution can be used."""
+    return await composition.set_questions(db, principal, exam_id, body)
 
 
 @admin_router.get("")
