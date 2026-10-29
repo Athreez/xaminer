@@ -1927,6 +1927,95 @@
         "title": "HealthResponse",
         "type": "object"
       },
+      "HeartbeatIn": {
+        "additionalProperties": false,
+        "properties": {
+          "unsynced": {
+            "default": 0,
+            "description": "Answers waiting on the device",
+            "maximum": 10000.0,
+            "minimum": 0.0,
+            "title": "Unsynced",
+            "type": "integer"
+          }
+        },
+        "title": "HeartbeatIn",
+        "type": "object"
+      },
+      "HeartbeatOut": {
+        "properties": {
+          "accepts_saves": {
+            "description": "False once the deadline and its grace have passed",
+            "title": "Accepts Saves",
+            "type": "boolean"
+          },
+          "attempt_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "For proctoring uploads; only while in progress",
+            "title": "Attempt Token"
+          },
+          "attempt_token_expires_in": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Seconds",
+            "title": "Attempt Token Expires In"
+          },
+          "deadline_at": {
+            "description": "May move later if a teacher extends the attempt",
+            "format": "date-time",
+            "title": "Deadline At",
+            "type": "string"
+          },
+          "extra_minutes": {
+            "title": "Extra Minutes",
+            "type": "integer"
+          },
+          "seconds_left": {
+            "title": "Seconds Left",
+            "type": "integer"
+          },
+          "server_time": {
+            "format": "date-time",
+            "title": "Server Time",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "IN_PROGRESS",
+              "SUBMITTED",
+              "AUTO_SUBMITTED",
+              "VOIDED"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "deadline_at",
+          "extra_minutes",
+          "server_time",
+          "seconds_left",
+          "accepts_saves",
+          "attempt_token",
+          "attempt_token_expires_in"
+        ],
+        "title": "HeartbeatOut",
+        "type": "object"
+      },
       "ImportRequest": {
         "additionalProperties": false,
         "properties": {
@@ -4017,6 +4106,65 @@
           }
         ],
         "summary": "Set Flag",
+        "tags": [
+          "attempts"
+        ]
+      }
+    },
+    "/api/v1/attempts/{attempt_id}/heartbeat": {
+      "post": {
+        "description": "Every few seconds from the exam screen: status, deadline and server time (to react to\nteacher actions and keep the timer honest), and a fresh token for proctoring uploads.",
+        "operationId": "heartbeat_api_v1_attempts__attempt_id__heartbeat_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "attempt_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Attempt Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HeartbeatIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HeartbeatOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Heartbeat",
         "tags": [
           "attempts"
         ]

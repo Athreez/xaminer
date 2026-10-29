@@ -6,15 +6,19 @@ import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
+from redis.asyncio import Redis
 
 from app.attempts import attempt, saving, student_exams
+from app.attempts import heartbeat as heartbeats
 from app.attempts.attempt import AttemptView
+from app.attempts.heartbeat import HeartbeatIn, HeartbeatOut
 from app.attempts.saving import AnswersIn, DraftIn, DraftResult, FlagIn, SaveResult
 from app.attempts.student_exams import StudentExamDetail, StudentExams
-from app.auth.dependencies import TenantDB
+from app.auth.dependencies import TenantDB, redis_of, settings_of
 from app.auth.tokens import Principal
 from app.authz.guards import require
 from app.authz.permissions import P
+from app.core.config import Settings
 from app.images.router import AppStorage
 
 router = APIRouter(prefix="/student/exams", tags=["student"])
@@ -84,3 +88,19 @@ async def save_draft(
 ) -> DraftResult:
     """Save unsubmitted code for a coding question (one draft per language)."""
     return await saving.save_draft(db, principal, attempt_id, exam_question_id, body)
+
+
+@attempts_router.post("/{attempt_id}/heartbeat")
+async def heartbeat(
+    attempt_id: uuid.UUID,
+    body: HeartbeatIn,
+    principal: Taker,
+    db: TenantDB,
+    redis: Annotated[Redis, Depends(redis_of)],
+    settings: Annotated[Settings, Depends(settings_of)],
+) -> HeartbeatOut:
+    """Every few seconds from the exam screen: status, deadline and server time (to react to
+    teacher actions and keep the timer honest), and a fresh token for proctoring uploads."""
+    return await heartbeats.beat(
+        db, redis, principal, attempt_id, body, settings.jwt_secret.get_secret_value()
+    )

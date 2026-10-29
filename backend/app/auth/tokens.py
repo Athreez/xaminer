@@ -66,3 +66,53 @@ def new_opaque_token() -> tuple[str, str]:
     """A random 256-bit token and its hash: (value to give the user, value to store)."""
     raw = secrets.token_urlsafe(32)
     return raw, hash_token(raw)
+
+
+# ----------------------------------------------------------------------------- attempt tokens
+
+ATTEMPT_TYPE = "attempt"
+
+
+@dataclass(frozen=True)
+class AttemptGrant:
+    """What an attempt token allows: proctoring uploads for one attempt, nothing else."""
+
+    attempt_id: uuid.UUID
+    user_id: uuid.UUID
+    institution_id: uuid.UUID
+
+
+def create_attempt_token(
+    grant: AttemptGrant, secret: str, minutes: int, now: datetime | None = None
+) -> str:
+    """Short-lived and upload-only (SECURITY_AND_ACCESS.md § 2.2, threat T-23). Its `typ` differs
+    from an access token's, so it can never be used to call the rest of the API."""
+    issued = now or datetime.now(UTC)
+    claims = {
+        "sub": str(grant.user_id),
+        "inst": str(grant.institution_id),
+        "att": str(grant.attempt_id),
+        "typ": ATTEMPT_TYPE,
+        "iat": issued,
+        "exp": issued + timedelta(minutes=minutes),
+    }
+    return jwt.encode(claims, secret, algorithm=ALGORITHM)
+
+
+def decode_attempt_token(token: str, secret: str) -> AttemptGrant:
+    try:
+        claims = jwt.decode(
+            token,
+            secret,
+            algorithms=[ALGORITHM],
+            options={"require": ["exp", "sub", "inst", "att"]},
+        )
+        if claims.get("typ") != ATTEMPT_TYPE:
+            raise InvalidTokenError("not an attempt token")
+        return AttemptGrant(
+            attempt_id=uuid.UUID(claims["att"]),
+            user_id=uuid.UUID(claims["sub"]),
+            institution_id=uuid.UUID(claims["inst"]),
+        )
+    except (jwt.PyJWTError, KeyError, ValueError) as exc:
+        raise InvalidTokenError(str(exc)) from exc

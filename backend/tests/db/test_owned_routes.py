@@ -408,6 +408,12 @@ OWNED_ROUTES: list[OwnedRoute] = [
     OwnedRoute("POST /api/v1/student/exams/{exam_id}/attempts", "STUDENT", _assigned("/attempts")),
     OwnedRoute("GET /api/v1/attempts/{attempt_id}", "STUDENT", _attempt_url()),
     OwnedRoute(
+        "POST /api/v1/attempts/{attempt_id}/heartbeat",
+        "STUDENT",
+        _attempt_url("/heartbeat"),
+        body={"unsynced": 0},
+    ),
+    OwnedRoute(
         "PUT /api/v1/attempts/{attempt_id}/answers",
         "STUDENT",
         _attempt_url("/answers"),

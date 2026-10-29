@@ -105,6 +105,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/attempts/{attempt_id}/heartbeat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Heartbeat
+         * @description Every few seconds from the exam screen: status, deadline and server time (to react to
+         *     teacher actions and keep the timer honest), and a fresh token for proctoring uploads.
+         */
+        post: operations["heartbeat_api_v1_attempts__attempt_id__heartbeat_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/audit-logs": {
         parameters: {
             query?: never;
@@ -1790,6 +1811,53 @@ export interface components {
             /** Status */
             status: string;
         };
+        /** HeartbeatIn */
+        HeartbeatIn: {
+            /**
+             * Unsynced
+             * @description Answers waiting on the device
+             * @default 0
+             */
+            unsynced: number;
+        };
+        /** HeartbeatOut */
+        HeartbeatOut: {
+            /**
+             * Accepts Saves
+             * @description False once the deadline and its grace have passed
+             */
+            accepts_saves: boolean;
+            /**
+             * Attempt Token
+             * @description For proctoring uploads; only while in progress
+             */
+            attempt_token: string | null;
+            /**
+             * Attempt Token Expires In
+             * @description Seconds
+             */
+            attempt_token_expires_in: number | null;
+            /**
+             * Deadline At
+             * Format: date-time
+             * @description May move later if a teacher extends the attempt
+             */
+            deadline_at: string;
+            /** Extra Minutes */
+            extra_minutes: number;
+            /** Seconds Left */
+            seconds_left: number;
+            /**
+             * Server Time
+             * Format: date-time
+             */
+            server_time: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "IN_PROGRESS" | "SUBMITTED" | "AUTO_SUBMITTED" | "VOIDED";
+        };
         /** ImportRequest */
         ImportRequest: {
             /**
@@ -2672,6 +2740,41 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    heartbeat_api_v1_attempts__attempt_id__heartbeat_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HeartbeatIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HeartbeatOut"];
+                };
             };
             /** @description Validation Error */
             422: {
