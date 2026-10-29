@@ -6,6 +6,7 @@ import uuid
 from sqlalchemy import delete, text, update
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from app.attempts.models import Answer, AttemptQuestion, CodeDraft, ExamAttempt
 from app.auth.models import AuthToken, RefreshToken
 from app.exams.models import Exam, ExamAssignment, ExamQuestion, ExamVersion
 from app.platform.models import Institution
@@ -38,6 +39,10 @@ async def purge_institutions(migrator_engine: AsyncEngine, ids: list[uuid.UUID])
             update(Question).where(Question.institution_id.in_(ids)).values(current_version_id=None)
         )
         for model in (
+            CodeDraft,
+            Answer,
+            AttemptQuestion,
+            ExamAttempt,
             ExamAssignment,
             ExamQuestion,
             ExamVersion,

@@ -283,9 +283,9 @@ IntegrityOutcome       PENDING_REVIEW | NO_CONCERNS | CONCERNS_CONFIRMED
 
 | Table | Key columns | Notes |
 |---|---|---|
-| `exam_attempt` | exam_id, exam_version_id, student_id, status, grading_status, started_at, deadline_at, submitted_at, shuffle_seed, last_heartbeat_at, extra_minutes, is_preview | Partial unique index: one non-`VOIDED` attempt per (exam, student). `is_preview` marks a teacher's test attempt, excluded from results |
-| `attempt_question` | attempt_id, exam_question_id, position, option_order `int[]`, marked_for_review | The order this student saw |
-| `answer` | (attempt_id, exam_question_id) PK, selected_option_ids `uuid[]`, text_answer, client_revision, auto_score, manual_score, score, feedback, graded_by | One row per question; upsert guarded by `client_revision` |
+| `exam_attempt` | exam_id, exam_version_id, student_id, status, grading_status, started_at, deadline_at, submitted_at, shuffle_seed, last_heartbeat_at, extra_minutes, is_preview | Partial unique index: one non-`VOIDED` attempt per (exam, student). `is_preview` marks a teacher's test attempt, excluded from results. Checks: deadline after start, submitted attempts have `submitted_at`. Never deleted |
+| `attempt_question` | attempt_id, exam_question_id, position, option_order `int[]`, marked_for_review | The order this student saw (`option_order` indexes the version's options; null when not shuffled) |
+| `answer` | (attempt_id, exam_question_id) PK, selected_option_ids `uuid[]`, text_answer, client_revision, auto_score, manual_score, score, feedback, graded_by, graded_at | One row per question; upsert guarded by `client_revision`. Text ≤ 64 KB (DB check) |
 | `code_draft` | (attempt_id, exam_question_id, language_key) PK, source, client_revision | Unsubmitted editor content, per language |
 
 **Code execution**
