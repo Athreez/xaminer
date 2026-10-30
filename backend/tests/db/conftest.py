@@ -143,3 +143,13 @@ def no_auto_submit_jobs(monkeypatch: pytest.MonkeyPatch) -> list[uuid.UUID]:
     queued: list[uuid.UUID] = []
     monkeypatch.setattr(auto_submit, "queue_auto_submit", queued.append)
     return queued
+
+
+@pytest.fixture(autouse=True)
+def no_grading_jobs(monkeypatch: pytest.MonkeyPatch) -> list[uuid.UUID]:
+    """Ended attempts queue objective grading; tests record the attempt ids instead."""
+    from app.grading import objective
+
+    queued: list[uuid.UUID] = []
+    monkeypatch.setattr(objective, "queue_grading", queued.append)
+    return queued

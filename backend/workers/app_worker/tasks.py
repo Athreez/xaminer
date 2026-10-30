@@ -206,3 +206,15 @@ async def _with_factory(work: Any) -> None:
         await work(create_session_factory(engine))
     finally:
         await engine.dispose()
+
+
+@shared_task(name="grading.objective", autoretry_for=(OSError,), retry_backoff=10, max_retries=6)
+def grade_objective(attempt_id: str) -> None:
+    """An attempt ended: score its MCQ, MSQ and True/False answers (GRD-01). Safe to repeat."""
+    asyncio.run(_with_factory(lambda factory: _grade(factory, uuid.UUID(attempt_id))))
+
+
+async def _grade(factory: Any, attempt_id: uuid.UUID) -> None:
+    from app.grading.objective import grade
+
+    await grade(factory, attempt_id)

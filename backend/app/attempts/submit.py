@@ -72,14 +72,17 @@ async def finalize(
         target_id=attempt_id,
         changes={"status": status, "submitted_at": now.isoformat()},
     )
-    # Unsubmitted code is graded too (EXE-06): once this is committed, so the worker sees it ended.
-    after_commit(session, lambda: _queue_auto_submit(attempt_id))
+    # Grading starts once this is committed, so the workers see the attempt ended: objective
+    # answers (GRD-01), and unsubmitted code (EXE-06).
+    after_commit(session, lambda: _queue_grading(attempt_id))
     return True
 
 
-def _queue_auto_submit(attempt_id: uuid.UUID) -> None:
-    from app.execution.auto_submit import queue_auto_submit  # imports this package
+def _queue_grading(attempt_id: uuid.UUID) -> None:
+    from app.execution.auto_submit import queue_auto_submit  # these import this package
+    from app.grading.objective import queue_grading
 
+    queue_grading(attempt_id)
     queue_auto_submit(attempt_id)
 
 
