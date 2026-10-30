@@ -10,7 +10,7 @@ from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from app.attempts.models import ExamAttempt
@@ -272,7 +272,7 @@ async def test_grading_moves_on_when_no_code_is_waiting(world: World) -> None:
         await s.execute(
             update(ExamAttempt)
             .where(ExamAttempt.id == world.attempt_id)
-            .values(grading_status="AWAITING_CODING")
+            .values(status="SUBMITTED", submitted_at=func.now(), grading_status="AWAITING_CODING")
         )
         await s.commit()
 

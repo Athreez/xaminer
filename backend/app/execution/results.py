@@ -25,6 +25,7 @@ from app.attempts.attempt import snapshot_of
 from app.attempts.models import ExamAttempt
 from app.db.session import SessionFactory, system_session
 from app.execution.models import CodeRun, CodingEvaluation, CodingSubmission, TestCaseResult
+from app.grading.status import ENDED, refresh, save_auto_score
 from app.questions.models import CodingConfig
 from app.questions.test_cases import all_test_cases, public_examples
 from domain_core.coding_score import CaseOutcome, Verdict, case_outcome, score
@@ -151,7 +152,7 @@ async def after_evaluation(
 ) -> None:
     await session.flush()
     await recount(session, attempt, submission.exam_question_id)
-    await _move_grading_on(session, attempt)
+    await refresh(session, attempt)
 
 
 async def recount(session: AsyncSession, attempt: ExamAttempt, exam_question_id: uuid.UUID) -> None:
@@ -194,24 +195,10 @@ async def recount(session: AsyncSession, attempt: ExamAttempt, exam_question_id:
         chosen = max(scored, key=key)[0]
     for submission, _ in rows:
         submission.is_counted = submission is chosen
-
-
-async def _move_grading_on(session: AsyncSession, attempt: ExamAttempt) -> None:
-    """Once no submission of a finished attempt is waiting for its code to run, grading moves on
-    to the teacher (descriptive answers) or is complete (§ 9.5)."""
-    if attempt.grading_status != "AWAITING_CODING":
-        return
-    waiting = await session.scalar(
-        select(func.count())
-        .select_from(CodingEvaluation)
-        .join(CodingSubmission, CodingSubmission.id == CodingEvaluation.submission_id)
-        .where(CodingSubmission.attempt_id == attempt.id, CodingEvaluation.status == "QUEUED")
-    )
-    if waiting:
-        return
-    questions = (await snapshot_of(session, attempt))["questions"]
-    descriptive = any(q["type"] == "DESCRIPTIVE" for q in questions)
-    attempt.grading_status = "AWAITING_MANUAL" if descriptive else "COMPLETE"
+    if attempt.status in ENDED and not any(e.status == "QUEUED" for _, e in rows):
+        # The question's score: the counted submission's, or 0 when nothing could be scored.
+        best = next((e.score for sub, e in scored if sub is chosen), None)
+        await save_auto_score(session, attempt, exam_question_id, best or Decimal("0.00"))
 
 
 # ----------------------------------------------------------------------------- Run Code

@@ -154,7 +154,8 @@ async def _delete_old_runs() -> int:
     max_retries=6,
 )
 def auto_submit_drafts(attempt_id: str) -> None:
-    """An attempt ended: grade each coding question's newer draft (EXE-06). Safe to repeat."""
+    """An attempt ended: grade each coding question's newer draft (EXE-06), then score the
+    objective answers and work out the grading status (GRD-01, GRD-04). Safe to repeat."""
     asyncio.run(_auto_submit(uuid.UUID(attempt_id)))
 
 
@@ -163,11 +164,15 @@ async def _auto_submit(attempt_id: uuid.UUID) -> int:
     from app.core.storage import Storage
     from app.db.session import create_engine, create_session_factory
     from app.execution.auto_submit import auto_submit
+    from app.grading.objective import grade
 
     settings = get_settings()
     engine = create_engine(settings.database_url("app"))
     try:
-        return await auto_submit(create_session_factory(engine), Storage(settings), attempt_id)
+        factory = create_session_factory(engine)
+        submitted = await auto_submit(factory, Storage(settings), attempt_id)
+        await grade(factory, attempt_id)
+        return submitted
     finally:
         await engine.dispose()
 
@@ -206,15 +211,3 @@ async def _with_factory(work: Any) -> None:
         await work(create_session_factory(engine))
     finally:
         await engine.dispose()
-
-
-@shared_task(name="grading.objective", autoretry_for=(OSError,), retry_backoff=10, max_retries=6)
-def grade_objective(attempt_id: str) -> None:
-    """An attempt ended: score its MCQ, MSQ and True/False answers (GRD-01). Safe to repeat."""
-    asyncio.run(_with_factory(lambda factory: _grade(factory, uuid.UUID(attempt_id))))
-
-
-async def _grade(factory: Any, attempt_id: uuid.UUID) -> None:
-    from app.grading.objective import grade
-
-    await grade(factory, attempt_id)
