@@ -9,7 +9,8 @@ from app.auth.dependencies import TenantDB
 from app.auth.tokens import Principal
 from app.authz.guards import require
 from app.authz.permissions import P
-from app.results import service
+from app.results import dashboard, service
+from app.results.dashboard import TeacherDashboard
 from app.results.service import AttemptResult, ExamResults, StudentResults, TeacherAttemptResult
 
 router = APIRouter(tags=["results"])
@@ -50,3 +51,10 @@ async def my_results(principal: Reader, db: TenantDB) -> StudentResults:
 async def my_result(attempt_id: uuid.UUID, principal: Reader, db: TenantDB) -> AttemptResult:
     """A released result of the caller's. Not released (or not theirs): 404."""
     return await service.student_result(db, principal, attempt_id)
+
+
+@router.get("/teacher/dashboard")
+async def teacher_dashboard(principal: Releaser, db: TenantDB) -> TeacherDashboard:
+    """The caller's published exams with what needs doing (answers to mark, results to release),
+    and how many drafts and questions they have."""
+    return await dashboard.dashboard(db, principal)

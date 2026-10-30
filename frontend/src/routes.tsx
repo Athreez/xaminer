@@ -4,6 +4,8 @@ import { createBrowserRouter, Navigate, Outlet } from "react-router";
 import { AuthProvider, RequireRole, RootRedirect } from "@/auth/AuthProvider";
 
 import { AppShell, type NavItem } from "@/components/layout/AppShell";
+import { RouteError } from "@/components/RouteError";
+import { loadPage } from "@/lib/staleChunk";
 import { LoginPage } from "@/features/auth/LoginPage";
 import {
   ActivatePage,
@@ -17,7 +19,7 @@ import { ForbiddenPage, NotFoundPage, PlaceholderPage } from "@/features/system/
 
 /** A page loaded only when opened, so each role downloads just its own pages. */
 function page<K extends string>(load: () => Promise<Record<K, ComponentType>>, name: K) {
-  return async () => ({ Component: (await load())[name] });
+  return async () => ({ Component: (await loadPage(load))[name] });
 }
 
 const adminNav: NavItem[] = [
@@ -42,6 +44,7 @@ const studentNav: NavItem[] = [
 export const router = createBrowserRouter([
   {
     // Every page sits inside the AuthProvider, which restores the session after a reload.
+    errorElement: <RouteError />,
     element: (
       <AuthProvider>
         <Outlet />
@@ -99,7 +102,13 @@ export const router = createBrowserRouter([
           </RequireRole>
         ),
         children: [
-          { index: true, element: <PlaceholderPage title="Dashboard" ticket="TCK-0507" /> },
+          {
+            index: true,
+            lazy: page(
+              () => import("@/features/exams/TeacherDashboardPage"),
+              "TeacherDashboardPage",
+            ),
+          },
           {
             path: "questions",
             lazy: page(() => import("@/features/questions/QuestionBankPage"), "QuestionBankPage"),

@@ -1351,6 +1351,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/teacher/dashboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Teacher Dashboard
+         * @description The caller's published exams with what needs doing (answers to mark, results to release),
+         *     and how many drafts and questions they have.
+         */
+        get: operations["teacher_dashboard_api_v1_teacher_dashboard_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/uploads/images": {
         parameters: {
             query?: never;
@@ -2110,6 +2131,32 @@ export interface components {
             role: "ADMIN" | "TEACHER" | "STUDENT";
             /** Roll No */
             roll_no?: string | null;
+        };
+        /** DashboardExam */
+        DashboardExam: {
+            /** Assigned */
+            assigned: number;
+            /** Close At */
+            close_at: string | null;
+            /** Duration Min */
+            duration_min: number | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Open At */
+            open_at: string | null;
+            /** Started */
+            started: number;
+            /** Submitted */
+            submitted: number;
+            /** Title */
+            title: string;
+            /** To Mark */
+            to_mark: number;
+            /** To Release */
+            to_release: number;
         };
         /**
          * Detectors
@@ -3707,6 +3754,15 @@ export interface components {
             student_name: string;
             /** Submitted At */
             submitted_at: string | null;
+        };
+        /** TeacherDashboard */
+        TeacherDashboard: {
+            /** Drafts */
+            drafts: number;
+            /** Exams */
+            exams: components["schemas"]["DashboardExam"][];
+            /** Questions */
+            questions: number;
         };
         /** TeacherQuestionResult */
         TeacherQuestionResult: {
@@ -6482,6 +6538,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    teacher_dashboard_api_v1_teacher_dashboard_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeacherDashboard"];
                 };
             };
         };

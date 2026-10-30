@@ -141,3 +141,22 @@ async def test_others_never_see_a_result(world: World) -> None:
         ).status_code
         == 404
     )
+
+
+async def test_teacher_dashboard_counts_what_needs_doing(world: World) -> None:
+    def mine() -> dict[str, Any]:
+        body = world.client.get("/api/v1/teacher/dashboard", headers=world.teacher).json()
+        (exam,) = body["exams"]
+        return {k: exam[k] for k in ("assigned", "started", "submitted", "to_mark", "to_release")}
+
+    attempt = await all_right_but_the_essay(world)
+    assert mine() == {"assigned": 1, "started": 1, "submitted": 1, "to_mark": 1, "to_release": 0}
+    world.client.put(
+        f"/api/v1/attempts/{attempt['id']}/answers/{attempt['essay']}/mark",
+        json={"score": "4"},
+        headers=world.teacher,
+    )
+    assert (mine()["to_mark"], mine()["to_release"]) == (0, 1)
+    world.client.post(f"/api/v1/exams/{world.exam_id}/results/release", headers=world.teacher)
+    assert mine()["to_release"] == 0
+    assert world.client.get("/api/v1/teacher/dashboard", headers=world.me).status_code == 403

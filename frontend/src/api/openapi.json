@@ -1352,6 +1352,88 @@
         "title": "CreateUserRequest",
         "type": "object"
       },
+      "DashboardExam": {
+        "properties": {
+          "assigned": {
+            "title": "Assigned",
+            "type": "integer"
+          },
+          "close_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Close At"
+          },
+          "duration_min": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Min"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "open_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Open At"
+          },
+          "started": {
+            "title": "Started",
+            "type": "integer"
+          },
+          "submitted": {
+            "title": "Submitted",
+            "type": "integer"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "to_mark": {
+            "title": "To Mark",
+            "type": "integer"
+          },
+          "to_release": {
+            "title": "To Release",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "open_at",
+          "close_at",
+          "duration_min",
+          "assigned",
+          "started",
+          "submitted",
+          "to_mark",
+          "to_release"
+        ],
+        "title": "DashboardExam",
+        "type": "object"
+      },
       "Detectors": {
         "additionalProperties": false,
         "description": "Proctoring detector settings (PRD \u00a7 6.5). Other detectors are always on when proctored.",
@@ -5295,6 +5377,32 @@
           "revisions"
         ],
         "title": "TeacherAttemptResult",
+        "type": "object"
+      },
+      "TeacherDashboard": {
+        "properties": {
+          "drafts": {
+            "title": "Drafts",
+            "type": "integer"
+          },
+          "exams": {
+            "items": {
+              "$ref": "#/components/schemas/DashboardExam"
+            },
+            "title": "Exams",
+            "type": "array"
+          },
+          "questions": {
+            "title": "Questions",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "exams",
+          "drafts",
+          "questions"
+        ],
+        "title": "TeacherDashboard",
         "type": "object"
       },
       "TeacherQuestionResult": {
@@ -10314,6 +10422,33 @@
         "summary": "Get Submission",
         "tags": [
           "attempts"
+        ]
+      }
+    },
+    "/api/v1/teacher/dashboard": {
+      "get": {
+        "description": "The caller's published exams with what needs doing (answers to mark, results to release),\nand how many drafts and questions they have.",
+        "operationId": "teacher_dashboard_api_v1_teacher_dashboard_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherDashboard"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Teacher Dashboard",
+        "tags": [
+          "results"
         ]
       }
     },
