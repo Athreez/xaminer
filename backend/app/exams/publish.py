@@ -127,7 +127,9 @@ async def build_snapshot(
         # The institution's wording, else the standard text (SECURITY § 8.2).
         institution = await session.get_one(Institution, exam.institution_id)
         consent = institution.default_consent_text or standard_consent(
-            exam.proctoring_mode, institution.evidence_retention_days
+            exam.proctoring_mode,
+            institution.evidence_retention_days,
+            screen=bool((exam.proctoring_detectors or {}).get("screen", True)),
         )
     snapshot = _plain(
         {

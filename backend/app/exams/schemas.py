@@ -26,6 +26,9 @@ class Detectors(BaseModel):
     sensitivity: Sensitivity = "STANDARD"
     gaze: bool = Field(default=False, description="Gaze detection")
     books: bool = Field(default=False, description="Book detection (closed-book exams)")
+    screen: bool = Field(
+        default=True, description="The student shares the whole screen; screenshots are checked"
+    )
 
 
 class ExamSettings(BaseModel):

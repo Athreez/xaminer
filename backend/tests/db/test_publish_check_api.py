@@ -178,7 +178,7 @@ async def test_proctored_exam_without_text_gets_the_standard_consent(ready: Read
         exam = await s.get_one(Exam, uuid.UUID(ready.url.rsplit("/", 1)[1]))
         version = await s.get_one(ExamVersion, exam.published_version_id)
     consent = version.snapshot["consent_text"]
-    assert "camera and microphone" in consent and "30 days" in consent
+    assert "camera, microphone and screen" in consent and "30 days" in consent
 
 
 async def test_institution_default_consent_text_counts(ready: Ready) -> None:

@@ -122,3 +122,8 @@ Some exams use your webcam. Before starting you read and accept the consent text
 that checks run on your own device and nothing is recorded, when a still image is kept, who can
 see it, for how long, and what happens if you decline (you can't take that exam; talk to your
 teacher). A teacher reviews everything; nothing is decided automatically.
+
+After agreeing, the **device check** downloads the checks (once), finds your face on the camera,
+listens for your voice (camera + microphone exams) and asks you to share your **entire screen**
+(not a window or tab; close other apps and tabs first). Keep the camera on and the screen shared
+until you submit. Use a recent Chrome, Edge or Firefox on a laptop or desktop.

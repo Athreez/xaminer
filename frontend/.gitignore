@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Proctoring models and runtimes (scripts/proctoring-assets.mjs)
+public/proctoring

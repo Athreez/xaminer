@@ -20,6 +20,7 @@ from app.authz.ownership import not_found
 from app.core.errors import AppError
 from app.exams.models import Exam, ExamAssignment, ExamVersion
 from app.exams.schemas import NavigationMode, ProctoringMode
+from app.proctoring import consent
 from app.users.models import User
 from domain_core import timer
 
@@ -63,6 +64,9 @@ class StudentExamDetail(StudentExam):
     navigation_mode: NavigationMode
     run_code_enabled: bool
     browser_checks: bool = False
+    screen_sharing: bool = Field(
+        default=False, description="Proctored: the whole screen is shared during the exam"
+    )
     has_coding: bool
     total_points: str
     server_time: datetime = Field(description="For a countdown that ignores the device's clock")
@@ -180,6 +184,7 @@ async def get_exam(
         navigation_mode=snapshot["settings"]["navigation_mode"],
         run_code_enabled=snapshot["settings"]["run_code_enabled"],
         browser_checks=snapshot["settings"].get("browser_checks", False),
+        screen_sharing=consent.screen_sharing(snapshot),
         has_coding=any(q["type"] == "CODING" for q in snapshot.get("questions", [])),
         total_points=str(snapshot.get("total_points", "0")),
         server_time=now,

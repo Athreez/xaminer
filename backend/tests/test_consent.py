@@ -6,7 +6,8 @@ from app.platform.consent import standard_consent
 def test_standard_consent_covers_every_point() -> None:
     text = standard_consent("VIDEO_AUDIO", 30).lower()
     must_say = {
-        "1 camera and microphone used": "your camera and microphone",
+        "1 camera, microphone and screen used": "your camera, microphone and screen",
+        "1 screen pictures saved": "a picture of it is saved",
         "2 analysed on the device, nothing recorded": "nothing is recorded",
         "3 still images only when suspicious": "only when something possibly suspicious",
         "4 who sees them": "only the teacher who owns this exam",
@@ -21,4 +22,10 @@ def test_standard_consent_covers_every_point() -> None:
 
 def test_camera_only_mode_doesnt_mention_the_microphone() -> None:
     text = standard_consent("VIDEO", 14)
+    assert "your camera and screen" in text
     assert "microphone" not in text and "sound" not in text and "14 days" in text
+
+
+def test_without_screen_sharing_the_screen_isnt_mentioned() -> None:
+    text = standard_consent("VIDEO_AUDIO", 30, screen=False)
+    assert "your camera and microphone" in text and "screen" not in text

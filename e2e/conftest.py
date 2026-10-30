@@ -24,6 +24,7 @@ API = f"{BASE}/api/v1"
 PASSWORD = os.environ.get("XAMINER_DEMO_PASSWORD", "Demo-Xaminer-2026")
 TEACHER = "teacher@demo.test"
 ADMIN = "admin@demo.test"
+FIXTURES = Path(__file__).resolve().parent / "fixtures"
 AXE = Path(__file__).resolve().parent.parent / "frontend" / "node_modules" / "axe-core" / "axe.min.js"
 
 expect.set_options(timeout=15_000)
@@ -82,10 +83,21 @@ def make_exam(teacher: Api) -> Callable[..., str]:
 
 
 @pytest.fixture(scope="session")
-def browser() -> Iterator[Browser]:
+def browser(tmp_path_factory: pytest.TempPathFactory) -> Iterator[Browser]:
+    # A camera that shows a face (fixtures/face.jpg: NASA's public-domain astronaut portrait,
+    # scikit-image's sample), permission prompts answered yes, and the screen picker choosing the
+    # whole screen. Chrome reads a fake camera from Motion JPEG: the same picture, many times.
+    camera = tmp_path_factory.mktemp("camera") / "face.mjpeg"
+    camera.write_bytes((FIXTURES / "face.jpg").read_bytes() * 30)
+    args = [
+        "--use-fake-ui-for-media-stream",
+        "--use-fake-device-for-media-stream",
+        f"--use-file-for-fake-video-capture={camera}",
+        "--auto-select-desktop-capture-source=Entire screen",
+    ]
     with sync_playwright() as p:
         channel = os.environ.get("E2E_CHANNEL")
-        b = p.chromium.launch(channel=channel) if channel else p.chromium.launch()
+        b = p.chromium.launch(channel=channel, args=args) if channel else p.chromium.launch(args=args)
         yield b
         b.close()
 

@@ -78,7 +78,7 @@ class World:
 
 
 async def build(
-    app_engine: AsyncEngine, client: TestClient, *, shuffle: bool
+    app_engine: AsyncEngine, client: TestClient, *, shuffle: bool, **settings: Any
 ) -> tuple[World, Institution]:
     factory = create_session_factory(app_engine)
     college = await commands.create_institution(factory, f"Start test {uuid.uuid4().hex[:8]}")
@@ -135,7 +135,8 @@ async def build(
             "duration_min": 60,
             "shuffle_questions": shuffle,
             "shuffle_options": shuffle,
-        },
+        }
+        | settings,
         headers=t,
     ).json()
     url = f"/api/v1/exams/{exam['id']}"

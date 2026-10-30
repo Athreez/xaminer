@@ -286,8 +286,8 @@ Priority: **M** = must have (core demo), **S** = should have (if time allows).
 | PRC-01 | Per exam mode: **Off**, **Video**, or **Video + Audio** | M |
 | PRC-02 | Teacher picks sensitivity (Relaxed / Standard / Strict) and switches gaze and book detection on/off (§ 6.5) | M |
 | PRC-03 | **Consent**: before a proctored exam the student sees what is collected, why, how long it is kept and who sees it, and must accept. Declining means they can't take that exam. Each decision is recorded | M |
-| PRC-04 | **Device check**: camera works and a face is visible; microphone works (Video + Audio); AI models downloaded; connection tested. Camera/mic/models must pass to start; a weak connection only warns | M |
-| PRC-05 | **No video leaves the device.** Detection runs in the browser; only events with up to 3 still images (and periodic spot-check frames) are uploaded | M |
+| PRC-04 | **Device check**: camera works and a face is visible; microphone works (Video + Audio); whole screen shared (PRC-17); AI models downloaded, and how fast this computer runs them measured; connection tested. Camera/mic/screen/models must pass to start; a weak connection or small screen only warns | M |
+| PRC-05 | **No video leaves the device.** Detection runs in the browser; only events with up to 3 still images (and periodic spot-check frames, and screen pictures under PRC-17) are uploaded | M |
 | PRC-06 | Detectors, thresholds and severities as in § 6.5 | M |
 | PRC-07 | The server re-checks every event with images; it sets severity and confidence, and rejects events it can't confirm. The browser's opinion never sets severity | M |
 | PRC-08 | Audio is never uploaded or stored; voice events are metadata only | M |
@@ -299,6 +299,7 @@ Priority: **M** = must have (core demo), **S** = should have (if time allows).
 | PRC-14 | If proctoring breaks (camera lost, models crash), the exam continues; the problem is recorded as an event for the teacher | M |
 | PRC-15 | Per-detector dismissal rates are shown to teachers, so noisy detectors are visible | S |
 | PRC-16 | **Browser checks** (per exam, on by default, independent of the camera): fullscreen required (questions hidden outside it), leaving the page or window, pasting text not copied inside the exam (blocked), more than one screen (where the browser can tell). Each is recorded for review with a rule-based severity; the student sees only neutral reminders and the rules, which are listed on the instructions page automatically. Added 2026-10-30 at the user's request | M |
+| PRC-17 | **Whole-screen sharing** (proctored exams, per exam, on by default): the student shares the entire screen (not a window or tab) in the device check and keeps sharing; pictures of the screen are uploaded every 20–40 s and when the student leaves the exam page, for the teacher to see what else was open. A web page can't close other apps or tabs, so this records them instead. Stated in the consent text. Added 2026-10-31 at the user's request | M |
 
 ### 5.11 Monitoring and analytics — `MON`
 

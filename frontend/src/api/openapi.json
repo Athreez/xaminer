@@ -1314,6 +1314,84 @@
         "title": "CodingView",
         "type": "object"
       },
+      "ConsentIn": {
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "enum": [
+              "ACCEPTED",
+              "DECLINED"
+            ],
+            "title": "Decision",
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision"
+        ],
+        "title": "ConsentIn",
+        "type": "object"
+      },
+      "ConsentView": {
+        "properties": {
+          "decided_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decided At"
+          },
+          "decision": {
+            "anyOf": [
+              {
+                "enum": [
+                  "ACCEPTED",
+                  "DECLINED"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Your latest answer to this wording, if any",
+            "title": "Decision"
+          },
+          "proctoring_mode": {
+            "enum": [
+              "OFF",
+              "VIDEO",
+              "VIDEO_AUDIO"
+            ],
+            "title": "Proctoring Mode",
+            "type": "string"
+          },
+          "screen_sharing": {
+            "description": "The whole screen must be shared during the exam",
+            "title": "Screen Sharing",
+            "type": "boolean"
+          },
+          "text": {
+            "description": "Markdown, the wording the student answers",
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "proctoring_mode",
+          "screen_sharing",
+          "text",
+          "decision",
+          "decided_at"
+        ],
+        "title": "ConsentView",
+        "type": "object"
+      },
       "CreateUserRequest": {
         "additionalProperties": false,
         "properties": {
@@ -1484,6 +1562,12 @@
             "default": false,
             "description": "Gaze detection",
             "title": "Gaze",
+            "type": "boolean"
+          },
+          "screen": {
+            "default": true,
+            "description": "The student shares the whole screen; screenshots are checked",
+            "title": "Screen",
             "type": "boolean"
           },
           "sensitivity": {
@@ -1916,6 +2000,7 @@
             "default": {
               "books": false,
               "gaze": false,
+              "screen": true,
               "sensitivity": "STANDARD"
             }
           },
@@ -5464,6 +5549,12 @@
           },
           "run_code_enabled": {
             "title": "Run Code Enabled",
+            "type": "boolean"
+          },
+          "screen_sharing": {
+            "default": false,
+            "description": "Proctored: the whole screen is shared during the exam",
+            "title": "Screen Sharing",
             "type": "boolean"
           },
           "server_time": {
@@ -11414,6 +11505,114 @@
         ],
         "summary": "Start Attempt",
         "tags": [
+          "student"
+        ]
+      }
+    },
+    "/api/v1/student/exams/{exam_id}/consent": {
+      "get": {
+        "description": "A proctored exam's consent text and your latest answer to it (409 `NOT_PROCTORED` when the\nexam isn't proctored).",
+        "operationId": "get_consent_api_v1_student_exams__exam_id__consent_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "exam_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Exam Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsentView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Consent",
+        "tags": [
+          "proctoring",
+          "student"
+        ]
+      },
+      "post": {
+        "description": "Accept or decline the consent text (recorded, audited). Starting a proctored exam needs\nyour latest answer to be ACCEPTED.",
+        "operationId": "answer_consent_api_v1_student_exams__exam_id__consent_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "exam_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Exam Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsentIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsentView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Answer Consent",
+        "tags": [
+          "proctoring",
           "student"
         ]
       }

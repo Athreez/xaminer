@@ -41,7 +41,9 @@ export const navigationText: Record<StudentExamDetail["navigation_mode"], string
 };
 
 /** Device needs for the exam (FRONTEND_SPEC § 10). */
-export function deviceNeeds(exam: Pick<StudentExamDetail, "proctoring_mode" | "has_coding">) {
+export function deviceNeeds(
+  exam: Pick<StudentExamDetail, "proctoring_mode" | "has_coding" | "screen_sharing">,
+) {
   const needs = [
     exam.has_coding
       ? "A screen of at least 1280 × 720 (there is a code editor)."
@@ -52,6 +54,13 @@ export function deviceNeeds(exam: Pick<StudentExamDetail, "proctoring_mode" | "h
     needs.unshift(
       `A laptop or desktop with a working camera${exam.proctoring_mode === "VIDEO_AUDIO" ? " and microphone" : ""}. Phones and tablets can't be used.`,
     );
+    if (exam.screen_sharing) {
+      needs.splice(
+        1,
+        0,
+        "A recent Chrome, Edge or Firefox: you share your whole screen during the exam, so close other apps and tabs first.",
+      );
+    }
   }
   return needs;
 }

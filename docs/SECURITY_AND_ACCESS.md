@@ -368,8 +368,10 @@ described as equivalent to the deployed setup.
 5. How long they are kept (the institution's retention setting) and that they are then deleted.
 6. That nothing is decided automatically: a teacher reviews every event.
 7. What happens if the student declines (they can't take that exam; contact the teacher).
+8. When the whole screen is shared (PRD PRC-17): that pictures of the screen are saved from time to
+   time and when the student leaves the exam page, and that other apps and tabs should be closed.
 
-The standard text (`app/platform/consent.py`, checked by `tests/test_consent.py`) states all seven;
+The standard text (`app/platform/consent.py`, checked by `tests/test_consent.py`) states all eight;
 it is used when neither the exam nor the institution has its own. The accepted text's hash is
 stored with each consent record, so it is always known which wording a student agreed to.
 

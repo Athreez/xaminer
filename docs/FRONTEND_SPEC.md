@@ -465,11 +465,12 @@ A `Stepper`; each step must pass (or warn) before the next.
 | Step | Contents | Pass condition |
 |---|---|---|
 | 1. Consent | Consent text (all points from `SECURITY_AND_ACCESS.md` § 8.2). Buttons: **I agree** / **I don't agree**. Declining shows "You can't take this exam without agreeing. Contact your teacher." The camera is not turned on before this step is accepted | Agreed |
-| 2. Camera | Browser permission prompt, self-view, "We can see your face" check. Blocked permission → step-by-step help for the browser, and **Re-check** | Face detected |
-| 3. Microphone (Video + Audio only) | Level meter: "Say something" | Sound detected |
-| 4. Download | Progress bar while models and editor files are downloaded and cached | Done |
-| 5. Connection | Measures latency and speed | Always passes; slow → warning "Your connection is slow. Your answers will still be saved." |
-| 6. Screen | Window at least 1024×768 (1280×720 for coding) | Passes or warns |
+| 2. Download | Progress bar while the models and their runtimes (served by the app at `/proctoring/`) are downloaded into the browser's cache | Done |
+| 3. Camera | Browser permission prompt, self-view, "We can see your face" (one face, held 1.5 s), and the measured time of the face and object checks (GPU or CPU). Blocked permission → help for the browser, and **Check again** | Face detected and speed measured |
+| 4. Microphone (Video + Audio only) | Level meter: "Say: I am ready for my exam" | Speech heard (Silero VAD) |
+| 5. Screen sharing (when on) | "Close other apps and tabs", then **Share my screen**; a window or tab is refused. A second screen connected → warning | Whole screen shared |
+| 6. Connection | Five round trips to the server | Always passes; slow → warning "Your connection is slow. Your answers will still be saved." |
+| 7. Screen size | Screen at least 1024×768 (1280×720 for coding) | Passes or warns |
 | Ready | Summary and **Start exam** | — |
 
 ### 8.2 During the exam

@@ -12,7 +12,7 @@ import {
   ForgotPasswordPage,
   ResetPasswordPage,
 } from "@/features/auth/SetPasswordPages";
-import { ForbiddenPage, NotFoundPage, PlaceholderPage } from "@/features/system/pages";
+import { ForbiddenPage, NotFoundPage } from "@/features/system/pages";
 
 // Routes and navigation follow FRONTEND_SPEC.md § 4. Role areas are guarded by RequireRole; the
 // server checks every request regardless.
@@ -234,7 +234,7 @@ export const router = createBrowserRouter([
           },
           {
             path: "exams/:examId/precheck",
-            element: <PlaceholderPage title="Proctoring checks" ticket="TCK-1002" />,
+            lazy: page(() => import("@/features/proctoring/PrecheckPage"), "PrecheckPage"),
           },
           {
             path: "results",

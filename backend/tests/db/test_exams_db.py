@@ -82,6 +82,7 @@ async def test_defaults_match_the_prd(world: World) -> None:
             "sensitivity": "STANDARD",
             "gaze": False,
             "books": False,
+            "screen": True,
         }
         assert exam.open_at is None and exam.duration_min is None  # drafts may leave them empty
 

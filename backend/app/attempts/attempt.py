@@ -26,6 +26,7 @@ from app.core.errors import AppError
 from app.core.storage import Storage
 from app.exams.models import Exam, ExamAssignment, ExamVersion
 from app.exams.schemas import NavigationMode
+from app.proctoring import consent
 from app.questions.student_view import StudentQuestion, from_snapshot
 from domain_core import shuffle, timer
 
@@ -147,7 +148,8 @@ async def start(
                 "TOO_LATE_TO_START",
                 "Less than 5 minutes of the window are left, so the exam can't be started.",
             )
-        # Proctored exams also need recorded consent before starting: added with TCK-1001.
+        if not await consent.accepted(session, exam.id, principal.user_id, version.snapshot):
+            raise _refuse("CONSENT_REQUIRED", "Agree to proctoring on the device check page first.")
         attempt = await _create(session, principal, exam, version, now)
 
     if attempt.status in ("SUBMITTED", "AUTO_SUBMITTED"):

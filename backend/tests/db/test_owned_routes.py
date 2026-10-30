@@ -250,8 +250,8 @@ async def _publishable_exam_url(world: World) -> str:
         return f"/api/v1/exams/{exam.id}/publish"
 
 
-async def _assigned_exam_url(world: World) -> str:
-    """A published exam assigned to `world.owner` (a student)."""
+async def _assigned_exam_url(world: World, proctored: bool = False) -> str:
+    """A published exam assigned to `world.owner` (a student); camera-proctored if asked."""
     question = await _question(world)
     start = datetime.now(UTC) - timedelta(hours=1)
     async with tenant_session(world.factory, world.owner.institution_id) as s:
@@ -281,7 +281,9 @@ async def _assigned_exam_url(world: World) -> str:
                     "run_code_enabled": True,
                     "shuffle_questions": False,
                     "shuffle_options": False,
+                    "proctoring_mode": "VIDEO" if proctored else "OFF",
                 },
+                "consent_text": "Do you agree?" if proctored else None,
             },
             content_hash="0" * 64,
         )
@@ -293,9 +295,9 @@ async def _assigned_exam_url(world: World) -> str:
         return f"/api/v1/student/exams/{exam.id}"
 
 
-def _assigned(suffix: str = "") -> Callable[[World], Awaitable[str]]:
+def _assigned(suffix: str = "", proctored: bool = False) -> Callable[[World], Awaitable[str]]:
     async def setup(world: World) -> str:
-        return f"{await _assigned_exam_url(world)}{suffix}"
+        return f"{await _assigned_exam_url(world, proctored)}{suffix}"
 
     return setup
 
@@ -770,6 +772,15 @@ OWNED_ROUTES: list[OwnedRoute] = [
     ),
     OwnedRoute("GET /api/v1/student/exams/{exam_id}", "STUDENT", _assigned_exam_url),
     OwnedRoute("POST /api/v1/student/exams/{exam_id}/attempts", "STUDENT", _assigned("/attempts")),
+    OwnedRoute(
+        "GET /api/v1/student/exams/{exam_id}/consent", "STUDENT", _assigned("/consent", True)
+    ),
+    OwnedRoute(
+        "POST /api/v1/student/exams/{exam_id}/consent",
+        "STUDENT",
+        _assigned("/consent", True),
+        body={"decision": "DECLINED"},
+    ),
     OwnedRoute("GET /api/v1/attempts/{attempt_id}", "STUDENT", _attempt_url()),
     OwnedRoute(
         "POST /api/v1/attempts/{attempt_id}/questions/{exam_question_id}/runs",

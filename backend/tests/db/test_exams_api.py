@@ -109,6 +109,7 @@ async def test_create_with_defaults(client: TestClient, world: World) -> None:
         "sensitivity": "STANDARD",
         "gaze": False,
         "books": False,
+        "screen": True,
     }
     assert exam["open_at"] is None and exam["duration_min"] is None and exam["consent_text"] is None
     assert (exam["question_count"], exam["total_points"], exam["assigned_count"]) == (0, "0", 0)

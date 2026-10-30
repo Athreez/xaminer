@@ -24,11 +24,26 @@ describe("durationText", () => {
 });
 
 describe("deviceNeeds", () => {
+  const off = { proctoring_mode: "OFF", screen_sharing: false } as const;
   it("asks for a camera only when proctored, and a bigger screen for code", () => {
-    expect(deviceNeeds({ proctoring_mode: "OFF", has_coding: false })[0]).toContain("1024 × 768");
-    expect(deviceNeeds({ proctoring_mode: "OFF", has_coding: true })[0]).toContain("1280 × 720");
-    const proctored = deviceNeeds({ proctoring_mode: "VIDEO_AUDIO", has_coding: false });
+    expect(deviceNeeds({ ...off, has_coding: false })[0]).toContain("1024 × 768");
+    expect(deviceNeeds({ ...off, has_coding: true })[0]).toContain("1280 × 720");
+    const proctored = deviceNeeds({
+      proctoring_mode: "VIDEO_AUDIO",
+      has_coding: false,
+      screen_sharing: false,
+    });
     expect(proctored[0]).toContain("camera and microphone");
     expect(proctored).toHaveLength(3);
+  });
+
+  it("says the whole screen is shared when it is", () => {
+    const needs = deviceNeeds({
+      proctoring_mode: "VIDEO",
+      has_coding: false,
+      screen_sharing: true,
+    });
+    expect(needs[1]).toContain("share your whole screen");
+    expect(needs).toHaveLength(4);
   });
 });

@@ -1450,6 +1450,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/student/exams/{exam_id}/consent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Consent
+         * @description A proctored exam's consent text and your latest answer to it (409 `NOT_PROCTORED` when the
+         *     exam isn't proctored).
+         */
+        get: operations["get_consent_api_v1_student_exams__exam_id__consent_get"];
+        put?: never;
+        /**
+         * Answer Consent
+         * @description Accept or decline the consent text (recorded, audited). Starting a proctored exam needs
+         *     your latest answer to be ACCEPTED.
+         */
+        post: operations["answer_consent_api_v1_student_exams__exam_id__consent_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/student/results": {
         parameters: {
             query?: never;
@@ -2283,6 +2309,39 @@ export interface components {
              */
             validation_status: "NEEDS_VALIDATION" | "VALIDATING" | "PASSED" | "FAILED";
         };
+        /** ConsentIn */
+        ConsentIn: {
+            /**
+             * Decision
+             * @enum {string}
+             */
+            decision: "ACCEPTED" | "DECLINED";
+        };
+        /** ConsentView */
+        ConsentView: {
+            /** Decided At */
+            decided_at: string | null;
+            /**
+             * Decision
+             * @description Your latest answer to this wording, if any
+             */
+            decision: ("ACCEPTED" | "DECLINED") | null;
+            /**
+             * Proctoring Mode
+             * @enum {string}
+             */
+            proctoring_mode: "OFF" | "VIDEO" | "VIDEO_AUDIO";
+            /**
+             * Screen Sharing
+             * @description The whole screen must be shared during the exam
+             */
+            screen_sharing: boolean;
+            /**
+             * Text
+             * @description Markdown, the wording the student answers
+             */
+            text: string;
+        };
         /** CreateUserRequest */
         CreateUserRequest: {
             /** Email */
@@ -2350,6 +2409,12 @@ export interface components {
              * @default false
              */
             gaze: boolean;
+            /**
+             * Screen
+             * @description The student shares the whole screen; screenshots are checked
+             * @default true
+             */
+            screen: boolean;
             /**
              * Sensitivity
              * @default STANDARD
@@ -2512,6 +2577,7 @@ export interface components {
              * @default {
              *       "books": false,
              *       "gaze": false,
+             *       "screen": true,
              *       "sensitivity": "STANDARD"
              *     }
              */
@@ -3978,6 +4044,12 @@ export interface components {
             question_count: number;
             /** Run Code Enabled */
             run_code_enabled: boolean;
+            /**
+             * Screen Sharing
+             * @description Proctored: the whole screen is shared during the exam
+             * @default false
+             */
+            screen_sharing: boolean;
             /**
              * Server Time
              * Format: date-time
@@ -7170,6 +7242,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AttemptView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_consent_api_v1_student_exams__exam_id__consent_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exam_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsentView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    answer_consent_api_v1_student_exams__exam_id__consent_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exam_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConsentIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsentView"];
                 };
             };
             /** @description Validation Error */

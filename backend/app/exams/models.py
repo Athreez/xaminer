@@ -25,7 +25,7 @@ NAVIGATION_MODES = ("FREE", "SEQUENTIAL")
 RELEASE_POLICIES = ("MANUAL", "ON_SUBMIT")
 COUNTED_SUBMISSIONS = ("BEST", "LAST")
 PROCTORING_MODES = ("OFF", "VIDEO", "VIDEO_AUDIO")
-DEFAULT_DETECTORS = '{"sensitivity": "STANDARD", "gaze": false, "books": false}'
+DEFAULT_DETECTORS = '{"sensitivity": "STANDARD", "gaze": false, "books": false, "screen": true}'
 
 
 class Exam(IdMixin, TenantMixin, TimestampMixin, Base):
@@ -62,7 +62,8 @@ class Exam(IdMixin, TenantMixin, TimestampMixin, Base):
     counted_submission: Mapped[str] = mapped_column(String(8), server_default="BEST")
     pass_percent: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))
     proctoring_mode: Mapped[str] = mapped_column(String(16), server_default="OFF")
-    # {"sensitivity": RELAXED|STANDARD|STRICT, "gaze": bool, "books": bool}; checked by the API.
+    # {"sensitivity": RELAXED|STANDARD|STRICT, "gaze": bool, "books": bool, "screen": bool};
+    # checked by the API. "screen": the whole screen is shared (absent in older rows: on).
     proctoring_detectors: Mapped[dict[str, Any]] = mapped_column(
         JSONB, server_default=text(f"'{DEFAULT_DETECTORS}'::jsonb")
     )

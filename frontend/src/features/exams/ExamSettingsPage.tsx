@@ -40,6 +40,7 @@ interface Form {
   sensitivity: Exam["proctoring_detectors"]["sensitivity"];
   gaze: boolean;
   books: boolean;
+  screen: boolean;
   consent_text: string;
 }
 
@@ -62,6 +63,7 @@ function formOf(exam: Exam): Form {
     sensitivity: exam.proctoring_detectors.sensitivity,
     gaze: exam.proctoring_detectors.gaze,
     books: exam.proctoring_detectors.books,
+    screen: exam.proctoring_detectors.screen ?? true,
     consent_text: exam.consent_text ?? "",
   };
 }
@@ -83,7 +85,12 @@ function body(form: Form) {
     release_policy: form.release_policy,
     pass_percent: form.pass_percent || null,
     proctoring_mode: form.proctoring_mode,
-    proctoring_detectors: { sensitivity: form.sensitivity, gaze: form.gaze, books: form.books },
+    proctoring_detectors: {
+      sensitivity: form.sensitivity,
+      gaze: form.gaze,
+      books: form.books,
+      screen: form.screen,
+    },
     consent_text: form.consent_text.trim() || null,
   };
 }
@@ -447,6 +454,13 @@ export function ExamSettingsPage() {
           checked={form.books}
           disabled={locked || form.proctoring_mode === "OFF"}
           onChange={(on) => set("books", on)}
+        />
+        <Toggle
+          id="screen"
+          label="Students share their whole screen (pictures of it are checked)"
+          checked={form.screen}
+          disabled={locked || form.proctoring_mode === "OFF"}
+          onChange={(on) => set("screen", on)}
         />
         <div id="consent_text">
           <Field
