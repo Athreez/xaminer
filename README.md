@@ -149,6 +149,16 @@ make list-institutions
 make list-languages
 ```
 
+### Sample coding questions
+
+Adds ten classic problems (LeetCode 1 to 10, retold for stdin/stdout, with public and hidden
+tests and a Python reference) to a teacher's question bank and validates them. Asks for the
+password; problems already there are skipped:
+
+```sh
+uv run --no-project --with requests python scripts/seed_coding_questions.py --email teacher@abc.edu
+```
+
 Emails in development go to Mailpit (http://localhost:8025); nothing is really sent. For real email, set
 the `SMTP_*` and `PUBLIC_BASE_URL` values in `deploy/.env` (see `.env.example`).
 
