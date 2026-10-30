@@ -36,6 +36,7 @@ export function ExamResultsPage() {
   const { exam, base } = useExam();
   const queryClient = useQueryClient();
   const [confirming, setConfirming] = useState(false);
+  const [count, setCount] = useState(0); // as it was when the dialog opened
   const key = ["exams", exam.id, "results"];
 
   const results = useQuery({
@@ -81,7 +82,13 @@ export function ExamResultsPage() {
           </p>
         </div>
         <div className="flex flex-col items-end gap-1">
-          <Button disabled={!data.can_release} onClick={() => setConfirming(true)}>
+          <Button
+            disabled={!data.can_release}
+            onClick={() => {
+              setCount(data.unreleased);
+              setConfirming(true);
+            }}
+          >
             Release results{data.unreleased > 0 && ` (${data.unreleased})`}
           </Button>
           {data.blocked_reason && (
@@ -150,9 +157,9 @@ export function ExamResultsPage() {
           <DialogHeader>
             <DialogTitle>Release results?</DialogTitle>
             <DialogDescription>
-              {data.unreleased} {data.unreleased === 1 ? "student" : "students"} will see their
-              score, feedback and coding results. Changing a score afterwards needs a reason, and
-              the student sees the change.
+              {count} {count === 1 ? "student" : "students"} will see their score, feedback and
+              coding results. Changing a score afterwards needs a reason, and the student sees the
+              change.
             </DialogDescription>
           </DialogHeader>
           {release.isError && <FormMessage tone="error">{errorText(release.error)}</FormMessage>}
