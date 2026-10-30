@@ -1598,6 +1598,12 @@ export interface components {
         AttemptItem: {
             answer: components["schemas"]["SavedAnswer"] | null;
             /**
+             * Drafts
+             * @description Coding questions: saved code per language, newest first
+             * @default []
+             */
+            drafts: components["schemas"]["SavedDraft"][];
+            /**
              * Exam Question Id
              * Format: uuid
              */
@@ -1616,6 +1622,12 @@ export interface components {
          * @description Everything the exam screen needs, in one response (architecture § 9).
          */
         AttemptView: {
+            /**
+             * Counted Submission
+             * @description Coding questions: which submission gives the score
+             * @enum {string}
+             */
+            counted_submission: "BEST" | "LAST";
             /**
              * Deadline At
              * Format: date-time
@@ -2894,6 +2906,20 @@ export interface components {
             selected_option_ids: string[] | null;
             /** Text Answer */
             text_answer: string | null;
+        };
+        /** SavedDraft */
+        SavedDraft: {
+            /** Client Revision */
+            client_revision: number;
+            /** Language Key */
+            language_key: string;
+            /** Source */
+            source: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
         };
         /** SetPasswordRequest */
         SetPasswordRequest: {

@@ -21,6 +21,7 @@ function item(id: string, extra: Partial<AttemptItem> = {}): AttemptItem {
     position: 1,
     marked_for_review: false,
     answer: null,
+    drafts: [],
     question: {
       id: `v-${id}`,
       type: "MCQ",
@@ -77,6 +78,7 @@ describe("restore", () => {
     });
     expect(restored.flags).toEqual({ q1: false, q2: false, q3: true });
     expect(restored.revision).toBe(7); // new changes start above what the server has
+    expect(restored.drafts).toEqual({});
   });
 });
 
@@ -146,5 +148,39 @@ describe("plainText", () => {
       "See docs and [image] [code]",
     );
     expect(plainText("a".repeat(100), 10)).toBe("aaaaaaaaa…");
+  });
+});
+
+describe("restore drafts", () => {
+  it("keeps code per language, newest language last used, device changes on top", () => {
+    const items = [
+      item("q1", {
+        drafts: [
+          {
+            language_key: "cpp17",
+            source: "int main(){}",
+            client_revision: 9,
+            updated_at: "2026-11-01T10:05:00Z",
+          },
+          {
+            language_key: "python312",
+            source: "print(1)",
+            client_revision: 4,
+            updated_at: "2026-11-01T10:00:00Z",
+          },
+        ],
+      }),
+    ];
+    const pending = [
+      entry("draft", "q1:python312", {
+        exam_question_id: "q1",
+        language_key: "python312",
+        source: "print(2)",
+      }),
+    ];
+    const restored = restore(items, pending);
+    expect(restored.drafts).toEqual({ q1: { cpp17: "int main(){}", python312: "print(2)" } });
+    expect(restored.lastLanguage).toEqual({ q1: "python312" }); // changed on this device last
+    expect(restored.revision).toBe(9);
   });
 });

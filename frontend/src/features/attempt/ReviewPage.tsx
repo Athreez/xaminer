@@ -22,6 +22,7 @@ export interface ReviewRow {
   item: AttemptItem;
   state: NavState;
   open: boolean;
+  submitted?: boolean;
 }
 
 /**
@@ -48,8 +49,7 @@ export function ReviewPage({
 
   const unanswered = rows.filter((r) => r.state === "not-answered" || r.state === "not-visited");
   const marked = rows.filter((r) => r.state === "marked" || r.state === "answered-marked");
-  // Coding submissions arrive with E09; until then every coding question counts here.
-  const coding = rows.filter((r) => r.item.question.type === "CODING");
+  const coding = rows.filter((r) => r.item.question.type === "CODING" && !r.submitted);
   const answered = rows.filter(
     (r) => r.state === "answered" || r.state === "answered-marked",
   ).length;

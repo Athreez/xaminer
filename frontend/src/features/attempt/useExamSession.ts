@@ -21,6 +21,8 @@ import { Uploader, type Status } from "./sync/uploader";
 const HEARTBEAT_MS = 15_000;
 /** Typing is written to the device after this pause (each choice click is written at once). */
 const TEXT_DEBOUNCE_MS = 300;
+/** Code is written to the device after this pause in typing. */
+const CODE_DEBOUNCE_MS = 800;
 /** At time up, submitting is retried this often until it gets through. */
 const SUBMIT_RETRY_MS = 5_000;
 /** At time up, submitting waits until this long past the deadline by the server's clock. */
@@ -44,6 +46,11 @@ export interface ExamSession {
   dismissExtension: () => void;
   setAnswer: (examQuestionId: string, value: AnswerValue, typing?: boolean) => void;
   setFlag: (examQuestionId: string, marked: boolean) => void;
+  /** Coding questions: saved code per language, and the language last used. */
+  drafts: Record<string, Record<string, string>>;
+  lastLanguage: Record<string, string>;
+  /** Keep code for one language (written to the device after a short pause, then uploaded). */
+  setDraft: (examQuestionId: string, languageKey: string, source: string) => void;
   /** Write what's typed and try to send everything now; resolves with what's still unsent. */
   sendAll: () => Promise<Status>;
   /** Submit the exam. Throws if the server can't be reached (nothing is lost: try again). */
@@ -76,7 +83,10 @@ export function useExamSession(view: AttemptView, clock: ServerClock): ExamSessi
   const [lost, setLost] = useState(0);
 
   const tools = useRef<{ outbox: Outbox; uploader: Uploader } | null>(null);
-  const typing = useRef(new Map<string, { timer: number; value: AnswerValue }>());
+  const [drafts, setDrafts] = useState<Record<string, Record<string, string>>>({});
+  const [lastLanguage, setLastLanguage] = useState<Record<string, string>>({});
+  // Typing not yet written to the device: answers and code, each written after a short pause.
+  const typing = useRef(new Map<string, { timer: number; write: () => Promise<void> }>());
   const unsent = useRef(0);
   const locked = useRef(false);
   const finished = useRef(false); // submitted: stop heartbeats and uploads
@@ -111,17 +121,43 @@ export function useExamSession(view: AttemptView, clock: ServerClock): ExamSessi
     [attemptId, flush],
   );
 
+  const writeDraft = useCallback(
+    async (examQuestionId: string, languageKey: string, source: string) => {
+      const outbox = tools.current?.outbox;
+      if (!outbox) return;
+      await outbox.put(attemptId, "draft", `${examQuestionId}:${languageKey}`, {
+        exam_question_id: examQuestionId,
+        language_key: languageKey,
+        source,
+      });
+      setSave((s) => (s.state === "saved" ? { ...s, state: "saving", unsent: s.unsent + 1 } : s));
+      void flush();
+    },
+    [attemptId, flush],
+  );
+
+  /** Write `run` after a pause in typing (a newer change to the same `key` replaces it). */
+  const later = useCallback((key: string, run: () => Promise<void>, delayMs: number) => {
+    const waiting = typing.current.get(key);
+    if (waiting) window.clearTimeout(waiting.timer);
+    const timer = window.setTimeout(() => {
+      typing.current.delete(key);
+      void run();
+    }, delayMs);
+    typing.current.set(key, { timer, write: run });
+  }, []);
+
   // Typing not yet written goes to the device now (leaving the page, submitting, time up).
   const writePending = useCallback(async () => {
-    const waiting = [...typing.current];
+    const waiting = [...typing.current.values()];
     typing.current.clear();
     await Promise.all(
-      waiting.map(([id, { timer, value }]) => {
+      waiting.map(({ timer, write: run }) => {
         window.clearTimeout(timer);
-        return write(id, value);
+        return run();
       }),
     );
-  }, [write]);
+  }, []);
 
   // Declared before the outbox effect so that, on leaving the page, typing is written before
   // the outbox closes (React cleans up effects in order).
@@ -153,6 +189,8 @@ export function useExamSession(view: AttemptView, clock: ServerClock): ExamSessi
         };
         setAnswers(restored.answers);
         setFlags(restored.flags);
+        setDrafts(restored.drafts);
+        setLastLanguage(restored.lastLanguage);
         // Changes left from last time are unsent until the uploader says otherwise.
         if (pending.length) setSave({ state: "saving", unsent: pending.length, refused: 0 });
         setReady(true);
@@ -313,20 +351,34 @@ export function useExamSession(view: AttemptView, clock: ServerClock): ExamSessi
     (examQuestionId: string, value: AnswerValue, isTyping = false) => {
       if (locked.current) return;
       setAnswers((all) => ({ ...all, [examQuestionId]: value }));
-      const waiting = typing.current.get(examQuestionId);
-      if (waiting) window.clearTimeout(waiting.timer);
+      const key = `answer:${examQuestionId}`;
       if (!isTyping) {
-        typing.current.delete(examQuestionId);
+        const waiting = typing.current.get(key);
+        if (waiting) window.clearTimeout(waiting.timer);
+        typing.current.delete(key);
         void write(examQuestionId, value);
         return;
       }
-      const timer = window.setTimeout(() => {
-        typing.current.delete(examQuestionId);
-        void write(examQuestionId, value);
-      }, TEXT_DEBOUNCE_MS);
-      typing.current.set(examQuestionId, { timer, value });
+      later(key, () => write(examQuestionId, value), TEXT_DEBOUNCE_MS);
     },
-    [write],
+    [write, later],
+  );
+
+  const setDraft = useCallback(
+    (examQuestionId: string, languageKey: string, source: string) => {
+      if (locked.current) return;
+      setDrafts((all) => ({
+        ...all,
+        [examQuestionId]: { ...all[examQuestionId], [languageKey]: source },
+      }));
+      setLastLanguage((all) => ({ ...all, [examQuestionId]: languageKey }));
+      later(
+        `draft:${examQuestionId}:${languageKey}`,
+        () => writeDraft(examQuestionId, languageKey, source),
+        CODE_DEBOUNCE_MS,
+      );
+    },
+    [writeDraft, later],
   );
 
   const setFlag = useCallback(
@@ -354,6 +406,9 @@ export function useExamSession(view: AttemptView, clock: ServerClock): ExamSessi
     dismissExtension: () => setExtendedBy(null),
     setAnswer,
     setFlag,
+    drafts,
+    lastLanguage,
+    setDraft,
     sendAll,
     submit,
     receipt,

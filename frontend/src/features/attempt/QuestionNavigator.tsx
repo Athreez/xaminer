@@ -10,6 +10,7 @@ export interface NavItem {
   number: number;
   state: NavState;
   open: boolean; // false: sequential exam, already passed
+  submitted?: boolean; // coding: at least one submission (writing code isn't submitting)
 }
 
 /**
@@ -66,7 +67,10 @@ export function QuestionNavigator({
               tabIndex={i === current ? 0 : -1}
               disabled={!item.open}
               aria-current={i === current ? "step" : undefined}
-              aria-label={navLabel(item.number, item.state, !item.open)}
+              aria-label={
+                navLabel(item.number, item.state, !item.open) +
+                (item.submitted ? ", code submitted" : "")
+              }
               onClick={() => onOpen(i)}
               onKeyDown={(e) => move(e, i)}
               className={cn(
@@ -80,6 +84,14 @@ export function QuestionNavigator({
               <span className={cn("relative", filled(item.state) && "text-primary-foreground")}>
                 {item.number}
               </span>
+              {item.submitted && (
+                <span
+                  aria-hidden
+                  className="bg-success absolute -top-1 -right-1 grid size-3.5 place-items-center rounded-full text-[9px] leading-none text-white"
+                >
+                  ✓
+                </span>
+              )}
             </button>
           </li>
         ))}

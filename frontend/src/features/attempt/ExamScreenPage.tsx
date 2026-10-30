@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import { ArrowLeft, ArrowRight, ClipboardCheck, Flag, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router";
@@ -17,8 +17,10 @@ import { unwrap } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 import { ReceiptView, SessionExpiredDialog, TimeUpDialog } from "./ExamEnd";
+import { CodingPanel } from "./coding/CodingPanel";
+import { fetchHistory, historyKey } from "./coding/lib";
 import { ExamHeader } from "./ExamHeader";
-import { canOpen, isAnswered, navState, type AttemptView } from "./lib";
+import { canOpen, isAnswered, navState, type AttemptItem, type AttemptView } from "./lib";
 import { QuestionNavigator, type NavItem } from "./QuestionNavigator";
 import { ReviewPage } from "./ReviewPage";
 import { ServerClock } from "./sync/clock";
@@ -74,6 +76,7 @@ function ExamScreen({ view, clock }: { view: AttemptView; clock: ServerClock }) 
   const sequential = view.navigation_mode === "SEQUENTIAL";
   const items = view.questions;
   const position = usePosition(view.id, items.length);
+  const wide = useWideScreen();
   const { current, furthest, visited, open } = position;
 
   // First time on this device (e.g. resumed on another computer): carry on from the last
@@ -90,14 +93,35 @@ function ExamScreen({ view, clock }: { view: AttemptView; clock: ServerClock }) 
   }, [ready, items, answers, flags, open]);
 
   const item = items[current];
+  // Coding questions: "answered" once code is written; a tick once a submission exists (§ 6.4).
+  const codingIds = items
+    .filter((q) => q.question.type === "CODING")
+    .map((q) => q.exam_question_id);
+  const histories = useQueries({
+    queries: codingIds.map((eq) => ({
+      queryKey: historyKey(view.id, eq),
+      queryFn: () => fetchHistory(view.id, eq),
+      staleTime: 30_000,
+    })),
+  });
+  const submitted = new Set(
+    codingIds.filter((_, i) => (histories[i]?.data?.submissions.length ?? 0) > 0),
+  );
+  const wroteCode = (q: AttemptItem) =>
+    Object.entries(session.drafts[q.exam_question_id] ?? {}).some(
+      ([key, code]) =>
+        code.trim() !== "" &&
+        code !== q.question.coding?.languages.find((l) => l.key === key)?.starter_code,
+    );
   const navItems: NavItem[] = items.map((q, i) => ({
     number: i + 1,
     state: navState(
-      isAnswered(answers[q.exam_question_id]),
+      q.question.type === "CODING" ? wroteCode(q) : isAnswered(answers[q.exam_question_id]),
       Boolean(flags[q.exam_question_id]),
       visited.has(i),
     ),
     open: canOpen(sequential, i, furthest),
+    submitted: submitted.has(q.exam_question_id),
   }));
 
   if (session.storageError) {
@@ -126,6 +150,7 @@ function ExamScreen({ view, clock }: { view: AttemptView; clock: ServerClock }) 
   }
 
   const locked = session.ended !== null;
+  const coding = item.question.type === "CODING";
   const id = item.exam_question_id;
   const answered = isAnswered(answers[id]);
   const last = current === items.length - 1;
@@ -156,6 +181,7 @@ function ExamScreen({ view, clock }: { view: AttemptView; clock: ServerClock }) 
             item: q,
             state: navItems[i]!.state,
             open: navItems[i]!.open,
+            submitted: submitted.has(q.exam_question_id),
           }))}
           session={session}
           onBack={() => setReviewing(false)}
@@ -165,7 +191,12 @@ function ExamScreen({ view, clock }: { view: AttemptView; clock: ServerClock }) 
           }}
         />
       ) : (
-        <div className="mx-auto flex w-full max-w-6xl flex-1 gap-6 p-5">
+        <div
+          className={cn(
+            "mx-auto flex w-full flex-1 gap-6 p-5",
+            coding ? "max-w-[1680px]" : "max-w-6xl",
+          )}
+        >
           <aside className="w-60 shrink-0">
             <div className="bg-card rounded-2xl border p-4">
               <QuestionNavigator
@@ -204,19 +235,32 @@ function ExamScreen({ view, clock }: { view: AttemptView; clock: ServerClock }) 
                 </span>
               </header>
 
-              <MarkdownView text={item.question.body} />
-
-              <div className="mt-6">
-                <AnswerControls
+              {coding ? (
+                <CodingPanel
                   key={id}
-                  question={item.question}
-                  value={answers[id] ?? NO_ANSWER}
-                  disabled={locked}
-                  onChange={(value) =>
-                    session.setAnswer(id, value, item.question.type === "DESCRIPTIVE")
-                  }
+                  attemptId={view.id}
+                  item={item}
+                  session={session}
+                  runCodeEnabled={view.run_code_enabled}
+                  countedRule={view.counted_submission}
+                  wide={wide}
                 />
-              </div>
+              ) : (
+                <>
+                  <MarkdownView text={item.question.body} />
+                  <div className="mt-6">
+                    <AnswerControls
+                      key={id}
+                      question={item.question}
+                      value={answers[id] ?? NO_ANSWER}
+                      disabled={locked}
+                      onChange={(value) =>
+                        session.setAnswer(id, value, item.question.type === "DESCRIPTIVE")
+                      }
+                    />
+                  </div>
+                </>
+              )}
 
               <footer className="mt-8 flex flex-wrap items-center gap-3 border-t pt-5">
                 {!sequential && (
@@ -228,14 +272,18 @@ function ExamScreen({ view, clock }: { view: AttemptView; clock: ServerClock }) 
                     <ArrowLeft className="size-4" /> Previous
                   </Button>
                 )}
-                <Button
-                  variant="ghost"
-                  className="mx-auto"
-                  disabled={locked || !answered || item.question.type === "CODING"}
-                  onClick={() => session.setAnswer(id, NO_ANSWER)}
-                >
-                  Clear answer
-                </Button>
+                {coding ? (
+                  <span className="mx-auto" />
+                ) : (
+                  <Button
+                    variant="ghost"
+                    className="mx-auto"
+                    disabled={locked || !answered}
+                    onClick={() => session.setAnswer(id, NO_ANSWER)}
+                  >
+                    Clear answer
+                  </Button>
+                )}
                 <div className="flex items-center gap-3">
                   {sequential && !last && (
                     <span className="text-muted-foreground text-xs">You can't come back</span>
@@ -434,6 +482,18 @@ function Banner({
       )}
     </div>
   );
+}
+
+/** At least 1280 px wide: the coding panel shows problem, code and results side by side. */
+function useWideScreen(): boolean {
+  const check = () => window.innerWidth >= 1280;
+  const [wide, setWide] = useState(check);
+  useEffect(() => {
+    const update = () => setWide(check());
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+  return wide;
 }
 
 function useWindowTooSmall(): boolean {

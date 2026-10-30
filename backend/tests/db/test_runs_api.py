@@ -51,7 +51,11 @@ def url(world: World, eq: uuid.UUID | None = None) -> str:
 
 async def age_runs(world: World, by: timedelta) -> None:
     async with system_session(world.factory) as s:
-        await s.execute(update(CodeRun).values(created_at=CodeRun.created_at - by))
+        await s.execute(
+            update(CodeRun)
+            .where(CodeRun.attempt_id == world.attempt_id)
+            .values(created_at=CodeRun.created_at - by)
+        )
         await s.commit()
 
 
@@ -142,7 +146,9 @@ async def test_only_allowed_languages_and_coding_questions(
 async def test_no_runs_once_time_is_up(client: TestClient, world: World) -> None:
     async with system_session(world.factory) as s:
         await s.execute(
-            update(ExamAttempt).values(
+            update(ExamAttempt)
+            .where(ExamAttempt.id == world.attempt_id)
+            .values(
                 started_at=datetime.now(UTC) - timedelta(hours=1),
                 deadline_at=datetime.now(UTC) - timedelta(seconds=10),
             )

@@ -10,14 +10,14 @@ import secrets
 import uuid
 from datetime import UTC, datetime
 from decimal import Decimal
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.attempts.models import Answer, AttemptQuestion, ExamAttempt
+from app.attempts.models import Answer, AttemptQuestion, CodeDraft, ExamAttempt
 from app.attempts.submit import finalize_if_overdue
 from app.audit.service import record
 from app.auth.tokens import Principal
@@ -36,12 +36,22 @@ class SavedAnswer(BaseModel):
     client_revision: int
 
 
+class SavedDraft(BaseModel):
+    language_key: str
+    source: str
+    client_revision: int
+    updated_at: datetime
+
+
 class AttemptItem(BaseModel):
     exam_question_id: uuid.UUID
     position: int = Field(description="1 for the first question this student sees")
     marked_for_review: bool
     question: StudentQuestion
     answer: SavedAnswer | None
+    drafts: list[SavedDraft] = Field(
+        default=[], description="Coding questions: saved code per language, newest first"
+    )
 
 
 class AttemptView(BaseModel):
@@ -57,6 +67,9 @@ class AttemptView(BaseModel):
     seconds_left: int
     navigation_mode: NavigationMode
     run_code_enabled: bool
+    counted_submission: Literal["BEST", "LAST"] = Field(
+        description="Coding questions: which submission gives the score"
+    )
     total_points: Decimal
     questions: list[AttemptItem]
 
@@ -238,6 +251,20 @@ async def view(
         a.exam_question_id: a
         for a in await session.scalars(select(Answer).where(Answer.attempt_id == attempt.id))
     }
+    drafts: dict[uuid.UUID, list[SavedDraft]] = {}
+    for d in await session.scalars(
+        select(CodeDraft)
+        .where(CodeDraft.attempt_id == attempt.id)
+        .order_by(CodeDraft.updated_at.desc())
+    ):
+        drafts.setdefault(d.exam_question_id, []).append(
+            SavedDraft(
+                language_key=d.language_key,
+                source=d.source,
+                client_revision=d.client_revision,
+                updated_at=d.updated_at,
+            )
+        )
     # Image links last until the attempt can no longer change, plus a little slack.
     image_seconds = max(60, int((attempt.deadline_at + timer.GRACE - now).total_seconds()) + 60)
     items = []
@@ -262,6 +289,7 @@ async def view(
                 )
                 if saved
                 else None,
+                drafts=drafts.get(aq.exam_question_id, []),
             )
         )
     return AttemptView(
@@ -275,6 +303,7 @@ async def view(
         seconds_left=timer.seconds_left(attempt.deadline_at, now),
         navigation_mode=snapshot["settings"]["navigation_mode"],
         run_code_enabled=snapshot["settings"]["run_code_enabled"],
+        counted_submission=snapshot["settings"].get("counted_submission", "BEST"),
         total_points=Decimal(snapshot["total_points"]),
         questions=items,
     )

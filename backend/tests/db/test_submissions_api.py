@@ -55,7 +55,9 @@ def url(world: World) -> str:
 async def earlier(world: World, by: timedelta = timedelta(seconds=6)) -> None:
     async with system_session(world.factory) as s:
         await s.execute(
-            update(CodingSubmission).values(created_at=CodingSubmission.created_at - by)
+            update(CodingSubmission)
+            .where(CodingSubmission.attempt_id == world.attempt_id)
+            .values(created_at=CodingSubmission.created_at - by)
         )
         await s.commit()
 
@@ -187,7 +189,9 @@ async def test_accepted_in_the_grace_refused_after_it(client: TestClient, world:
     async def deadline(seconds_ago: int) -> None:
         async with system_session(world.factory) as s:
             await s.execute(
-                update(ExamAttempt).values(
+                update(ExamAttempt)
+                .where(ExamAttempt.id == world.attempt_id)
+                .values(
                     started_at=datetime.now(UTC) - timedelta(hours=1),
                     deadline_at=datetime.now(UTC) - timedelta(seconds=seconds_ago),
                 )

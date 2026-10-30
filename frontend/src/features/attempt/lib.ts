@@ -17,6 +17,9 @@ export function isAnswered(answer: AnswerValue | null | undefined): boolean {
 export interface Restored {
   answers: Record<string, AnswerValue>;
   flags: Record<string, boolean>;
+  /** Coding questions: saved code per language, and the language used last. */
+  drafts: Record<string, Record<string, string>>;
+  lastLanguage: Record<string, string>;
   /** The highest revision the server already has; new changes must go above it. */
   revision: number;
 }
@@ -28,9 +31,16 @@ export interface Restored {
 export function restore(items: AttemptItem[], pending: Entry[]): Restored {
   const answers: Record<string, AnswerValue> = {};
   const flags: Record<string, boolean> = {};
+  const drafts: Record<string, Record<string, string>> = {};
+  const lastLanguage: Record<string, string> = {};
   let revision = 0;
   for (const item of items) {
     flags[item.exam_question_id] = item.marked_for_review;
+    for (const draft of item.drafts ?? []) {
+      (drafts[item.exam_question_id] ??= {})[draft.language_key] = draft.source;
+      lastLanguage[item.exam_question_id] ??= draft.language_key; // newest first
+      revision = Math.max(revision, draft.client_revision);
+    }
     if (item.answer) {
       answers[item.exam_question_id] = {
         selected_option_ids: item.answer.selected_option_ids,
@@ -47,9 +57,14 @@ export function restore(items: AttemptItem[], pending: Entry[]): Restored {
       };
     } else if (entry.kind === "flag") {
       flags[entry.target] = Boolean(entry.payload.marked);
+    } else if (entry.kind === "draft") {
+      const question = String(entry.payload.exam_question_id);
+      const language = String(entry.payload.language_key);
+      (drafts[question] ??= {})[language] = String(entry.payload.source);
+      lastLanguage[question] = language;
     }
   }
-  return { answers, flags, revision };
+  return { answers, flags, drafts, lastLanguage, revision };
 }
 
 // ----------------------------------------------------------------------------- navigator

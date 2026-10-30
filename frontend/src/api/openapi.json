@@ -475,6 +475,15 @@
               }
             ]
           },
+          "drafts": {
+            "default": [],
+            "description": "Coding questions: saved code per language, newest first",
+            "items": {
+              "$ref": "#/components/schemas/SavedDraft"
+            },
+            "title": "Drafts",
+            "type": "array"
+          },
           "exam_question_id": {
             "format": "uuid",
             "title": "Exam Question Id",
@@ -506,6 +515,15 @@
       "AttemptView": {
         "description": "Everything the exam screen needs, in one response (architecture \u00a7 9).",
         "properties": {
+          "counted_submission": {
+            "description": "Coding questions: which submission gives the score",
+            "enum": [
+              "BEST",
+              "LAST"
+            ],
+            "title": "Counted Submission",
+            "type": "string"
+          },
           "deadline_at": {
             "format": "date-time",
             "title": "Deadline At",
@@ -579,6 +597,7 @@
           "seconds_left",
           "navigation_mode",
           "run_code_enabled",
+          "counted_submission",
           "total_points",
           "questions"
         ],
@@ -3638,6 +3657,35 @@
           "client_revision"
         ],
         "title": "SavedAnswer",
+        "type": "object"
+      },
+      "SavedDraft": {
+        "properties": {
+          "client_revision": {
+            "title": "Client Revision",
+            "type": "integer"
+          },
+          "language_key": {
+            "title": "Language Key",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "language_key",
+          "source",
+          "client_revision",
+          "updated_at"
+        ],
+        "title": "SavedDraft",
         "type": "object"
       },
       "SetPasswordRequest": {

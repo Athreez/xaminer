@@ -269,7 +269,11 @@ async def test_last_submission_counts_when_the_exam_says_so(
 async def test_grading_moves_on_when_no_code_is_waiting(world: World) -> None:
     first, second = await world.submission(1), await world.submission(2)
     async with system_session(world.factory) as s:
-        await s.execute(update(ExamAttempt).values(grading_status="AWAITING_CODING"))
+        await s.execute(
+            update(ExamAttempt)
+            .where(ExamAttempt.id == world.attempt_id)
+            .values(grading_status="AWAITING_CODING")
+        )
         await s.commit()
 
     async def status() -> str:

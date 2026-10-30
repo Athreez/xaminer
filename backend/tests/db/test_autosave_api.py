@@ -345,6 +345,13 @@ async def test_code_drafts(world: World) -> None:
             )
         }
     assert drafts == {"python312": "print(2)", "cpp17": "int main(){}"}
+    # The exam screen gets them back on resume, newest first.
+    resumed = world.client.get(f"/api/v1/attempts/{attempt_id}", headers=world.me).json()
+    item = next(i for i in resumed["questions"] if i["exam_question_id"] == coding)
+    assert [(d["language_key"], d["source"], d["client_revision"]) for d in item["drafts"]] == [
+        ("cpp17", "int main(){}", 1),
+        ("python312", "print(2)", 2),
+    ]
 
     assert draft(written, "print(1)", 1).status_code == 422  # not a coding question
     assert draft(coding, "x", 3, "cobol").status_code == 422  # unknown language
