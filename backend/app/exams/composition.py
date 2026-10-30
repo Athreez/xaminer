@@ -46,6 +46,7 @@ class ExamQuestionsIn(BaseModel):
 
 
 class ExamQuestionView(BaseModel):
+    exam_question_id: uuid.UUID = Field(description="This question's place in this exam")
     question_id: uuid.UUID
     position: int = Field(description="1 for the first question")
     title: str
@@ -92,6 +93,7 @@ async def list_questions(
     ).all()
     views = [
         ExamQuestionView(
+            exam_question_id=eq.id,
             question_id=q.id,
             position=i + 1,
             title=title_of(v.body),

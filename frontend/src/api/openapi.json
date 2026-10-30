@@ -1745,6 +1745,12 @@
       },
       "ExamQuestionView": {
         "properties": {
+          "exam_question_id": {
+            "description": "This question's place in this exam",
+            "format": "uuid",
+            "title": "Exam Question Id",
+            "type": "string"
+          },
           "is_mine": {
             "title": "Is Mine",
             "type": "boolean"
@@ -1822,6 +1828,7 @@
           }
         },
         "required": [
+          "exam_question_id",
           "question_id",
           "position",
           "title",
@@ -3986,6 +3993,49 @@
           "image_urls"
         ],
         "title": "QuestionView",
+        "type": "object"
+      },
+      "ReEvaluateIn": {
+        "additionalProperties": false,
+        "properties": {
+          "exam_question_id": {
+            "format": "uuid",
+            "title": "Exam Question Id",
+            "type": "string"
+          },
+          "reason": {
+            "description": "Why; kept in the audit log and in any changed result's revision",
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "exam_question_id",
+          "reason"
+        ],
+        "title": "ReEvaluateIn",
+        "type": "object"
+      },
+      "ReEvaluation": {
+        "properties": {
+          "queued": {
+            "description": "Submissions sent to run again",
+            "title": "Queued",
+            "type": "integer"
+          },
+          "version_no": {
+            "description": "The question version whose test cases grade them",
+            "title": "Version No",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "queued",
+          "version_no"
+        ],
+        "title": "ReEvaluation",
         "type": "object"
       },
       "ReasonIn": {
@@ -8374,6 +8424,65 @@
         "summary": "Set Exam Questions",
         "tags": [
           "exams"
+        ]
+      }
+    },
+    "/api/v1/exams/{exam_id}/re-evaluate": {
+      "post": {
+        "description": "Run every submission to one coding question again, with the question's current\n(validated) test cases. 409 `NOT_VALIDATED` or `STILL_RUNNING`. Audited.",
+        "operationId": "re_evaluate_api_v1_exams__exam_id__re_evaluate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "exam_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Exam Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReEvaluateIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReEvaluation"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Re Evaluate",
+        "tags": [
+          "grading"
         ]
       }
     },

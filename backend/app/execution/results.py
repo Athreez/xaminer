@@ -87,7 +87,8 @@ async def _evaluation(session: AsyncSession, result: ExecResult) -> str:
         for q in (await snapshot_of(session, attempt))["questions"]
         if q["exam_question_id"] == str(submission.exam_question_id)
     )
-    version_id = uuid.UUID(question["version_id"])
+    # The exam's version, or the newer one a re-evaluation graded with.
+    version_id = evaluation.version_id or uuid.UUID(question["version_id"])
     config = await session.get(CodingConfig, version_id)
     cases = await all_test_cases(session, version_id)
     evaluation.image_digest = result.image_digest
@@ -107,7 +108,7 @@ async def _evaluation(session: AsyncSession, result: ExecResult) -> str:
             None,
         )
         submission.status = "FAILED"
-        await after_evaluation(session, submission, attempt, question)
+        await after_evaluation(session, submission, attempt, question, reason=evaluation.reason)
         return "failed"
 
     outcomes: list[tuple[int, CaseOutcome]] = []
@@ -140,7 +141,7 @@ async def _evaluation(session: AsyncSession, result: ExecResult) -> str:
     evaluation.passed_weight, evaluation.total_weight = graded.passed_weight, graded.total_weight
     evaluation.score, evaluation.max_score = graded.score, points
     submission.status = "EVALUATED"
-    await after_evaluation(session, submission, attempt, question)
+    await after_evaluation(session, submission, attempt, question, reason=evaluation.reason)
     return "evaluated"
 
 
@@ -149,10 +150,13 @@ async def after_evaluation(
     submission: CodingSubmission,
     attempt: ExamAttempt,
     question: dict[str, Any],
+    *,
+    reason: str | None = None,
 ) -> None:
+    """`reason`: a re-evaluation's, kept in the revision if a released score changes."""
     await session.flush()
     await recount(session, attempt, submission.exam_question_id)
-    await refresh(session, attempt)
+    await refresh(session, attempt, reason=reason)
 
 
 async def recount(session: AsyncSession, attempt: ExamAttempt, exam_question_id: uuid.UUID) -> None:

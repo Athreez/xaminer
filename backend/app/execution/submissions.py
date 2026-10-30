@@ -116,7 +116,8 @@ async def view(
                 select(TestCaseResult).where(TestCaseResult.evaluation_id == evaluation.id)
             )
         )
-        public = {c.id: c for c in await public_examples(session, version_id)}
+        graded_with = evaluation.version_id or version_id  # a re-evaluation may use a newer one
+        public = {c.id: c for c in await public_examples(session, graded_with)}
         place = await positions(session, [r.test_case_id for r in results])
         for r in sorted(results, key=lambda r: place.get(r.test_case_id, 0)):
             shown = public.get(r.test_case_id)
@@ -246,10 +247,12 @@ async def job_for(
     language_key: str,
     source: str,
     job_id: str,
+    version_id: uuid.UUID | None = None,
 ) -> ExecJob:
     """The grading job for this code on every test case (also used to send a stuck job again,
-    with a fresh bundle link)."""
-    version_id = uuid.UUID(question["version_id"])
+    with a fresh bundle link). `version_id`: grade with another version's test cases than the
+    exam's (a re-evaluation after a fix)."""
+    version_id = version_id or uuid.UUID(question["version_id"])
     config = await session.scalar(
         select(CodingConfig).where(CodingConfig.version_id == version_id).with_for_update()
     )

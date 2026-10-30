@@ -163,6 +163,7 @@ async def _job_again(
         language_key=submission.language_key,
         source=submission.source,
         job_id=str(evaluation.id),
+        version_id=evaluation.version_id,
     )
 
 

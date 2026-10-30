@@ -732,6 +732,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/exams/{exam_id}/re-evaluate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Re Evaluate
+         * @description Run every submission to one coding question again, with the question's current
+         *     (validated) test cases. 409 `NOT_VALIDATED` or `STILL_RUNNING`. Audited.
+         */
+        post: operations["re_evaluate_api_v1_exams__exam_id__re_evaluate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/exams/{exam_id}/results": {
         parameters: {
             query?: never;
@@ -2304,6 +2325,12 @@ export interface components {
         };
         /** ExamQuestionView */
         ExamQuestionView: {
+            /**
+             * Exam Question Id
+             * Format: uuid
+             * @description This question's place in this exam
+             */
+            exam_question_id: string;
             /** Is Mine */
             is_mine: boolean;
             /** Negative Marks */
@@ -3165,6 +3192,32 @@ export interface components {
              * @enum {string}
              */
             visibility: "PRIVATE" | "INSTITUTION";
+        };
+        /** ReEvaluateIn */
+        ReEvaluateIn: {
+            /**
+             * Exam Question Id
+             * Format: uuid
+             */
+            exam_question_id: string;
+            /**
+             * Reason
+             * @description Why; kept in the audit log and in any changed result's revision
+             */
+            reason: string;
+        };
+        /** ReEvaluation */
+        ReEvaluation: {
+            /**
+             * Queued
+             * @description Submissions sent to run again
+             */
+            queued: number;
+            /**
+             * Version No
+             * @description The question version whose test cases grade them
+             */
+            version_no: number;
         };
         /** ReasonIn */
         ReasonIn: {
@@ -5323,6 +5376,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ExamQuestions"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    re_evaluate_api_v1_exams__exam_id__re_evaluate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exam_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReEvaluateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReEvaluation"];
                 };
             };
             /** @description Validation Error */

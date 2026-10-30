@@ -513,9 +513,12 @@ def _draft_with_question_url(suffix: str) -> Callable[[World], Awaitable[str]]:
     return setup
 
 
-def _graded_url(path: str, released: bool = True) -> Callable[[World], Awaitable[str]]:
+def _graded_url(
+    path: str, released: bool = True, kind: str = "DESCRIPTIVE"
+) -> Callable[[World], Awaitable[str]]:
     """An ended, fully graded attempt with its result. A TEACHER `world.owner` owns the exam; a
-    STUDENT one took it. `path` takes {exam}, {attempt} and {question} (the written question)."""
+    STUDENT one took it. `path` takes {exam}, {attempt} and {question}: one question of `kind`
+    (a CODING one is validated)."""
 
     async def setup(world: World) -> str:
         start = datetime.now(UTC) - timedelta(hours=2)
@@ -527,18 +530,21 @@ def _graded_url(path: str, released: bool = True) -> Callable[[World], Awaitable
             teacher, student = (
                 (world.owner, other) if world.owner.role == "TEACHER" else (other, world.owner)
             )
-            question = Question(owner_id=teacher.id, type="DESCRIPTIVE")
+            question = Question(owner_id=teacher.id, type=kind)
             s.add(question)
             await s.flush()
-            s.add(
-                QuestionVersion(
-                    question_id=question.id,
-                    version_no=1,
-                    body="Explain.",
-                    points=5,
-                    created_by=teacher.id,
-                )
+            qv = QuestionVersion(
+                question_id=question.id,
+                version_no=1,
+                body="Explain.",
+                points=5,
+                created_by=teacher.id,
             )
+            s.add(qv)
+            await s.flush()
+            question.current_version_id = qv.id
+            if kind == "CODING":
+                s.add(CodingConfig(version_id=qv.id, validation_status="PASSED"))
             exam = Exam(
                 owner_id=teacher.id,
                 title="Graded exam",
@@ -558,7 +564,9 @@ def _graded_url(path: str, released: bool = True) -> Callable[[World], Awaitable
                 "questions": [
                     {
                         "exam_question_id": str(eq.id),
-                        "type": "DESCRIPTIVE",
+                        "question_id": str(question.id),
+                        "version_id": str(qv.id),
+                        "type": kind,
                         "points": "5",
                         "body": "Explain.",
                         "options": [],
@@ -605,9 +613,15 @@ def _graded_url(path: str, released: bool = True) -> Callable[[World], Awaitable
                 )
             )
             await s.commit()
+            world.notes["re_evaluate_question"] = str(eq.id)
             return "/api/v1" + path.format(exam=exam.id, attempt=attempt.id, question=eq.id)
 
     return setup
+
+
+async def _re_evaluate_body(world: World) -> dict[str, Any]:
+    """The exam's one question, read back from the URL the setup made."""
+    return {"exam_question_id": world.notes["re_evaluate_question"], "reason": "Fixed a test"}
 
 
 USERS = "/api/v1/users/{user_id}"
@@ -802,6 +816,12 @@ OWNED_ROUTES: list[OwnedRoute] = [
         "TEACHER",
         _graded_url("/attempts/{attempt}/answers/{question}/mark"),
         body={"score": "4", "reason": "Re-read"},
+    ),
+    OwnedRoute(
+        "POST /api/v1/exams/{exam_id}/re-evaluate",
+        "TEACHER",
+        _graded_url("/exams/{exam}/re-evaluate", kind="CODING"),
+        make_body=_re_evaluate_body,
     ),
     OwnedRoute(
         "GET /api/v1/student/results/{attempt_id}",

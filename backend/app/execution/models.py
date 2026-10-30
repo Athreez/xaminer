@@ -128,6 +128,12 @@ class CodingEvaluation(IdMixin, TenantMixin, Base):
     sent_at: Mapped[datetime] = mapped_column(server_default=func.now())
     started_at: Mapped[datetime | None]
     starts: Mapped[int] = mapped_column(SmallInteger, server_default="0")
+    # Re-evaluation (TCK-0814): the question version whose test cases graded it, when not the
+    # exam's own (a fixed test case makes a new version), and the teacher's reason.
+    version_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("question_version.id", ondelete="RESTRICT")
+    )
+    reason: Mapped[str | None] = mapped_column(Text)
 
 
 class TestCaseResult(IdMixin, TenantMixin, Base):

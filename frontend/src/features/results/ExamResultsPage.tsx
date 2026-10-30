@@ -27,6 +27,7 @@ import { errorText, formatDateTime, unwrap } from "@/lib/api";
 
 import { useExam } from "../exams/context";
 import { gradingLabel, passLabel, score } from "./lib";
+import { ReEvaluate } from "./ReEvaluate";
 
 /**
  * Every attempt's result (FRONTEND_SPEC § 5.4, PRD GRD-05, GRD-06). Release stays disabled, with
@@ -82,15 +83,18 @@ export function ExamResultsPage() {
           </p>
         </div>
         <div className="flex flex-col items-end gap-1">
-          <Button
-            disabled={!data.can_release}
-            onClick={() => {
-              setCount(data.unreleased);
-              setConfirming(true);
-            }}
-          >
-            Release results{data.unreleased > 0 && ` (${data.unreleased})`}
-          </Button>
+          <div className="flex flex-wrap justify-end gap-2">
+            <ReEvaluate examId={exam.id} />
+            <Button
+              disabled={!data.can_release}
+              onClick={() => {
+                setCount(data.unreleased);
+                setConfirming(true);
+              }}
+            >
+              Release results{data.unreleased > 0 && ` (${data.unreleased})`}
+            </Button>
+          </div>
           {data.blocked_reason && (
             <p id="release-reason" className="text-muted-foreground text-xs">
               {data.blocked_reason}
