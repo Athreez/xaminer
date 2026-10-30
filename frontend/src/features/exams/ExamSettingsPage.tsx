@@ -436,7 +436,7 @@ export function ExamSettingsPage() {
         />
         <div id="consent_text">
           <Field
-            label="Consent text (empty: the institution's default)"
+            label="Consent text (empty: the institution's default, or the standard text)"
             error={errors.consent_text}
           >
             {(props) => (

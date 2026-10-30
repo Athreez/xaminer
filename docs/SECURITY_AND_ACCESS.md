@@ -366,8 +366,9 @@ described as equivalent to the deployed setup.
 6. That nothing is decided automatically: a teacher reviews every event.
 7. What happens if the student declines (they can't take that exam; contact the teacher).
 
-The accepted text's hash is stored with each consent record, so it is always known which wording a
-student agreed to.
+The standard text (`app/platform/consent.py`, checked by `tests/test_consent.py`) states all seven;
+it is used when neither the exam nor the institution has its own. The accepted text's hash is
+stored with each consent record, so it is always known which wording a student agreed to.
 
 ### 8.3 Evidence storage and access
 

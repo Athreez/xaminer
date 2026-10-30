@@ -380,7 +380,7 @@ is for display; the score always comes from the rules above.
 | Proctoring mode | Off |
 | Proctoring sensitivity | Standard |
 | Gaze detection / book detection | Off / Off |
-| Consent text | Institution default text, editable |
+| Consent text | The exam's own text, else the institution's default, else the standard text (covers § 8.2 of the security doc). Editable |
 
 Fixed for everyone (not settings): 60 s grace after the deadline, scores rounded to 2 decimals, totals never
 below 0.
@@ -517,4 +517,4 @@ result export (CSV) · question import/export · session list · plagiarism dete
 |---|---|
 | OQ-1 | Which machine hosts the final demo, and does it have a GPU? (Affects inference speed) |
 | ~~OQ-2~~ | ~~Real exam or mock exams?~~ **Decided 2026-10-24: mock exams only.** No real student data is collected; consent text and data handling are still built as specified |
-| OQ-3 | Default consent text — who writes and approves it? |
+| ~~OQ-3~~ | ~~Default consent text — who writes and approves it?~~ **Decided 2026-10-30:** Xaminer ships a standard text covering every point of SECURITY § 8.2 (`app/platform/consent.py`); an admin can replace it for the institution, a teacher for one exam |

@@ -118,8 +118,19 @@ function SettingsForm({ settings }: { settings: Settings }) {
           </Field>
           <p className="text-muted-foreground text-sm">
             Students read and accept this before a proctored exam. A teacher can set different text
-            for one exam.
+            for one exam. Empty, the standard text is used: it covers everything students must be
+            told (camera, on-device checks, images, who sees them, how long, declining).
           </p>
+          {!consent.trim() && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setConsent(settings.standard_consent_text)}
+            >
+              Start from the standard text
+            </Button>
+          )}
         </div>
 
         <Button type="submit" disabled={!changed || Boolean(daysError) || save.isPending}>

@@ -2785,6 +2785,11 @@ export interface components {
             evidence_retention_days: number;
             /** Name */
             name: string;
+            /**
+             * Standard Consent Text
+             * @description Used when neither the exam nor the institution has its own (video + audio wording, with this retention)
+             */
+            standard_consent_text: string;
             /** Timezone */
             timezone: string;
         };

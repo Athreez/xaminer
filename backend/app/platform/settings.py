@@ -16,6 +16,7 @@ from app.auth.tokens import Principal
 from app.authz.guards import require
 from app.authz.ownership import not_found
 from app.authz.permissions import P
+from app.platform.consent import standard_consent
 from app.platform.models import Institution
 
 ConsentText = Annotated[
@@ -31,6 +32,10 @@ class InstitutionSettings(BaseModel):
     )
     default_consent_text: str | None = Field(
         description="Shown before proctored exams unless the exam sets its own"
+    )
+    standard_consent_text: str = Field(
+        description="Used when neither the exam nor the institution has its own (video + audio "
+        "wording, with this retention)"
     )
 
 
@@ -49,6 +54,7 @@ def _view(institution: Institution) -> InstitutionSettings:
         timezone=institution.timezone,
         evidence_retention_days=institution.evidence_retention_days,
         default_consent_text=institution.default_consent_text,
+        standard_consent_text=standard_consent("VIDEO_AUDIO", institution.evidence_retention_days),
     )
 
 

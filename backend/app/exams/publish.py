@@ -23,6 +23,7 @@ from app.authz.ownership import get_owned
 from app.core.errors import AppError
 from app.exams import publish_check
 from app.exams.models import Exam, ExamQuestion, ExamVersion
+from app.platform.consent import standard_consent
 from app.platform.models import Institution
 from app.questions import student_view
 from app.questions.models import Question, QuestionOption, QuestionVersion
@@ -123,8 +124,10 @@ async def build_snapshot(
 
     consent = exam.consent_text
     if exam.proctoring_mode != "OFF" and not consent:
-        consent = await session.scalar(
-            select(Institution.default_consent_text).where(Institution.id == exam.institution_id)
+        # The institution's wording, else the standard text (SECURITY § 8.2).
+        institution = await session.get_one(Institution, exam.institution_id)
+        consent = institution.default_consent_text or standard_consent(
+            exam.proctoring_mode, institution.evidence_retention_days
         )
     snapshot = _plain(
         {

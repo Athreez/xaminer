@@ -14,7 +14,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.tokens import Principal
 from app.exams.models import Exam, ExamAssignment, ExamQuestion
 from app.exams.service import get_own
-from app.platform.models import Institution
 from app.questions.models import CodingConfig, Question, QuestionVersion
 from app.questions.service import title_of
 
@@ -114,18 +113,6 @@ async def check(session: AsyncSession, exam: Exam, now: datetime | None = None) 
     assigned = await session.scalar(select(func.count()).where(ExamAssignment.exam_id == exam.id))
     if not assigned:
         block("NO_STUDENTS", "Assign at least one student or group.", "assignments")
-
-    if exam.proctoring_mode != "OFF" and not exam.consent_text:
-        default = await session.scalar(
-            select(Institution.default_consent_text).where(Institution.id == exam.institution_id)
-        )
-        if not default:
-            block(
-                "NO_CONSENT_TEXT",
-                "A proctored exam needs consent text. Write it here, or set the "
-                "institution's default.",
-                "consent_text",
-            )
 
     if exam.shuffle_questions and exam.navigation_mode == "SEQUENTIAL":
         warn(

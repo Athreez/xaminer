@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from app.auth.tokens import Principal, create_access_token
 from app.db.session import SessionFactory, create_session_factory, tenant_session
-from app.exams.models import Exam
+from app.exams.models import Exam, ExamVersion
 from app.main import create_app
 from app.platform.models import Institution
 from app.users.models import User
@@ -169,11 +169,16 @@ def test_coding_question_not_validated(ready: Ready) -> None:
     assert issue["message"].startswith("Question 3 “Reverse a linked list”")
 
 
-def test_proctored_exam_needs_consent_text(ready: Ready) -> None:
-    ready.patch(proctoring_mode="VIDEO")
-    assert ready.codes() == ["NO_CONSENT_TEXT"]
-    ready.patch(consent_text="We record your webcam during the exam.")
-    assert ready.codes() == []
+async def test_proctored_exam_without_text_gets_the_standard_consent(ready: Ready) -> None:
+    ready.patch(proctoring_mode="VIDEO_AUDIO")
+    assert ready.codes() == []  # no wording of its own: the standard text is used
+    published = ready.client.post(f"{ready.url}/publish", headers=ready.me)
+    assert published.status_code == 200, published.text
+    async with tenant_session(ready.factory, ready.college.id) as s:
+        exam = await s.get_one(Exam, uuid.UUID(ready.url.rsplit("/", 1)[1]))
+        version = await s.get_one(ExamVersion, exam.published_version_id)
+    consent = version.snapshot["consent_text"]
+    assert "camera and microphone" in consent and "30 days" in consent
 
 
 async def test_institution_default_consent_text_counts(ready: Ready) -> None:

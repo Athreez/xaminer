@@ -2909,6 +2909,11 @@
             "title": "Name",
             "type": "string"
           },
+          "standard_consent_text": {
+            "description": "Used when neither the exam nor the institution has its own (video + audio wording, with this retention)",
+            "title": "Standard Consent Text",
+            "type": "string"
+          },
           "timezone": {
             "title": "Timezone",
             "type": "string"
@@ -2918,7 +2923,8 @@
           "name",
           "timezone",
           "evidence_retention_days",
-          "default_consent_text"
+          "default_consent_text",
+          "standard_consent_text"
         ],
         "title": "InstitutionSettings",
         "type": "object"
