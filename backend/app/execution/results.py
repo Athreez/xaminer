@@ -106,7 +106,7 @@ async def _evaluation(session: AsyncSession, result: ExecResult) -> str:
             None,
         )
         submission.status = "FAILED"
-        await _after(session, submission, attempt, question)
+        await after_evaluation(session, submission, attempt, question)
         return "failed"
 
     outcomes: list[tuple[int, CaseOutcome]] = []
@@ -139,11 +139,11 @@ async def _evaluation(session: AsyncSession, result: ExecResult) -> str:
     evaluation.passed_weight, evaluation.total_weight = graded.passed_weight, graded.total_weight
     evaluation.score, evaluation.max_score = graded.score, points
     submission.status = "EVALUATED"
-    await _after(session, submission, attempt, question)
+    await after_evaluation(session, submission, attempt, question)
     return "evaluated"
 
 
-async def _after(
+async def after_evaluation(
     session: AsyncSession,
     submission: CodingSubmission,
     attempt: ExamAttempt,

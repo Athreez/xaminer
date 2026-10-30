@@ -19,6 +19,7 @@ The worker never compares output or scores anything (app-worker does): this only
 
 import io
 import os
+import socket
 import tarfile
 import uuid
 from collections.abc import Iterator
@@ -70,7 +71,12 @@ class Outcome:
 
 
 def container_settings(
-    image: str, command: list[str], limits: Limits, mounts: list[Mount], runtime: str | None
+    image: str,
+    command: list[str],
+    limits: Limits,
+    mounts: list[Mount],
+    runtime: str | None,
+    owner: str = "1",
 ) -> dict[str, Any]:
     """Arguments for `containers.create`: the whole profile, in one place (inspection-tested)."""
     memory = f"{limits.memory_mb}m"
@@ -100,7 +106,7 @@ def container_settings(
         # Output is read from the engine's log, capped at 2 MB so a flood can't fill the disk. Two
         # files, not one: rotating a single file empties it, and an overflow would go unseen.
         "log_config": LogConfig(type="json-file", config={"max-size": "1m", "max-file": "2"}),
-        "labels": {LABEL: "1"},
+        "labels": {LABEL: owner},  # which worker made it, for cleaning up after a crash
         "stdin_open": False,
         "detach": True,
     }
@@ -132,9 +138,12 @@ class Workspace:
 
 
 class Sandbox:
-    def __init__(self, client: docker.DockerClient, runtime: str | None = None) -> None:
+    def __init__(
+        self, client: docker.DockerClient, runtime: str | None = None, owner: str | None = None
+    ) -> None:
         self.client = client
         self.runtime = runtime
+        self.owner = owner or socket.gethostname()
 
     @classmethod
     def from_env(cls) -> "Sandbox":
@@ -149,7 +158,7 @@ class Sandbox:
     def workspace(self) -> Iterator[Workspace]:
         """A job's volume, removed afterwards whatever happens."""
         name = f"xaminer-job-{uuid.uuid4().hex}"
-        self.client.volumes.create(name, labels={LABEL: "1"})
+        self.client.volumes.create(name, labels={LABEL: self.owner})
         try:
             yield Workspace(name)
         finally:
@@ -178,7 +187,7 @@ class Sandbox:
     ) -> Outcome:
         """Run the program on one input, in a fresh container. The workspace is read-only."""
         input_volume = f"{workspace.volume}-in-{uuid.uuid4().hex[:12]}"
-        self.client.volumes.create(input_volume, labels={LABEL: "1"})
+        self.client.volumes.create(input_volume, labels={LABEL: self.owner})
         try:
             self._fill(image, input_volume, {"stdin": stdin})
             mounts = [
@@ -194,19 +203,32 @@ class Sandbox:
         finally:
             self._remove_volume(input_volume)
 
+    def clean_up(self) -> int:
+        """Remove containers and volumes this worker left behind, e.g. after being killed
+        mid-job. Only its own: another worker's running jobs are never touched."""
+        mine: dict[str, str | list[str] | bool] = {"label": f"{LABEL}={self.owner}"}
+        removed = 0
+        for container in self.client.containers.list(all=True, filters=mine):
+            self._remove(container)
+            removed += 1
+        for volume in self.client.volumes.list(filters=mine):
+            self._remove_volume(volume.name)
+            removed += 1
+        return removed
+
     # ------------------------------------------------------------------ internals
 
     def _create(
         self, image: str, command: list[str], limits: Limits, mounts: list[Mount]
     ) -> Container:
         return self.client.containers.create(
-            **container_settings(image, command, limits, mounts, self.runtime)
+            **container_settings(image, command, limits, mounts, self.runtime, self.owner)
         )
 
     def _fill(self, image: str, volume: str, files: dict[str, bytes]) -> None:
         """Copy files into a volume through a container that is created but never started."""
         holder = self.client.containers.create(
-            image, ["true"], user=USER, network_disabled=True, labels={LABEL: "1"},
+            image, ["true"], user=USER, network_disabled=True, labels={LABEL: self.owner},
             mounts=[Mount("/input", volume, type="volume")],
         )  # fmt: skip
         try:

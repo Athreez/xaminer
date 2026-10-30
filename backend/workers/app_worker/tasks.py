@@ -170,3 +170,39 @@ async def _auto_submit(attempt_id: uuid.UUID) -> int:
         return await auto_submit(create_session_factory(engine), Storage(settings), attempt_id)
     finally:
         await engine.dispose()
+
+
+@shared_task(name="exec.started")
+def execution_started(job_id: str, kind: str) -> None:
+    """An exec-worker picked a job up: noted, so a job that never reports back can be found."""
+    asyncio.run(_with_factory(lambda factory: _started(factory, job_id, kind)))
+
+
+async def _started(factory: Any, job_id: str, kind: str) -> None:
+    from app.execution.recovery import started
+
+    await started(factory, job_id, kind)
+
+
+@shared_task(name="execution.retry_stuck")
+def retry_stuck_jobs() -> None:
+    """Every 5 minutes: send stuck submissions again; 3 starts without a result: INTERNAL_ERROR."""
+    asyncio.run(_with_factory(_sweep_stuck))
+
+
+async def _sweep_stuck(factory: Any) -> None:
+    from app.core.storage import Storage
+    from app.execution.recovery import sweep
+
+    await sweep(factory, Storage(get_settings()))
+
+
+async def _with_factory(work: Any) -> None:
+    import app.db.models  # noqa: F401  (every table, so foreign keys resolve)
+    from app.db.session import create_engine, create_session_factory
+
+    engine = create_engine(get_settings().database_url("app"))
+    try:
+        await work(create_session_factory(engine))
+    finally:
+        await engine.dispose()

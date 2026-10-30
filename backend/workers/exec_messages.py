@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 
 JOB_TASK = "exec.job"  # consumed by exec-worker on exec.validation / exec.run / exec.submit
 RESULT_TASK = "exec.result"  # consumed by app-worker on exec.results
+STARTED_TASK = "exec.started"  # exec-worker picked a job up (stuck-job recovery, TCK-0811)
 
 STDERR_KEPT = 4096  # characters of each case's stderr sent back (stdout: the sandbox's 64 KB)
 

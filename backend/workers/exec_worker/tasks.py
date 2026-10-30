@@ -5,7 +5,7 @@ from typing import Any
 from celery import shared_task
 
 from workers import queues
-from workers.exec_messages import JOB_TASK, RESULT_TASK, ExecJob
+from workers.exec_messages import JOB_TASK, RESULT_TASK, STARTED_TASK, ExecJob
 from workers.exec_worker.jobs import BundleCache, run_job
 from workers.exec_worker.sandbox import Sandbox
 
@@ -27,8 +27,15 @@ def execute(job: dict[str, Any]) -> None:
     """Run one job and send its raw results to app-worker. Safe to repeat: app-worker keeps the
     first result for a job and ignores the rest. Source code and outputs are never logged."""
     parsed = ExecJob.model_validate(job)
-    result = run_job(parsed, _sandbox(), _bundles())
     from workers.celery_app import celery
+
+    # Tell app-worker first: a job that started but never reports back is stuck (TCK-0811).
+    celery.send_task(
+        STARTED_TASK,
+        kwargs={"job_id": parsed.job_id, "kind": parsed.kind},
+        queue=queues.EXEC_RESULTS,
+    )
+    result = run_job(parsed, _sandbox(), _bundles())
 
     celery.send_task(RESULT_TASK, kwargs={"result": result.model_dump()}, queue=queues.EXEC_RESULTS)
     logger.info(

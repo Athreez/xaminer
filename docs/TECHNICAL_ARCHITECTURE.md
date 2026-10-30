@@ -300,6 +300,8 @@ IntegrityOutcome       PENDING_REVIEW | NO_CONCERNS | CONCERNS_CONFIRMED
 
 An evaluation (or a code run) is one execution job; its id is the job id. It starts `QUEUED`, and the result
 consumer only applies a result to a `QUEUED` row, so a repeated result changes nothing.
+The exec-worker reports when it starts a job; a job started 15 min ago without a result (or never
+started after an hour) is sent again every 5 min, and after 3 starts it gets `INTERNAL_ERROR`, no score.
 
 `code_run` and `coding_submission` are separate tables on purpose: different rules, different lifetimes,
 and mixing them is how hidden tests leak or debug runs get graded.

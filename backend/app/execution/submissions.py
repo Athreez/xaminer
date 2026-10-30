@@ -238,20 +238,17 @@ async def submit(
     return await view(session, submission, uuid.UUID(question["version_id"]))
 
 
-async def create(
+async def job_for(
     session: AsyncSession,
-    attempt: ExamAttempt,
+    storage: Storage,
     question: dict[str, Any],
     *,
     language_key: str,
     source: str,
-    storage: Storage,
-    now: datetime,
-    auto: bool = False,
-) -> tuple[CodingSubmission, ExecJob]:
-    """The next submission of this question, its first evaluation (QUEUED) and the job to send
-    once the caller has committed. `auto`: the last draft, submitted when the attempt ended."""
-    exam_question_id = uuid.UUID(question["exam_question_id"])
+    job_id: str,
+) -> ExecJob:
+    """The grading job for this code on every test case (also used to send a stuck job again,
+    with a fresh bundle link)."""
     version_id = uuid.UUID(question["version_id"])
     config = await session.scalar(
         select(CodingConfig).where(CodingConfig.version_id == version_id).with_for_update()
@@ -260,36 +257,8 @@ async def create(
     if config is None or language is None:
         raise AppError("INTERNAL_ERROR", "Coding setup missing.", status_code=500)
     bundle_key = config.bundle_key or await bundles.ensure(session, storage, config)
-    number = 1 + int(
-        await session.scalar(
-            select(func.coalesce(func.max(CodingSubmission.submission_no), 0)).where(
-                CodingSubmission.attempt_id == attempt.id,
-                CodingSubmission.exam_question_id == exam_question_id,
-            )
-        )
-        or 0
-    )
-    submission = CodingSubmission(
-        attempt_id=attempt.id,
-        institution_id=attempt.institution_id,
-        exam_question_id=exam_question_id,
-        submission_no=number,
-        language_key=language.key,
-        source=source,
-        created_at=now,
-        is_auto=auto,
-    )
-    session.add(submission)
-    await session.flush()
-    evaluation = CodingEvaluation(
-        submission_id=submission.id,
-        institution_id=attempt.institution_id,
-        max_score=Decimal(str(question["points"])),
-    )
-    session.add(evaluation)
-    await session.flush()
-    job = ExecJob(
-        job_id=str(evaluation.id),
+    return ExecJob(
+        job_id=job_id,
         kind="submit",
         language=LanguageSpec(
             key=language.key,
@@ -304,6 +273,59 @@ async def create(
         bundle_url=storage.internal_url(bundles.BUNDLES, bundle_key, LINK_SECONDS),
         bundle_sha256=bundle_key.rsplit("/", 1)[1].removesuffix(".tar"),
         cases="all",
+    )
+
+
+async def create(
+    session: AsyncSession,
+    attempt: ExamAttempt,
+    question: dict[str, Any],
+    *,
+    language_key: str,
+    source: str,
+    storage: Storage,
+    now: datetime,
+    auto: bool = False,
+) -> tuple[CodingSubmission, ExecJob]:
+    """The next submission of this question, its first evaluation (QUEUED) and the job to send
+    once the caller has committed. `auto`: the last draft, submitted when the attempt ended."""
+    exam_question_id = uuid.UUID(question["exam_question_id"])
+    number = 1 + int(
+        await session.scalar(
+            select(func.coalesce(func.max(CodingSubmission.submission_no), 0)).where(
+                CodingSubmission.attempt_id == attempt.id,
+                CodingSubmission.exam_question_id == exam_question_id,
+            )
+        )
+        or 0
+    )
+    submission = CodingSubmission(
+        attempt_id=attempt.id,
+        institution_id=attempt.institution_id,
+        exam_question_id=exam_question_id,
+        submission_no=number,
+        language_key=language_key,
+        source=source,
+        created_at=now,
+        is_auto=auto,
+    )
+    session.add(submission)
+    await session.flush()
+    evaluation = CodingEvaluation(
+        submission_id=submission.id,
+        institution_id=attempt.institution_id,
+        max_score=Decimal(str(question["points"])),
+        sent_at=now,
+    )
+    session.add(evaluation)
+    await session.flush()
+    job = await job_for(
+        session,
+        storage,
+        question,
+        language_key=language_key,
+        source=source,
+        job_id=str(evaluation.id),
     )
     return submission, job
 

@@ -15,6 +15,12 @@ app.conf.beat_schedule = {
         "schedule": 30.0,
         "options": {"queue": "maintenance", "expires": 25},
     },
+    # Stuck code jobs are sent again; 3 starts without a result: INTERNAL_ERROR (EXE-08).
+    "retry-stuck-jobs": {
+        "task": "execution.retry_stuck",
+        "schedule": 300.0,
+        "options": {"queue": "maintenance", "expires": 240},
+    },
     # Run Code results are kept for 24 hours (TECHNICAL_ARCHITECTURE.md § 5).
     "delete-old-runs": {
         "task": "execution.delete_old_runs",

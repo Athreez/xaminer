@@ -62,7 +62,7 @@ def test_the_engine_applies_the_whole_profile(sandbox: Sandbox, workspace: Works
     assert host["LogConfig"]["Config"]["max-size"] == "1m"
     assert config["Config"]["User"] == "10001:10001"
     assert [m["ReadOnly"] for m in host["Mounts"]] == [True]
-    assert config["Config"]["Labels"][LABEL] == "1"
+    assert config["Config"]["Labels"][LABEL] == sandbox.owner  # whose leftovers to clean up
 
 
 SUM = {

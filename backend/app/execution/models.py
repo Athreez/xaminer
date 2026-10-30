@@ -65,6 +65,7 @@ class CodeRun(IdMixin, TenantMixin, Base):
     compile_output: Mapped[str | None] = mapped_column(Text)
     results: Mapped[list[dict[str, Any]] | None] = mapped_column(JSONB(none_as_null=True))
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    started_at: Mapped[datetime | None]  # an exec-worker picked it up (TCK-0811)
     finished_at: Mapped[datetime | None]
 
 
@@ -122,6 +123,11 @@ class CodingEvaluation(IdMixin, TenantMixin, Base):
     image_digest: Mapped[str | None] = mapped_column(String(80))
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     evaluated_at: Mapped[datetime | None]
+    # Stuck-job recovery (TCK-0811): when the job was last sent, when an exec-worker last started
+    # it, and how many times it has started (3 starts without a result: INTERNAL_ERROR).
+    sent_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    started_at: Mapped[datetime | None]
+    starts: Mapped[int] = mapped_column(SmallInteger, server_default="0")
 
 
 class TestCaseResult(IdMixin, TenantMixin, Base):
