@@ -153,6 +153,21 @@ export const router = createBrowserRouter([
                 path: "publish",
                 lazy: page(() => import("@/features/exams/ExamPublishPage"), "ExamPublishPage"),
               },
+              {
+                path: "grading",
+                lazy: page(() => import("@/features/results/GradingPage"), "GradingPage"),
+              },
+              {
+                path: "results",
+                lazy: page(() => import("@/features/results/ExamResultsPage"), "ExamResultsPage"),
+              },
+              {
+                path: "results/:attemptId",
+                lazy: page(
+                  () => import("@/features/results/AttemptResultPage"),
+                  "AttemptResultPage",
+                ),
+              },
             ],
           },
         ],
@@ -183,7 +198,14 @@ export const router = createBrowserRouter([
             path: "exams/:examId/precheck",
             element: <PlaceholderPage title="Proctoring checks" ticket="TCK-1002" />,
           },
-          { path: "results", element: <PlaceholderPage title="Results" ticket="TCK-0910" /> },
+          {
+            path: "results",
+            lazy: page(() => import("@/features/results/StudentResultsPage"), "StudentResultsPage"),
+          },
+          {
+            path: "results/:attemptId",
+            lazy: page(() => import("@/features/results/StudentResultPage"), "StudentResultPage"),
+          },
         ],
       },
       {

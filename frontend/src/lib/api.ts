@@ -30,6 +30,11 @@ export function errorText(error: unknown): string {
   return body.message;
 }
 
+/** The API error's code ("REASON_REQUIRED", ...), if it is one. */
+export function errorCode(error: unknown): string | undefined {
+  return (error as ApiError | undefined)?.error?.code;
+}
+
 export function isNotFound(error: unknown): boolean {
   return (error as ApiError | undefined)?.error?.code === "NOT_FOUND";
 }
