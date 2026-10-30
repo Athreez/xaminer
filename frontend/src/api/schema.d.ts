@@ -1643,7 +1643,7 @@ export interface components {
         CodingIn: {
             /**
              * Allowed Languages
-             * @description In the order students see them
+             * @description In the order students see them. May be empty while drafting; validation needs at least one
              */
             allowed_languages: components["schemas"]["LanguageChoice"][];
             /**

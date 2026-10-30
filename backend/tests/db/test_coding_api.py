@@ -92,7 +92,6 @@ async def test_setup_is_checked(client: TestClient, world: World) -> None:
     me = await world.user()
     qid = coding(client, me)["id"]
     bad = [
-        {"allowed_languages": []},
         {"allowed_languages": [{"language_key": "cobol"}]},
         {"allowed_languages": PY + PY},
         {"time_limit_ms": 50},
@@ -104,6 +103,9 @@ async def test_setup_is_checked(client: TestClient, world: World) -> None:
     for overrides in bad:
         assert setup(client, me, qid, **overrides).status_code == 422, overrides
 
+    drafting = setup(client, me, qid, allowed_languages=[], constraints="1 <= n <= 10")
+    assert drafting.status_code == 200  # formats can be saved before choosing languages
+    assert drafting.json()["coding"]["blocks"][0] == "Choose at least one language."
     saved = setup(
         client,
         me,
@@ -120,7 +122,7 @@ async def test_setup_is_checked(client: TestClient, world: World) -> None:
         "Add at least one hidden test case.",
         "Add a reference solution in one of the allowed languages.",
     ]
-    (row,) = await world.audit("question.coding_updated")
+    row = (await world.audit("question.coding_updated"))[-1]
     assert row.changes["allowed_languages"] == {"old": [], "new": ["python312"]}
 
 

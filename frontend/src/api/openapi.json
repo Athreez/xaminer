@@ -781,12 +781,11 @@
         "description": "The whole coding setup; PUT replaces it. Limits per PRD CQ-03, CQ-06, CQ-07.",
         "properties": {
           "allowed_languages": {
-            "description": "In the order students see them",
+            "description": "In the order students see them. May be empty while drafting; validation needs at least one",
             "items": {
               "$ref": "#/components/schemas/LanguageChoice"
             },
             "maxItems": 4,
-            "minItems": 1,
             "title": "Allowed Languages",
             "type": "array"
           },

@@ -115,7 +115,9 @@ class CodingIn(BaseModel):
     output_format: Text5k = Field(default="", description="Markdown")
     constraints: Text5k = Field(default="", description="Markdown")
     allowed_languages: list[LanguageChoice] = Field(
-        min_length=1, max_length=4, description="In the order students see them"
+        max_length=4,
+        description="In the order students see them. May be empty while drafting; validation "
+        "needs at least one",
     )
     time_limit_ms: int = Field(default=2000, ge=100, le=10_000)
     memory_limit_mb: int = Field(default=256, ge=16, le=512)

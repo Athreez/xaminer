@@ -262,10 +262,10 @@ Tabs: **Problem** · **Languages & limits** · **Test cases** · **Validate**.
 
 | Tab | Contents |
 |---|---|
-| Problem | Statement, input format, output format, constraints, examples (Markdown) |
+| Problem | Statement, marks (no negative marks), input format, output format, constraints (Markdown). Examples are the public test cases |
 | Languages & limits | Checkboxes for C++17 / Java 21 / Python 3.12 / Node 22, with starter code editor per language. Time limit, memory limit, with each language's effective limit shown (multiplier). Comparison mode with a one-line explanation of each. Partial scoring, max submissions, Run Code allowed |
-| Test cases | Table: #, label, public/hidden, weight, input size, output size. Add/edit in a drawer with two text areas. "Add from examples" button. Total weight shown. Warning if no hidden case (publishing is blocked) |
-| Validate | Reference solution editor (pick language) → **Validate**. Result: per case pass/fail, time and memory, with a warning icon on any case using > 50% of the time limit. Status badge: Not validated / Passed / Failed / Needs re-validation |
+| Test cases | Table: #, public/hidden, weight, input size, output size; reorder, edit, delete. Add/edit in a dialog with two text areas. Total weight shown. Warning if no hidden case (publishing is blocked) |
+| Validate | Reference solution editor (pick language) → **Validate**. Result: per case pass/fail and time (memory shows — until it is measured), with a warning icon on any case using > 50% of the time limit. Status badge: Not validated / Validating / Passed / Failed |
 
 ### 5.4 Teacher — exams
 

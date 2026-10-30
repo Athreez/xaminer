@@ -33,6 +33,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { errorText, formatDateTime, isNotFound, unwrap } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
+import { CodingEditor } from "./coding/CodingEditor";
+
 import {
   EDITABLE_TYPES,
   fieldErrors,
@@ -117,7 +119,8 @@ function payload(draft: Draft) {
     tags: parseTags(draft.tags),
     body: draft.body,
     points: draft.points || "0",
-    negative_marks: draft.negative_marks || "0",
+    // Coding questions have no negative marks (PRD § 6.2).
+    negative_marks: draft.type === "CODING" ? "0" : draft.negative_marks || "0",
     msq_scoring: draft.type === "MSQ" ? draft.msq_scoring : null,
     max_answer_length:
       descriptive && draft.max_answer_length ? Number(draft.max_answer_length) : null,
@@ -140,6 +143,9 @@ export function QuestionEditorPage() {
           params: { path: { question_id: questionId ?? "" } },
         }),
       ),
+    // While a coding question validates, its report fills in: keep looking.
+    refetchInterval: (query) =>
+      query.state.data?.coding?.validation_status === "VALIDATING" ? 1500 : false,
   });
 
   if (!questionId) return <NewQuestion />;
@@ -151,7 +157,17 @@ export function QuestionEditorPage() {
   }
   if (!question.data.is_mine) return <SharedQuestion question={question.data} />;
   // Keyed by version so the form restarts from the saved state after a new version.
-  return <QuestionForm key={question.data.version.id} question={question.data} />;
+  const form = (
+    <QuestionForm
+      key={question.data.version.id}
+      question={question.data}
+      embedded={question.data.type === "CODING"}
+    />
+  );
+  if (question.data.type === "CODING") {
+    return <CodingEditor question={question.data} problem={form} />;
+  }
+  return form;
 }
 
 function BackLink() {
@@ -173,7 +189,7 @@ function NewQuestion() {
       <BackLink />
       <PageHeader title="New question" description="Choose the kind of question." />
       <div className="grid gap-3 sm:grid-cols-2">
-        {EDITABLE_TYPES.map((t) => (
+        {[...EDITABLE_TYPES, "CODING" as const].map((t) => (
           <button
             key={t}
             type="button"
@@ -185,9 +201,6 @@ function NewQuestion() {
           </button>
         ))}
       </div>
-      <p className="text-muted-foreground mt-4 text-sm">
-        Coding questions get their own editor with test cases; it arrives with the code runner.
-      </p>
     </section>
   );
 }
@@ -278,10 +291,13 @@ function QuestionForm({
   question,
   newType,
   onChangeType,
+  embedded = false,
 }: {
   question?: Question;
   newType?: QuestionType;
   onChangeType?: () => void;
+  /** Inside the coding editor's Problem tab, which has its own header. */
+  embedded?: boolean;
 }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -411,58 +427,61 @@ function QuestionForm({
     save.isError && Object.keys(errors).length === 0 ? errorText(save.error) : null;
   const changed = JSON.stringify(payload(draft)) !== JSON.stringify(payload(initial));
 
+  const coding = draft.type === "CODING";
   return (
-    <section className="max-w-4xl">
-      <BackLink />
-      <PageHeader
-        title={
-          <span className="flex flex-wrap items-center gap-3">
-            {question ? "Edit question" : `New ${typeLabel[draft.type].toLowerCase()} question`}
-            <Badge variant="outline">{typeLabel[draft.type]}</Badge>
-            {question?.archived_at && <Badge variant="outline">Archived</Badge>}
-          </span>
-        }
-        description={
-          version
-            ? `Version ${version.version_no} · Updated ${formatDateTime(question.updated_at)}`
-            : typeHint[draft.type]
-        }
-        actions={
-          question ? (
-            <>
-              <Button variant="outline" asChild>
-                <Link to="preview">
-                  <Eye /> Student preview
-                </Link>
-              </Button>
-              <Button
-                variant="outline"
-                disabled={archive.isPending}
-                onClick={() => archive.mutate(question.archived_at ? "restore" : "archive")}
-              >
-                {question.archived_at ? (
-                  <>
-                    <ArchiveRestore /> Restore
-                  </>
-                ) : (
-                  <>
-                    <Archive /> Archive
-                  </>
-                )}
-              </Button>
-            </>
-          ) : (
-            onChangeType && (
-              <Button variant="ghost" onClick={onChangeType}>
-                Change type
-              </Button>
+    <section className={embedded ? undefined : "max-w-4xl"}>
+      {!embedded && <BackLink />}
+      {!embedded && (
+        <PageHeader
+          title={
+            <span className="flex flex-wrap items-center gap-3">
+              {question ? "Edit question" : `New ${typeLabel[draft.type].toLowerCase()} question`}
+              <Badge variant="outline">{typeLabel[draft.type]}</Badge>
+              {question?.archived_at && <Badge variant="outline">Archived</Badge>}
+            </span>
+          }
+          description={
+            version
+              ? `Version ${version.version_no} · Updated ${formatDateTime(question.updated_at)}`
+              : typeHint[draft.type]
+          }
+          actions={
+            question ? (
+              <>
+                <Button variant="outline" asChild>
+                  <Link to="preview">
+                    <Eye /> Student preview
+                  </Link>
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={archive.isPending}
+                  onClick={() => archive.mutate(question.archived_at ? "restore" : "archive")}
+                >
+                  {question.archived_at ? (
+                    <>
+                      <ArchiveRestore /> Restore
+                    </>
+                  ) : (
+                    <>
+                      <Archive /> Archive
+                    </>
+                  )}
+                </Button>
+              </>
+            ) : (
+              onChangeType && (
+                <Button variant="ghost" onClick={onChangeType}>
+                  Change type
+                </Button>
+              )
             )
-          )
-        }
-      />
+          }
+        />
+      )}
 
       <div className="mb-4 space-y-3">
-        {version?.is_locked && (
+        {version?.is_locked && !embedded && (
           <FormMessage tone="info">
             Saving creates a new version. Published exams keep the old one.
           </FormMessage>
@@ -479,7 +498,7 @@ function QuestionForm({
         {/* Question text */}
         <div className="bg-card shadow-card space-y-3 rounded-xl border p-6">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="font-semibold">Question</h2>
+            <h2 className="font-semibold">{coding ? "Problem statement" : "Question"}</h2>
             <div className="flex gap-1" role="tablist" aria-label="Question text">
               {(["write", "preview"] as const).map((t) => (
                 <Button
@@ -723,18 +742,20 @@ function QuestionForm({
               />
             )}
           </Field>
-          <Field label="Negative marks for a wrong answer" error={errors.negative_marks}>
-            {(props) => (
-              <Input
-                {...props}
-                type="number"
-                min={0}
-                step={0.25}
-                value={draft.negative_marks}
-                onChange={(e) => set("negative_marks", e.target.value)}
-              />
-            )}
-          </Field>
+          {!coding && (
+            <Field label="Negative marks for a wrong answer" error={errors.negative_marks}>
+              {(props) => (
+                <Input
+                  {...props}
+                  type="number"
+                  min={0}
+                  step={0.25}
+                  value={draft.negative_marks}
+                  onChange={(e) => set("negative_marks", e.target.value)}
+                />
+              )}
+            </Field>
+          )}
           <Field label="Tags (comma-separated)" error={errors.tags}>
             {(props) => (
               <Input
@@ -768,7 +789,13 @@ function QuestionForm({
 
         <div className="flex gap-2">
           <Button type="submit" disabled={save.isPending || (question && !changed)}>
-            <Busy busy={save.isPending}>{question ? "Save changes" : "Create question"}</Busy>
+            <Busy busy={save.isPending}>
+              {question
+                ? "Save changes"
+                : coding
+                  ? "Create, then set up the code"
+                  : "Create question"}
+            </Busy>
           </Button>
           {question && changed && (
             <Button type="button" variant="ghost" onClick={() => setDraft(initial)}>

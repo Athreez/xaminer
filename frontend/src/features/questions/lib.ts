@@ -22,7 +22,7 @@ export function msqRule(scoring: StudentQuestion["msq_scoring"]): string {
     : "Tick every correct option: marks are given only if you tick exactly the correct ones.";
 }
 
-/** Types teachers can create here. Coding questions get their own editor (E07). */
+/** Types made with the plain question form. Coding questions add their own editor (E07). */
 export const EDITABLE_TYPES = ["MCQ", "MSQ", "TRUE_FALSE", "DESCRIPTIVE"] as const;
 
 export const typeLabel: Record<QuestionType, string> = {
@@ -38,7 +38,7 @@ export const typeHint: Record<QuestionType, string> = {
   MSQ: "2 to 10 options, one or more correct.",
   TRUE_FALSE: "Mark True or False as the correct answer.",
   DESCRIPTIVE: "A written answer, graded by hand with your rubric.",
-  CODING: "Code, run against test cases.",
+  CODING: "Students write a program; it runs against your test cases and is marked automatically.",
 };
 
 export const visibilityLabel: Record<Visibility, string> = {
