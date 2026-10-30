@@ -25,6 +25,7 @@ READERS = {
     "app/questions/coding.py",
     "app/questions/bundles.py",
     "app/execution/results.py",  # compares outputs with every expected one, to grade
+    "app/questions/validation.py",  # the same, for the teacher's reference solutions
 }
 # Build what students receive: must never get near hidden cases.
 STUDENT_FACING = {

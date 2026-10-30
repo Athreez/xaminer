@@ -60,7 +60,9 @@ async def handle(factory: SessionFactory, result: ExecResult) -> str:
         elif result.kind == "run":
             outcome = await _code_run(session, result)
         else:
-            outcome = "ignored"  # teacher validation: TCK-0705
+            from app.questions.validation import apply_result
+
+            outcome = await apply_result(session, result)
         await session.commit()
     logger.info("execution result applied", extra={"job_id": result.job_id, "outcome": outcome})
     return outcome

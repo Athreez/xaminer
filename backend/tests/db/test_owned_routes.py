@@ -532,6 +532,7 @@ OWNED_ROUTES: list[OwnedRoute] = [
         _coding_url("/reference-solutions/python312"),
         per_caller=True,
     ),
+    OwnedRoute(f"POST {QUESTIONS}/validate", "TEACHER", _coding_url("/validate")),
     OwnedRoute(f"GET {EXAMS}", "TEACHER", _exam_url()),
     OwnedRoute(f"PATCH {EXAMS}", "TEACHER", _exam_url(), body={"title": "Renamed"}),
     OwnedRoute(f"DELETE {EXAMS}", "TEACHER", _exam_url(), per_caller=True),

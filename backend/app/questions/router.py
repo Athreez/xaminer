@@ -10,7 +10,7 @@ from app.auth.tokens import Principal
 from app.authz.guards import require
 from app.authz.permissions import P
 from app.images.router import AppStorage
-from app.questions import coding, service
+from app.questions import coding, service, validation
 from app.questions.schemas import (
     CodingIn,
     LanguageView,
@@ -231,6 +231,17 @@ async def delete_reference_solution(
 ) -> QuestionView:
     question, new_version = await coding.delete_reference(db, principal, question_id, language_key)
     _new_version_header(response, new_version)
+    return await service.view(db, principal, question, storage)
+
+
+@router.post("/{question_id}/validate")
+async def validate_question(
+    question_id: uuid.UUID, principal: Writer, db: TenantDB, storage: AppStorage
+) -> QuestionView:
+    """Run your reference solutions on every test case (PRD CQ-08). Returns at once with status
+    VALIDATING; the report fills in as each language finishes. 409 `VALIDATION_BLOCKED` while
+    something is missing (the coding view's `blocks`)."""
+    question = await validation.start(db, principal, question_id, storage)
     return await service.view(db, principal, question, storage)
 
 

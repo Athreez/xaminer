@@ -123,3 +123,13 @@ def no_bundle_jobs(monkeypatch: pytest.MonkeyPatch) -> list[uuid.UUID]:
     queued: list[uuid.UUID] = []
     monkeypatch.setattr(bundles, "queue_build", queued.append)
     return queued
+
+
+@pytest.fixture(autouse=True)
+def no_exec_jobs(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, object]]:
+    """Execution jobs go to the exec-worker's queues; tests record (queue, job) instead."""
+    from app.execution import queue
+
+    sent: list[tuple[str, object]] = []
+    monkeypatch.setattr(queue, "send", lambda job, name: sent.append((name, job)))
+    return sent

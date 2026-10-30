@@ -91,6 +91,12 @@ async def build(factory: SessionFactory, storage: Storage, version_id: uuid.UUID
         return key
 
 
+async def ensure(session: AsyncSession, storage: Storage, config: CodingConfig) -> str:
+    """The bundle of this config's current test cases, built now if missing or stale. The caller
+    holds the config row (locked) and commits."""
+    return await _store(session, storage, config)
+
+
 async def _store(session: AsyncSession, storage: Storage, config: CodingConfig) -> str:
     data, digest = pack(await all_test_cases(session, config.version_id))
     key = key_for(config.institution_id, digest)
