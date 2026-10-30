@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from app.db.session import create_session_factory, tenant_session
 from app.exams.models import Exam, ExamVersion
+from app.grading.objective import grade
 from app.main import create_app
 from app.questions.models import CodingConfig
 from app.users.models import User
@@ -133,8 +134,16 @@ async def test_hidden_cases_never_reach_a_student(client: TestClient, college) -
     call("teacher preview", "GET", f"{q}/preview", t)
     preview_attempt = call("preview attempt", "POST", f"{e}/preview-attempt", t)
     call("preview resume", "GET", f"/api/v1/attempts/{preview_attempt['id']}", t)
+    call("submission history", "GET", f"{a}/questions/{eq}/submissions", me)
     call("submit", "POST", f"{a}/submit", me)
     call("receipt", "GET", f"{a}/receipt", me)
+    # Graded (the unsubmitted draft is auto-submitted outside this test: no code, scored 0),
+    # released, then everything the student sees afterwards.
+    await grade(factory, uuid.UUID(started["id"]))
+    call("release", "POST", f"{e}/results/release", t)
+    call("student results", "GET", "/api/v1/student/results", me)
+    call("student result", "GET", f"/api/v1/student/results/{started['id']}", me)
+    call("notifications", "GET", "/api/v1/notifications", me)
 
     for name, body in seen.items():
         assert HIDDEN not in body, f"hidden test case leaked in: {name}"

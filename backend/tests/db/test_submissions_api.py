@@ -132,6 +132,7 @@ async def test_five_seconds_apart(client: TestClient, world: World) -> None:
     client.post(url(world), json=CODE, headers=world.me)
     again = client.post(url(world), json=CODE, headers=world.me)
     assert again.status_code == 429 and again.json()["error"]["code"] == "SUBMIT_TOO_SOON"
+    assert 1 <= int(again.headers["Retry-After"]) <= 6  # the 5 s gap, in the standard header
     await earlier(world)
     assert client.post(url(world), json=CODE, headers=world.me).status_code == 202
 

@@ -12,7 +12,6 @@ from app.auth.dependencies import TenantDB
 from app.auth.tokens import Principal
 from app.authz.guards import require
 from app.authz.permissions import P
-from app.core.errors import AppError
 from app.exams import assignments, composition, service
 from app.exams import publish as publishing
 from app.exams import publish_check as publish_checks
@@ -154,15 +153,12 @@ async def preview_attempt(
 
 @admin_router.get("")
 async def list_exams_for_admin(
-    principal: Annotated[Principal, Depends(require(P.EXAM_READ))],
+    principal: Annotated[Principal, Depends(require(P.EXAM_LIST_ALL))],
     db: TenantDB,
     status: ExamStatus | None = None,
     q: Search = None,
     limit: Limit = 50,
     cursor: str | None = None,
 ) -> AdminExamPage:
-    """Every exam in the institution: title, owner, window and status only."""
-    # Students also hold exam:read (for their assigned exams), so this list checks the role too.
-    if principal.role != "ADMIN":
-        raise AppError("FORBIDDEN", "You don't have permission to do this.", status_code=403)
+    """Every exam in the institution: title, owner, window and status only (admins)."""
     return await service.list_for_admin(db, status=status, q=q, limit=limit, cursor=cursor)

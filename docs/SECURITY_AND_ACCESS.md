@@ -118,6 +118,7 @@ password, invited (no password yet) and deactivated accounts all get the identic
 | Permission | Admin | Teacher | Student |
 |---|---|---|---|
 | `exam:read` | inst (title, dates, status only) | own exams | assigned exams (student view only) |
+| `exam:list-all` (every exam of the institution) | inst (title, dates, status only) | — | — |
 | `exam:write` (edit, assign, publish, archive, delete) | — | own exams | — |
 | `attempt:take` (start, save, run, submit) | — | own preview attempt | own, only if assigned |
 | `attempt:read` (answers, code) | — | own exams | own |
@@ -466,15 +467,17 @@ The cleanup job counts overdue items; anything overdue is shown as an error on t
 
 ## 11. Security tests (run in CI)
 
-| Test | Checks |
-|---|---|
-| Permission declared | Every route has a permission |
-| Role matrix | Every route called as each role; result matches § 3.2 |
-| Wrong owner | Every `/{id}` route called with another user's / institution's ID → `404` |
-| Hidden test leak | Marker strings in hidden cases never appear in student responses (§ 4.2) |
-| Proctoring privacy | No student-callable route returns events, severity, confidence or evidence |
-| Late writes | Writes after deadline + grace are rejected |
-| Idempotency | Repeating start, autosave, submit, run, submit-code gives the same result |
-| Sandbox | Programs for each attack in § 7.3 produce the expected outcome and no side effects |
-| Rate limits | Limits apply and `429` has `Retry-After` |
-| Dependencies | `pip-audit` and `npm audit` fail the build on high-severity issues |
+All run in CI on every push (TCK-1401).
+
+| Test | Checks | Where |
+|---|---|---|
+| Permission declared | Every route has a permission | `tests/test_authz.py` |
+| Role matrix | Every route called as each role; result matches § 3.2 (403 without the permission, never 403 or 500 with it) | `tests/db/test_role_matrix.py` |
+| Wrong owner | Every `/{id}` route called with another user's / institution's ID → `404` | `tests/db/test_owned_routes.py` |
+| Hidden test leak | Marker strings in hidden cases never appear in student responses (§ 4.2), through to the released result | `tests/db/test_hidden_case_leak_api.py`, `tests/test_hidden_cases.py` |
+| Proctoring privacy | No student-callable route returns events, severity, confidence or evidence (checked on the API's own description, so new routes are covered) | `tests/test_proctoring_privacy.py` |
+| Late writes | Writes after deadline + grace are rejected | `test_autosave_api.py`, `test_heartbeat_api.py`, `test_submit_api.py`, `test_submissions_api.py`, `test_runs_api.py` |
+| Idempotency | Repeating start, autosave, submit, run, submit-code gives the same result (no doubles) | `test_start_attempt_api.py`, `test_autosave_api.py`, `test_submit_api.py`, `test_runs_api.py`, `test_submissions_api.py`, `test_execution_results.py` |
+| Sandbox | Programs for each attack in § 7.3 produce the expected outcome and no side effects | `tests/sandbox/` (CI runners job) |
+| Rate limits | Limits apply and `429` has `Retry-After` (login, Run, Submit) | `test_lockout_api.py`, `test_runs_api.py`, `test_submissions_api.py` |
+| Dependencies | `pip-audit` (any known vulnerability) and `npm audit` (high or critical) fail the build | CI backend and frontend jobs |

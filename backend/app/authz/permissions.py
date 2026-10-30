@@ -34,6 +34,7 @@ class Permission(StrEnum):
 
     # Exams and attempts
     EXAM_READ = "exam:read"
+    EXAM_LIST_ALL = "exam:list-all"  # every exam of the institution, metadata only (admins)
     EXAM_WRITE = "exam:write"
     ATTEMPT_TAKE = "attempt:take"
     ATTEMPT_READ = "attempt:read"
@@ -74,6 +75,7 @@ ROLE_PERMISSIONS: dict[str, frozenset[Permission]] = {
             P.INSTITUTION_SETTINGS_WRITE,
             P.AUDIT_LOG_READ,
             P.EXAM_READ,  # title, dates and status only
+            P.EXAM_LIST_ALL,
         }
     ),
     "TEACHER": frozenset(

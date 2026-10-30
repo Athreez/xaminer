@@ -108,6 +108,7 @@ async def test_one_at_a_time_and_eight_seconds_apart(
     await handle(world.factory, result_for(no_exec_jobs[0][1], [("001", "out 1")]))
     soon = client.post(url(world), json=PY, headers=world.me)
     assert soon.status_code == 429 and soon.json()["error"]["code"] == "RUN_TOO_SOON"
+    assert 1 <= int(soon.headers["Retry-After"]) <= 9  # the 8 s gap, in the standard header
     assert 1 <= soon.json()["error"]["details"][0]["retry_after_s"] <= 8
 
     await age_runs(world, timedelta(seconds=9))

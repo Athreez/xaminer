@@ -84,6 +84,13 @@ jobs:
           uv python install 3.12
           uv sync --locked
 
+      # Known vulnerabilities in what ships (SECURITY § 11): any one fails the build.
+      - name: Dependency audit
+        working-directory: backend
+        run: |
+          uv export --frozen --no-dev --no-hashes --format requirements-txt | grep -v '^-e' > /tmp/requirements.txt
+          uvx pip-audit -r /tmp/requirements.txt --no-deps --disable-pip
+
       - name: Lint
         working-directory: backend
         run: |
@@ -116,6 +123,11 @@ jobs:
       - name: Install
         working-directory: frontend
         run: npm ci
+
+      # High or critical advisories in what ships fail the build (SECURITY § 11).
+      - name: Dependency audit
+        working-directory: frontend
+        run: npm audit --omit=dev --audit-level=high
 
       - name: Lint and format
         working-directory: frontend

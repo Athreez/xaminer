@@ -69,7 +69,15 @@ class RunView(BaseModel):
 
 
 def _refuse(code: str, message: str, status_code: int = 409, **details: Any) -> AppError:
-    return AppError(code, message, status_code=status_code, details=[details] if details else None)
+    # A 429 always says how long to wait in the standard header too (SECURITY § 11).
+    wait = details.get("retry_after_s")
+    return AppError(
+        code,
+        message,
+        status_code=status_code,
+        details=[details] if details else None,
+        headers={"Retry-After": str(wait)} if wait is not None else None,
+    )
 
 
 async def _count(session: AsyncSession, attempt_id: uuid.UUID, eq_id: uuid.UUID) -> int:
