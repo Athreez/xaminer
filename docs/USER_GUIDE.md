@@ -107,6 +107,15 @@ The bell at the top shows how many are unread. Students hear about a new exam, a
 and a changed score; new exams and released results also arrive by email. Opening one marks it
 read and takes you there.
 
+## Browser checks
+
+On by default for each exam (Settings → Proctoring → Browser checks). Students see the rules on
+the instructions page. During the exam: it runs in fullscreen (the questions are hidden outside
+it), leaving the page or window is recorded, only text copied inside the exam can be pasted, and
+a second screen is noticed (Chrome and Edge). Nothing ends the exam: the teacher reviews each
+event on the attempt's page in **Results** (Dismiss or Flag), and the attempt's integrity outcome
+follows. The Monitor counts events not dismissed.
+
 ## Proctored exams
 
 Some exams use your webcam. Before starting you read and accept the consent text: what is used,

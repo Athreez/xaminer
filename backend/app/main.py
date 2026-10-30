@@ -29,6 +29,7 @@ from app.grading.router import router as grading_router
 from app.images.router import router as images_router
 from app.notifications.router import router as notifications_router
 from app.platform.settings import router as settings_router
+from app.proctoring.router import router as proctoring_router
 from app.questions.router import languages_router
 from app.questions.router import router as questions_router
 from app.results.router import router as results_router
@@ -87,6 +88,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(submissions_router, prefix=API_PREFIX)
     app.include_router(monitor_router, prefix=API_PREFIX)
     app.include_router(notifications_router, prefix=API_PREFIX)
+    app.include_router(proctoring_router, prefix=API_PREFIX)
     app.include_router(grading_router, prefix=API_PREFIX)
     app.include_router(results_router, prefix=API_PREFIX)
     # Refuse to start if any route forgot to declare who may call it (SECURITY § 3.1).

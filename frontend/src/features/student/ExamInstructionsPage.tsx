@@ -106,6 +106,27 @@ function Instructions({
         </Row>
       </dl>
 
+      {exam.browser_checks && (
+        <section className="bg-card shadow-card rounded-2xl border p-5">
+          <h2 className="mb-3 font-semibold">Exam rules</h2>
+          <ul className="list-disc space-y-1.5 pl-5 text-sm">
+            <li>
+              The exam runs in fullscreen. If you leave it, the questions are hidden until you
+              return.
+            </li>
+            <li>Stay on the exam page until you submit: don't switch to other tabs or windows.</li>
+            <li>
+              You can paste only text you copied inside this exam. Pasting from anywhere else is
+              blocked.
+            </li>
+            <li>Use one screen. A second monitor can be detected.</li>
+            <li>
+              Breaking a rule doesn't end your exam. It's recorded, and your teacher reviews it.
+            </li>
+          </ul>
+        </section>
+      )}
+
       {exam.instructions.trim() && (
         <section className="bg-card shadow-card rounded-2xl border p-5">
           <h2 className="mb-3 font-semibold">Instructions from your teacher</h2>
@@ -218,7 +239,13 @@ function StartArea({
         description={`The timer starts at ${durationText(exam.duration_min)} and keeps running even if you close the page.`}
         confirmLabel="Start"
         busy={start.isPending}
-        onConfirm={() => start.mutate()}
+        onConfirm={() => {
+          // This click is the user gesture fullscreen needs; the exam screen keeps it.
+          if (exam.browser_checks) {
+            void document.documentElement.requestFullscreen?.().catch(() => undefined);
+          }
+          start.mutate();
+        }}
       />
     </>
   );

@@ -27,6 +27,7 @@ from app.authz.ownership import get_owned, not_found
 from app.core.errors import AppError
 from app.exams.models import Exam
 from app.execution.models import CodingEvaluation, CodingSubmission
+from app.proctoring.events import EventView, of_attempt, outcome
 from app.results import notify
 from app.results.models import Result, ResultRevision
 from app.users.models import User
@@ -115,6 +116,8 @@ class AttemptResult(BaseModel):
 
 
 class TeacherAttemptResult(BaseModel):
+    """An attempt in full for its teacher, with its browser-check events (never a student's)."""
+
     attempt_id: uuid.UUID
     student_name: str
     student_email: str
@@ -124,6 +127,8 @@ class TeacherAttemptResult(BaseModel):
     result: ResultRow
     questions: list[TeacherQuestionResult]
     revisions: list[Revision]
+    events: list[EventView] = []
+    integrity_outcome: str | None = None
 
 
 class StudentResultItem(BaseModel):
@@ -265,6 +270,7 @@ async def teacher_attempt(
         raise not_found()
     attempt, student, result = found
     questions = await _questions(session, attempt, teacher=True)
+    events = await of_attempt(session, attempt.id)
     return TeacherAttemptResult(
         attempt_id=attempt.id,
         student_name=student.full_name,
@@ -275,6 +281,11 @@ async def teacher_attempt(
         result=_row(attempt, student, result),
         questions=questions,
         revisions=await _revisions(session, attempt.id),
+        events=events,
+        # From the events themselves: known before the attempt has a result (still grading).
+        integrity_outcome=await outcome(session, attempt.id)
+        if events
+        else (result.integrity_outcome if result else None),
     )
 
 

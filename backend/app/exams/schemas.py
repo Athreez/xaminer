@@ -41,6 +41,7 @@ class ExamSettings(BaseModel):
     shuffle_questions: bool = False
     shuffle_options: bool = False
     run_code_enabled: bool = True
+    browser_checks: bool = True
     release_policy: ReleasePolicy = "MANUAL"
     counted_submission: CountedSubmission = "BEST"
     pass_percent: PassPercent | None = None
@@ -69,6 +70,7 @@ class ExamUpdate(BaseModel):
     shuffle_questions: bool | None = None
     shuffle_options: bool | None = None
     run_code_enabled: bool | None = None
+    browser_checks: bool | None = None
     release_policy: ReleasePolicy | None = None
     counted_submission: CountedSubmission | None = None
     pass_percent: PassPercent | None = None
@@ -89,6 +91,7 @@ class ExamView(BaseModel):
     shuffle_questions: bool
     shuffle_options: bool
     run_code_enabled: bool
+    browser_checks: bool
     release_policy: ReleasePolicy
     counted_submission: CountedSubmission
     pass_percent: Decimal | None

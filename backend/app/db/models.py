@@ -9,6 +9,7 @@ from app.exams.models import Exam, ExamAssignment, ExamQuestion, ExamVersion
 from app.execution.models import CodeRun, CodingEvaluation, CodingSubmission, TestCaseResult
 from app.notifications.models import Notification
 from app.platform.models import Institution, Language
+from app.proctoring.models import ProctoringEvent
 from app.questions.models import (
     CodingConfig,
     Question,
@@ -39,6 +40,7 @@ __all__ = [
     "Institution",
     "Language",
     "Notification",
+    "ProctoringEvent",
     "Question",
     "QuestionOption",
     "QuestionVersion",

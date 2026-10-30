@@ -42,6 +42,16 @@ export interface Transport {
     examQuestionId: string,
     draft: { language_key: string; source: string; client_revision: number },
   ): Promise<{ saved: boolean; server_time: string }>;
+  sendEvents(attemptId: string, events: EventOut[]): Promise<void>;
+}
+
+/** A browser-check event as the API takes it. */
+export interface EventOut {
+  client_id: string;
+  kind: string;
+  occurred_at: string;
+  duration_ms?: number | null;
+  details?: Record<string, string | number | boolean>;
 }
 
 export type SaveState = "saved" | "saving" | "offline" | "failing";
@@ -145,9 +155,12 @@ export class Uploader {
       this.unsent = pending.length; // a status asked for meanwhile says "saving", not "saved"
       const answers = pending.filter((e) => e.kind === "answer").slice(0, MAX_BATCH);
       if (answers.length) await this.sendAnswers(answers);
-      for (const entry of pending.filter((e) => e.kind !== "answer")) {
+      for (const entry of pending.filter((e) => e.kind === "flag" || e.kind === "draft")) {
         await this.sendOne(entry);
       }
+      // Proctoring last, behind everything a student wrote (architecture § 9.6).
+      const events = pending.filter((e) => e.kind === "event").slice(0, MAX_BATCH);
+      if (events.length) await this.sendEvents(events);
       this.succeeded();
     } catch (error) {
       if (!(error instanceof SendError) || error.failure === "network") this.failed();
@@ -172,6 +185,18 @@ export class Uploader {
         for (const entry of batch) await this.sendAnswers([entry]);
         return;
       }
+      await this.handle(error, batch);
+    }
+  }
+
+  private async sendEvents(batch: Entry[]): Promise<void> {
+    try {
+      await this.transport.sendEvents(
+        this.attemptId,
+        batch.map((e) => e.payload as unknown as EventOut),
+      );
+      await this.outbox.confirm(batch);
+    } catch (error) {
       await this.handle(error, batch);
     }
   }
@@ -226,7 +251,10 @@ export class Uploader {
   }
 
   private async count(): Promise<void> {
-    this.unsent = (await this.outbox.pending(this.attemptId)).length;
+    // Events aren't the student's work: they never make the screen say "not saved".
+    this.unsent = (await this.outbox.pending(this.attemptId)).filter(
+      (e) => e.kind !== "event",
+    ).length;
     this.refused = (await this.outbox.rejected(this.attemptId)).length;
   }
 }

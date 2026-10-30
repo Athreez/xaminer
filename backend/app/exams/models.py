@@ -56,6 +56,8 @@ class Exam(IdMixin, TenantMixin, TimestampMixin, Base):
     shuffle_questions: Mapped[bool] = mapped_column(server_default=text("false"))
     shuffle_options: Mapped[bool] = mapped_column(server_default=text("false"))
     run_code_enabled: Mapped[bool] = mapped_column(server_default=text("true"))
+    # Fullscreen, leaving the page, pasting from outside, extra screens (recorded for review).
+    browser_checks: Mapped[bool] = mapped_column(server_default=text("true"))
     release_policy: Mapped[str] = mapped_column(String(16), server_default="MANUAL")
     counted_submission: Mapped[str] = mapped_column(String(8), server_default="BEST")
     pass_percent: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))

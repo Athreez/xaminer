@@ -26,6 +26,7 @@ from app.auth.tokens import Principal
 from app.authz.ownership import get_owned
 from app.exams.models import Exam, ExamAssignment
 from app.execution.models import CodingSubmission
+from app.proctoring.events import counts as event_counts
 from app.users.models import User
 from domain_core import timer
 
@@ -123,6 +124,7 @@ async def monitor(
         .all()
     )
 
+    events = await event_counts(session, ids)
     live_ids = [a.id for a in attempts.values() if a.status == "IN_PROGRESS"]
     beats = await redis.mget([live_key(i) for i in live_ids]) if live_ids else []
     live = {i: json.loads(b) for i, b in zip(live_ids, beats, strict=True) if b}
@@ -150,7 +152,7 @@ async def monitor(
                 connection=connection_of(last_seen, now) if in_progress else None,
                 last_seen_at=last_seen,
                 unsynced=int(beat.get("unsynced", 0)) if beat else 0,
-                event_count=0,  # proctoring events arrive with E11
+                event_count=events.get(a.id, 0) if a else 0,  # not dismissed
             )
         )
     counts: dict[str, int] = {}

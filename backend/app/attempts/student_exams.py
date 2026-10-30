@@ -62,6 +62,7 @@ class StudentExamDetail(StudentExam):
     instructions: str = Field(description="Markdown")
     navigation_mode: NavigationMode
     run_code_enabled: bool
+    browser_checks: bool = False
     has_coding: bool
     total_points: str
     server_time: datetime = Field(description="For a countdown that ignores the device's clock")
@@ -178,6 +179,7 @@ async def get_exam(
         instructions=snapshot.get("instructions", ""),
         navigation_mode=snapshot["settings"]["navigation_mode"],
         run_code_enabled=snapshot["settings"]["run_code_enabled"],
+        browser_checks=snapshot["settings"].get("browser_checks", False),
         has_coding=any(q["type"] == "CODING" for q in snapshot.get("questions", [])),
         total_points=str(snapshot.get("total_points", "0")),
         server_time=now,

@@ -678,6 +678,12 @@
       "AttemptView": {
         "description": "Everything the exam screen needs, in one response (architecture \u00a7 9).",
         "properties": {
+          "browser_checks": {
+            "default": false,
+            "description": "Fullscreen, staying on the page, pasting only from the exam",
+            "title": "Browser Checks",
+            "type": "boolean"
+          },
           "counted_submission": {
             "description": "Coding questions: which submission gives the score",
             "enum": [
@@ -1434,6 +1440,36 @@
         "title": "DashboardExam",
         "type": "object"
       },
+      "DecisionIn": {
+        "additionalProperties": false,
+        "properties": {
+          "decision": {
+            "enum": [
+              "DISMISSED",
+              "FLAGGED"
+            ],
+            "title": "Decision",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "required": [
+          "decision"
+        ],
+        "title": "DecisionIn",
+        "type": "object"
+      },
       "Detectors": {
         "additionalProperties": false,
         "description": "Proctoring detector settings (PRD \u00a7 6.5). Other detectors are always on when proctored.",
@@ -1514,6 +1550,161 @@
           "seconds_left"
         ],
         "title": "DraftResult",
+        "type": "object"
+      },
+      "EventIn": {
+        "additionalProperties": false,
+        "properties": {
+          "client_id": {
+            "format": "uuid",
+            "title": "Client Id",
+            "type": "string"
+          },
+          "details": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "default": {},
+            "maxProperties": 8,
+            "title": "Details",
+            "type": "object"
+          },
+          "duration_ms": {
+            "anyOf": [
+              {
+                "maximum": 86400000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          },
+          "kind": {
+            "enum": [
+              "FULLSCREEN_EXIT",
+              "TAB_SWITCH",
+              "PASTE_BLOCKED",
+              "MULTIPLE_SCREENS"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "client_id",
+          "kind",
+          "occurred_at"
+        ],
+        "title": "EventIn",
+        "type": "object"
+      },
+      "EventView": {
+        "properties": {
+          "decision": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decision"
+          },
+          "details": {
+            "additionalProperties": true,
+            "title": "Details",
+            "type": "object"
+          },
+          "duration_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "severity": {
+            "title": "Severity",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "occurred_at",
+          "duration_ms",
+          "details",
+          "severity",
+          "decision",
+          "note"
+        ],
+        "title": "EventView",
+        "type": "object"
+      },
+      "EventsIn": {
+        "additionalProperties": false,
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/EventIn"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Events",
+            "type": "array"
+          }
+        },
+        "required": [
+          "events"
+        ],
+        "title": "EventsIn",
         "type": "object"
       },
       "ExamAnalytics": {
@@ -1623,6 +1814,11 @@
       "ExamCreate": {
         "additionalProperties": false,
         "properties": {
+          "browser_checks": {
+            "default": true,
+            "title": "Browser Checks",
+            "type": "boolean"
+          },
           "close_at": {
             "anyOf": [
               {
@@ -2159,6 +2355,17 @@
         "additionalProperties": false,
         "description": "Only the fields sent change. After publishing only `close_at` may change (PRD EX-06).",
         "properties": {
+          "browser_checks": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Browser Checks"
+          },
           "close_at": {
             "anyOf": [
               {
@@ -2364,6 +2571,10 @@
             "title": "Assigned Count",
             "type": "integer"
           },
+          "browser_checks": {
+            "title": "Browser Checks",
+            "type": "boolean"
+          },
           "close_at": {
             "anyOf": [
               {
@@ -2533,6 +2744,7 @@
           "shuffle_questions",
           "shuffle_options",
           "run_code_enabled",
+          "browser_checks",
           "release_policy",
           "counted_submission",
           "pass_percent",
@@ -5196,6 +5408,11 @@
               }
             ]
           },
+          "browser_checks": {
+            "default": false,
+            "title": "Browser Checks",
+            "type": "boolean"
+          },
           "close_at": {
             "format": "date-time",
             "title": "Close At",
@@ -5795,15 +6012,35 @@
         "type": "object"
       },
       "TeacherAttemptResult": {
+        "description": "An attempt in full for its teacher, with its browser-check events (never a student's).",
         "properties": {
           "attempt_id": {
             "format": "uuid",
             "title": "Attempt Id",
             "type": "string"
           },
+          "events": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/EventView"
+            },
+            "title": "Events",
+            "type": "array"
+          },
           "grading_status": {
             "title": "Grading Status",
             "type": "string"
+          },
+          "integrity_outcome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Integrity Outcome"
           },
           "questions": {
             "items": {
@@ -6943,6 +7180,58 @@
         "summary": "Save Draft",
         "tags": [
           "attempts"
+        ]
+      }
+    },
+    "/api/v1/attempts/{attempt_id}/events": {
+      "post": {
+        "description": "What the exam screen noticed (left fullscreen, switched away, pasted from outside, more\nthan one screen). Safe to send again. Answers nothing about them (PRC-09).",
+        "operationId": "upload_events_api_v1_attempts__attempt_id__events_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "attempt_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Attempt Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventsIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Upload Events",
+        "tags": [
+          "proctoring"
         ]
       }
     },
@@ -9870,6 +10159,65 @@
         "summary": "Read Notification",
         "tags": [
           "notifications"
+        ]
+      }
+    },
+    "/api/v1/proctoring-events/{event_id}/decision": {
+      "put": {
+        "description": "Dismiss or flag one event of an attempt at your exam (audited). Updates the attempt's\nintegrity outcome.",
+        "operationId": "review_event_api_v1_proctoring_events__event_id__decision_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "event_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Event Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Review Event",
+        "tags": [
+          "proctoring"
         ]
       }
     },

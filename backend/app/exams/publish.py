@@ -143,6 +143,7 @@ async def build_snapshot(
                 "shuffle_questions": exam.shuffle_questions,
                 "shuffle_options": exam.shuffle_options,
                 "run_code_enabled": exam.run_code_enabled,
+                "browser_checks": exam.browser_checks,
                 "release_policy": exam.release_policy,
                 "counted_submission": exam.counted_submission,
                 "pass_percent": exam.pass_percent,

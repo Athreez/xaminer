@@ -105,6 +105,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/attempts/{attempt_id}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload Events
+         * @description What the exam screen noticed (left fullscreen, switched away, pasted from outside, more
+         *     than one screen). Safe to send again. Answers nothing about them (PRC-09).
+         */
+        post: operations["upload_events_api_v1_attempts__attempt_id__events_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/attempts/{attempt_id}/extend": {
         parameters: {
             query?: never;
@@ -1076,6 +1097,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/proctoring-events/{event_id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Review Event
+         * @description Dismiss or flag one event of an attempt at your exam (audited). Updates the attempt's
+         *     integrity outcome.
+         */
+        put: operations["review_event_api_v1_proctoring_events__event_id__decision_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/questions": {
         parameters: {
             query?: never;
@@ -1970,6 +2012,12 @@ export interface components {
          */
         AttemptView: {
             /**
+             * Browser Checks
+             * @description Fullscreen, staying on the page, pasting only from the exam
+             * @default false
+             */
+            browser_checks: boolean;
+            /**
              * Counted Submission
              * @description Coding questions: which submission gives the score
              * @enum {string}
@@ -2275,6 +2323,16 @@ export interface components {
             /** To Release */
             to_release: number;
         };
+        /** DecisionIn */
+        DecisionIn: {
+            /**
+             * Decision
+             * @enum {string}
+             */
+            decision: "DISMISSED" | "FLAGGED";
+            /** Note */
+            note?: string | null;
+        };
         /**
          * Detectors
          * @description Proctoring detector settings (PRD § 6.5). Other detectors are always on when proctored.
@@ -2323,6 +2381,65 @@ export interface components {
              */
             server_time: string;
         };
+        /** EventIn */
+        EventIn: {
+            /**
+             * Client Id
+             * Format: uuid
+             */
+            client_id: string;
+            /**
+             * Details
+             * @default {}
+             */
+            details: {
+                [key: string]: number | string | boolean;
+            };
+            /** Duration Ms */
+            duration_ms?: number | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "FULLSCREEN_EXIT" | "TAB_SWITCH" | "PASTE_BLOCKED" | "MULTIPLE_SCREENS";
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+        };
+        /** EventView */
+        EventView: {
+            /** Decision */
+            decision: string | null;
+            /** Details */
+            details: {
+                [key: string]: unknown;
+            };
+            /** Duration Ms */
+            duration_ms: number | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Note */
+            note: string | null;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /** Severity */
+            severity: string;
+        };
+        /** EventsIn */
+        EventsIn: {
+            /** Events */
+            events: components["schemas"]["EventIn"][];
+        };
         /** ExamAnalytics */
         ExamAnalytics: {
             /** Average */
@@ -2355,6 +2472,11 @@ export interface components {
         };
         /** ExamCreate */
         ExamCreate: {
+            /**
+             * Browser Checks
+             * @default true
+             */
+            browser_checks: boolean;
             /** Close At */
             close_at?: string | null;
             /**
@@ -2588,6 +2710,8 @@ export interface components {
          * @description Only the fields sent change. After publishing only `close_at` may change (PRD EX-06).
          */
         ExamUpdate: {
+            /** Browser Checks */
+            browser_checks?: boolean | null;
             /** Close At */
             close_at?: string | null;
             /** Consent Text */
@@ -2622,6 +2746,8 @@ export interface components {
         ExamView: {
             /** Assigned Count */
             assigned_count: number;
+            /** Browser Checks */
+            browser_checks: boolean;
             /** Close At */
             close_at: string | null;
             /** Consent Text */
@@ -3810,6 +3936,11 @@ export interface components {
         StudentExamDetail: {
             attempt: components["schemas"]["AttemptBrief"] | null;
             /**
+             * Browser Checks
+             * @default false
+             */
+            browser_checks: boolean;
+            /**
              * Close At
              * Format: date-time
              */
@@ -4062,15 +4193,25 @@ export interface components {
             /** Source */
             source: string;
         };
-        /** TeacherAttemptResult */
+        /**
+         * TeacherAttemptResult
+         * @description An attempt in full for its teacher, with its browser-check events (never a student's).
+         */
         TeacherAttemptResult: {
             /**
              * Attempt Id
              * Format: uuid
              */
             attempt_id: string;
+            /**
+             * Events
+             * @default []
+             */
+            events: components["schemas"]["EventView"][];
             /** Grading Status */
             grading_status: string;
+            /** Integrity Outcome */
+            integrity_outcome?: string | null;
             /** Questions */
             questions: components["schemas"]["TeacherQuestionResult"][];
             result: components["schemas"]["ResultRow"];
@@ -4527,6 +4668,39 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["DraftResult"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_events_api_v1_attempts__attempt_id__events_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EventsIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -6285,6 +6459,41 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    review_event_api_v1_proctoring_events__event_id__decision_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventView"];
+                };
             };
             /** @description Validation Error */
             422: {

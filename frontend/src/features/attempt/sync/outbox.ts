@@ -8,10 +8,11 @@
  * if what was sent is still the newest version (an edit made during the upload stays queued).
  */
 
-export type Kind = "answer" | "flag" | "draft";
+/** `event`: a browser-check event (proctoring), one entry each, sent last. */
+export type Kind = "answer" | "flag" | "draft" | "event";
 
 /** Lower sends first (architecture § 9.6: answers and drafts → heartbeat → code → proctoring). */
-export const PRIORITY: Record<Kind, number> = { answer: 0, draft: 0, flag: 0 };
+export const PRIORITY: Record<Kind, number> = { answer: 0, draft: 0, flag: 0, event: 1 };
 
 export interface Entry {
   key: string; // e.g. answer:<attemptId>:<examQuestionId>

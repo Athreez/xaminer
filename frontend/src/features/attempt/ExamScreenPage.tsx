@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { ReceiptView, SessionExpiredDialog, TimeUpDialog } from "./ExamEnd";
 import { CodingPanel } from "./coding/CodingPanel";
 import { fetchHistory, historyKey } from "./coding/lib";
+import { useBrowserChecks } from "./browserChecks";
 import { ExamHeader } from "./ExamHeader";
 import { canOpen, isAnswered, navState, type AttemptItem, type AttemptView } from "./lib";
 import { QuestionNavigator, type NavItem } from "./QuestionNavigator";
@@ -68,6 +69,11 @@ function ExamScreen({ view, clock }: { view: AttemptView; clock: ServerClock }) 
   const [user, setUser] = useState<User | null>(null);
   if (me.status === "authenticated" && me.user.id !== user?.id) setUser(me.user);
   const preview = user?.role === "TEACHER";
+  // Browser checks (when the exam has them; never on a teacher's own preview).
+  const checks = useBrowserChecks(
+    view.browser_checks && !preview && session.ended === null && !session.receipt,
+    session.recordEvent,
+  );
   const [reviewing, setReviewing] = useState(false);
   // Reopened after a reload or on another device: say so (§ 6.2).
   const [restored, setRestored] = useState(
@@ -149,6 +155,21 @@ function ExamScreen({ view, clock }: { view: AttemptView; clock: ServerClock }) 
     );
   }
 
+  if (!checks.inFullscreen) {
+    return (
+      <Centered>
+        <h1 className="text-lg font-semibold">This exam runs in fullscreen</h1>
+        <p className="text-muted-foreground mt-2 text-sm">
+          The questions come back as soon as you return to fullscreen. Time keeps running, and
+          leaving fullscreen is recorded for your teacher.
+        </p>
+        <Button className="mt-4" onClick={checks.enterFullscreen} autoFocus>
+          Return to fullscreen
+        </Button>
+      </Centered>
+    );
+  }
+
   const locked = session.ended !== null;
   const coding = item.question.type === "CODING";
   const id = item.exam_question_id;
@@ -164,6 +185,17 @@ function ExamScreen({ view, clock }: { view: AttemptView; clock: ServerClock }) 
           save={session.save}
           connection={session.connection}
         />
+        {checks.notice && (
+          <div
+            role="status"
+            className="bg-warning-soft text-warning flex items-center justify-between gap-3 border-b px-4 py-2 text-sm"
+          >
+            <span>{checks.notice}</span>
+            <Button size="sm" variant="ghost" onClick={checks.dismissNotice}>
+              OK
+            </Button>
+          </div>
+        )}
         <Banners
           session={session}
           preview={preview ? view.exam_id : null}

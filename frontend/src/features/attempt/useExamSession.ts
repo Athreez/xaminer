@@ -31,6 +31,14 @@ const SUBMIT_AFTER_DEADLINE_MS = 2_000;
 /** Why answers can't be changed any more. */
 export type Ended = "TIME_UP" | "SUBMITTED" | "AUTO_SUBMITTED" | "VOIDED";
 
+export interface BrowserEvent {
+  kind: "FULLSCREEN_EXIT" | "TAB_SWITCH" | "PASTE_BLOCKED" | "MULTIPLE_SCREENS";
+  /** When it started (ms since epoch); now by default. */
+  at?: number;
+  durationMs?: number;
+  details?: Record<string, string | number | boolean>;
+}
+
 export interface ExamSession {
   ready: boolean;
   /** Set if this browser can't keep answers on the device (the exam can't run safely). */
@@ -46,6 +54,8 @@ export interface ExamSession {
   dismissExtension: () => void;
   setAnswer: (examQuestionId: string, value: AnswerValue, typing?: boolean) => void;
   setFlag: (examQuestionId: string, marked: boolean) => void;
+  /** A browser-check event for the teacher (proctoring): queued like answers, sent last. */
+  recordEvent: (event: BrowserEvent) => void;
   /** Coding questions: saved code per language, and the language last used. */
   drafts: Record<string, Record<string, string>>;
   lastLanguage: Record<string, string>;
@@ -393,6 +403,24 @@ export function useExamSession(view: AttemptView, clock: ServerClock): ExamSessi
     [attemptId, flush],
   );
 
+  const recordEvent = useCallback(
+    (event: BrowserEvent) => {
+      if (finished.current) return;
+      const clientId = crypto.randomUUID();
+      void (async () => {
+        await tools.current?.outbox.put(attemptId, "event", clientId, {
+          client_id: clientId,
+          kind: event.kind,
+          occurred_at: new Date(event.at ?? Date.now()).toISOString(),
+          duration_ms: event.durationMs ?? null,
+          details: event.details ?? {},
+        });
+        void flush();
+      })();
+    },
+    [attemptId, flush],
+  );
+
   return {
     ready,
     storageError,
@@ -406,6 +434,7 @@ export function useExamSession(view: AttemptView, clock: ServerClock): ExamSessi
     dismissExtension: () => setExtendedBy(null),
     setAnswer,
     setFlag,
+    recordEvent,
     drafts,
     lastLanguage,
     setDraft,

@@ -298,6 +298,7 @@ Priority: **M** = must have (core demo), **S** = should have (if time allows).
 | PRC-13 | Evidence images are deleted automatically 30 days (institution setting, 7–90) after the exam window closes. Event records without images are kept | M |
 | PRC-14 | If proctoring breaks (camera lost, models crash), the exam continues; the problem is recorded as an event for the teacher | M |
 | PRC-15 | Per-detector dismissal rates are shown to teachers, so noisy detectors are visible | S |
+| PRC-16 | **Browser checks** (per exam, on by default, independent of the camera): fullscreen required (questions hidden outside it), leaving the page or window, pasting text not copied inside the exam (blocked), more than one screen (where the browser can tell). Each is recorded for review with a rule-based severity; the student sees only neutral reminders and the rules, which are listed on the instructions page automatically. Added 2026-10-30 at the user's request | M |
 
 ### 5.11 Monitoring and analytics — `MON`
 

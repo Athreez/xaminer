@@ -65,6 +65,7 @@ def make_exam(teacher: Api) -> Callable[..., str]:
             "open_at": (now - timedelta(minutes=5)).isoformat(),
             "close_at": (now + timedelta(hours=2)).isoformat(),
             "duration_min": 30,
+            "browser_checks": False,  # test_browser_checks.py turns them on
         } | settings
         exam = teacher("POST", "/exams", json=body)["id"]
         teacher(

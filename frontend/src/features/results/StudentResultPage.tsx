@@ -6,7 +6,7 @@ import { api } from "@/api/client";
 import { ErrorState, LoadingRows, NotFoundBlock } from "@/components/page";
 import { formatDateTime, isNotFound, unwrap } from "@/lib/api";
 
-import { passLabel, score } from "./lib";
+import { integrityLabel, passLabel, score } from "./lib";
 import { ResultQuestions } from "./ResultQuestions";
 
 /**
@@ -47,7 +47,9 @@ export function StudentResultPage() {
             Submitted {formatDateTime(r.submitted_at)} · released {formatDateTime(r.released_at)}
           </p>
           {r.integrity_outcome && (
-            <p className="mt-1 text-sm">Integrity review: {r.integrity_outcome}</p>
+            <p className="mt-1 text-sm">
+              Integrity review: {integrityLabel[r.integrity_outcome] ?? r.integrity_outcome}
+            </p>
           )}
         </div>
         <div className="text-right">

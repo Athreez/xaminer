@@ -88,6 +88,10 @@ async def compute(
     result.total_score, result.max_score = worked.score, worked.max_score
     result.percentage, result.passed = worked.percentage, passed
     result.per_question = per_question
+    if settings.get("browser_checks") or settings.get("proctoring_mode", "OFF") != "OFF":
+        from app.proctoring.events import outcome
+
+        result.integrity_outcome = await outcome(session, attempt.id)
     result.computed_at = now
     await session.flush()
     if released_now:  # only now: the result row is complete

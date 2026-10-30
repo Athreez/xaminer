@@ -8,6 +8,7 @@ import { formatDateTime, isNotFound, unwrap } from "@/lib/api";
 
 import { useExam } from "../exams/context";
 import { gradingLabel, passLabel, score } from "./lib";
+import { IntegrityReview } from "./IntegrityReview";
 import { ResultQuestions } from "./ResultQuestions";
 
 /** One attempt in full for the teacher: every answer with its score, the key and feedback. */
@@ -71,6 +72,12 @@ export function AttemptResultPage() {
           </ul>
         </div>
       )}
+      <IntegrityReview
+        events={d.events ?? []}
+        outcome={d.integrity_outcome}
+        startedAt={null}
+        queryKey={["exams", exam.id, "results", attemptId]}
+      />
       <ResultQuestions questions={d.questions} />
     </div>
   );

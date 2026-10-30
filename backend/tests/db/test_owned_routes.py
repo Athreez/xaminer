@@ -44,6 +44,7 @@ from app.execution.models import CodeRun, CodingSubmission
 from app.main import create_app
 from app.notifications.models import Notification
 from app.platform.models import Institution
+from app.proctoring.models import ProctoringEvent
 from app.questions.models import (
     CodingConfig,
     Question,
@@ -633,6 +634,39 @@ async def _notification_url(world: World) -> str:
         return f"/api/v1/notifications/{n.id}/read"
 
 
+def _events_body() -> dict[str, Any]:
+    return {
+        "events": [
+            {
+                "client_id": str(uuid.uuid4()),
+                "kind": "TAB_SWITCH",
+                "occurred_at": datetime.now(UTC).isoformat(),
+            }
+        ]
+    }
+
+
+async def _event_body(world: World) -> dict[str, Any]:
+    return _events_body()
+
+
+async def _event_decision_url(world: World) -> str:
+    """An event on a student's attempt at an exam owned by `world.owner` (a teacher)."""
+    attempt_url = await _managed_attempt_url("")(world)
+    attempt_id = uuid.UUID(attempt_url.rsplit("/", 1)[1])
+    async with tenant_session(world.factory, world.owner.institution_id) as s:
+        event = ProctoringEvent(
+            attempt_id=attempt_id,
+            client_id=uuid.uuid4(),
+            kind="TAB_SWITCH",
+            occurred_at=datetime.now(UTC),
+            severity="LOW",
+        )
+        s.add(event)
+        await s.commit()
+        return f"/api/v1/proctoring-events/{event.id}/decision"
+
+
 USERS = "/api/v1/users/{user_id}"
 EXAMS = "/api/v1/exams/{exam_id}"
 QUESTIONS = "/api/v1/questions/{question_id}"
@@ -833,6 +867,18 @@ OWNED_ROUTES: list[OwnedRoute] = [
         make_body=_re_evaluate_body,
     ),
     OwnedRoute("GET /api/v1/exams/{exam_id}/monitor", "TEACHER", _exam_url("/monitor")),
+    OwnedRoute(
+        "POST /api/v1/attempts/{attempt_id}/events",
+        "STUDENT",
+        _attempt_url("/events"),
+        make_body=_event_body,
+    ),
+    OwnedRoute(
+        "PUT /api/v1/proctoring-events/{event_id}/decision",
+        "TEACHER",
+        _event_decision_url,
+        body={"decision": "DISMISSED"},
+    ),
     OwnedRoute("POST /api/v1/notifications/{notification_id}/read", "STUDENT", _notification_url),
     OwnedRoute("GET /api/v1/exams/{exam_id}/analytics", "TEACHER", _exam_url("/analytics")),
     OwnedRoute(

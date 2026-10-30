@@ -157,6 +157,10 @@ function fakeTransport(behaviour: { fail?: SendError | Error | null } = {}) {
       if (behaviour.fail) throw behaviour.fail;
       return { saved: true, server_time: "2026-11-01T10:00:00Z" };
     },
+    sendEvents: async (_attempt, events) => {
+      calls.push({ kind: "events", detail: events });
+      if (behaviour.fail) throw behaviour.fail;
+    },
   };
   return { calls, transport, behaviour };
 }
@@ -286,6 +290,26 @@ describe("Uploader", () => {
     expect(await submitting).toEqual({ state: "saved", unsent: 0, refused: 0 });
     const sent = calls.flatMap((c) => (c.kind === "answers" ? (c.detail as AnswerOut[]) : []));
     expect(sent.map((a) => a.exam_question_id)).toEqual(["q1", "q2"]);
+  });
+
+  it("browser-check events go last, in one batch, and never count as unsaved", async () => {
+    const { transport, calls } = fakeTransport({ fail: new SendError("network", "offline") });
+    await outbox.put(ATTEMPT, "event", "e1", { client_id: "e1", kind: "TAB_SWITCH" });
+    const uploader = make(transport);
+    expect(await uploader.flush(true)).toEqual({ state: "saved", unsent: 0, refused: 0 });
+    transport.saveAnswers = fakeTransport().transport.saveAnswers;
+    await outbox.put(ATTEMPT, "answer", "q1", { exam_question_id: "q1" });
+    await outbox.put(ATTEMPT, "event", "e2", { client_id: "e2", kind: "PASTE_BLOCKED" });
+    const ok = fakeTransport();
+    const later = make(ok.transport);
+    await later.flush(true);
+    expect(ok.calls.map((c) => c.kind)).toEqual(["answers", "events"]);
+    expect((ok.calls[1]!.detail as { client_id: string }[]).map((e) => e.client_id)).toEqual([
+      "e1",
+      "e2",
+    ]);
+    expect(await outbox.pending(ATTEMPT)).toEqual([]);
+    expect(calls.map((c) => c.kind)).toEqual(["events"]);
   });
 
   it("time up: everything still queued is kept aside and counted honestly", async () => {

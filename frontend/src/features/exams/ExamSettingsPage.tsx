@@ -32,6 +32,7 @@ interface Form {
   shuffle_questions: boolean;
   shuffle_options: boolean;
   run_code_enabled: boolean;
+  browser_checks: boolean;
   counted_submission: Exam["counted_submission"];
   release_policy: Exam["release_policy"];
   pass_percent: string;
@@ -53,6 +54,7 @@ function formOf(exam: Exam): Form {
     shuffle_questions: exam.shuffle_questions,
     shuffle_options: exam.shuffle_options,
     run_code_enabled: exam.run_code_enabled,
+    browser_checks: exam.browser_checks,
     counted_submission: exam.counted_submission,
     release_policy: exam.release_policy,
     pass_percent: exam.pass_percent ? String(Number(exam.pass_percent)) : "",
@@ -76,6 +78,7 @@ function body(form: Form) {
     shuffle_questions: form.shuffle_questions,
     shuffle_options: form.shuffle_options,
     run_code_enabled: form.run_code_enabled,
+    browser_checks: form.browser_checks,
     counted_submission: form.counted_submission,
     release_policy: form.release_policy,
     pass_percent: form.pass_percent || null,
@@ -378,6 +381,17 @@ export function ExamSettingsPage() {
         title="Proctoring"
         hint="The AI only flags moments for you to review; it never decides anything."
       >
+        <Toggle
+          id="browser_checks"
+          label="Browser checks: fullscreen, staying on the page, pasting only from the exam, one screen"
+          checked={form.browser_checks}
+          disabled={locked}
+          onChange={(on) => set("browser_checks", on)}
+        />
+        <p className="text-muted-foreground -mt-2 text-sm">
+          Breaks are recorded for you to review; students see the rules on the instructions page.
+          Works without the camera.
+        </p>
         <div className="grid gap-4 sm:grid-cols-2">
           <div id="proctoring_mode">
             <Field label="Mode">

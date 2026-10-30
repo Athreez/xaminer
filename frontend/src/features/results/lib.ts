@@ -40,3 +40,17 @@ export function markProblem(text: string, points: string): string | null {
   if (Number(trimmed) > Number(points)) return `The most this question gives is ${score(points)}.`;
   return null;
 }
+
+/** Integrity outcome in words (PRD PRC-11); never changes the score. */
+export const integrityLabel: Record<string, string> = {
+  NO_CONCERNS: "No concerns",
+  PENDING_REVIEW: "Pending review",
+  CONCERNS_CONFIRMED: "Concerns confirmed",
+};
+
+export const eventLabel: Record<string, string> = {
+  TAB_SWITCH: "Left the exam page",
+  FULLSCREEN_EXIT: "Left fullscreen",
+  PASTE_BLOCKED: "Paste from outside blocked",
+  MULTIPLE_SCREENS: "More than one screen",
+};

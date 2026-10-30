@@ -26,7 +26,7 @@ import {
 import { errorText, formatDateTime, unwrap } from "@/lib/api";
 
 import { useExam } from "../exams/context";
-import { gradingLabel, passLabel, score } from "./lib";
+import { gradingLabel, integrityLabel, passLabel, score } from "./lib";
 import { ReEvaluate } from "./ReEvaluate";
 
 /**
@@ -145,7 +145,7 @@ export function ExamResultsPage() {
                       <Badge variant="outline">{gradingLabel[r.grading_status]}</Badge>
                     )}
                   </TableCell>
-                  <TableCell>{r.integrity_outcome ?? "—"}</TableCell>
+                  <TableCell>{integrityLabel[r.integrity_outcome ?? ""] ?? "—"}</TableCell>
                   <TableCell className="text-muted-foreground text-sm">
                     {r.released_at ? formatDateTime(r.released_at) : "Not yet"}
                   </TableCell>

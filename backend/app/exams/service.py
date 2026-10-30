@@ -44,6 +44,7 @@ SETTINGS = (
     "shuffle_questions",
     "shuffle_options",
     "run_code_enabled",
+    "browser_checks",
     "release_policy",
     "counted_submission",
     "pass_percent",
@@ -160,6 +161,7 @@ async def view(session: AsyncSession, exam: Exam) -> ExamView:
         shuffle_questions=exam.shuffle_questions,
         shuffle_options=exam.shuffle_options,
         run_code_enabled=exam.run_code_enabled,
+        browser_checks=exam.browser_checks,
         release_policy=exam.release_policy,  # type: ignore[arg-type]
         counted_submission=exam.counted_submission,  # type: ignore[arg-type]
         pass_percent=exam.pass_percent,

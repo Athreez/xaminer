@@ -67,6 +67,9 @@ class AttemptView(BaseModel):
     seconds_left: int
     navigation_mode: NavigationMode
     run_code_enabled: bool
+    browser_checks: bool = Field(
+        default=False, description="Fullscreen, staying on the page, pasting only from the exam"
+    )
     counted_submission: Literal["BEST", "LAST"] = Field(
         description="Coding questions: which submission gives the score"
     )
@@ -303,6 +306,8 @@ async def view(
         seconds_left=timer.seconds_left(attempt.deadline_at, now),
         navigation_mode=snapshot["settings"]["navigation_mode"],
         run_code_enabled=snapshot["settings"]["run_code_enabled"],
+        # Exams published before the setting existed had none.
+        browser_checks=snapshot["settings"].get("browser_checks", False),
         counted_submission=snapshot["settings"].get("counted_submission", "BEST"),
         total_points=Decimal(snapshot["total_points"]),
         questions=items,

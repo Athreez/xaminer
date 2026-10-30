@@ -141,6 +141,8 @@ password, invited (no password yet) and deactivated accounts all get the identic
 | Permission | Admin | Teacher | Student |
 |---|---|---|---|
 | `proctoring:upload` | — | own preview attempt | own attempt, **attempt token only** |
+
+Browser-check events (PRC-16, no images) are uploaded with the student's normal session (`attempt:take`, own attempt, up to 15 minutes after it ends); the attempt token is kept for image uploads.
 | `proctoring-event:read` | — | own exams | **—** |
 | `evidence:read` (5-min signed URL, audit-logged) | — | own exams | **—** |
 | `proctoring-event:review` | — | own exams | — |

@@ -39,6 +39,15 @@ async function call<T>(
 
 /** The real transport: the typed API client with a timeout on every request. */
 export const apiTransport: Transport = {
+  sendEvents: async (attemptId, events) => {
+    await call((signal) =>
+      api.POST("/api/v1/attempts/{attempt_id}/events", {
+        params: { path: { attempt_id: attemptId } },
+        body: { events: events as never },
+        signal,
+      }),
+    );
+  },
   saveAnswers: (attemptId, answers: AnswerOut[]) =>
     call((signal) =>
       api.PUT("/api/v1/attempts/{attempt_id}/answers", {
