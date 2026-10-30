@@ -22,8 +22,13 @@ function seconds(ms: number | null | undefined): string {
 
 function facts(e: Event): string {
   const parts: string[] = [];
-  if (e.duration_ms != null) parts.push(`away ${seconds(e.duration_ms)}`);
   const d = e.details as Record<string, unknown>;
+  if (e.duration_ms != null) {
+    const away = e.kind === "TAB_SWITCH" || e.kind === "FULLSCREEN_EXIT";
+    parts.push(away ? `away ${seconds(e.duration_ms)}` : `for ${seconds(e.duration_ms)}`);
+  }
+  if (e.kind === "MULTIPLE_FACES" && typeof d.faces === "number") parts.push(`${d.faces} faces`);
+  if (e.kind === "GAZE_AWAY" && d.direction === "up") parts.push("looking up");
   if (e.kind === "PASTE_BLOCKED" && typeof d.length === "number")
     parts.push(`${d.length} characters${d.how === "drop" ? ", dragged in" : ""}`);
   if (e.kind === "TAB_SWITCH" && d.how === "window") parts.push("another window");
@@ -37,7 +42,7 @@ const severityStyle: Record<string, string> = {
 };
 
 /**
- * The attempt's browser-check events in time order (PRD PRC-10, PRC-11): the teacher dismisses or
+ * The attempt's proctoring events in time order (PRD PRC-10, PRC-11): the teacher dismisses or
  * flags each, with a note. The integrity outcome follows and never changes the score.
  */
 export function IntegrityReview({

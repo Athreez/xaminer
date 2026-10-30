@@ -44,8 +44,9 @@ function live(stream: MediaStream | null | undefined): boolean {
 /** The camera (and microphone, when asked for), reusing what's open. */
 export async function openCamera(examId: string, microphone: boolean): Promise<MediaStream> {
   const d = devicesFor(examId);
+  const hasVideo = !!d.camera?.getVideoTracks().some((t) => t.readyState === "live");
   const hasMic = !!d.camera?.getAudioTracks().some((t) => t.readyState === "live");
-  if (live(d.camera) && (!microphone || hasMic)) return d.camera!;
+  if (hasVideo && (!microphone || hasMic)) return d.camera!;
   d.camera?.getTracks().forEach((t) => t.stop());
   d.camera = await navigator.mediaDevices.getUserMedia({
     video: { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 15 } },

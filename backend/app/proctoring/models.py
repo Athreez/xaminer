@@ -1,7 +1,9 @@
 """Proctoring events (PRD PRC-06, PRC-10; TCK-1101, browser-check events first).
 
 One row per thing the exam screen noticed: leaving fullscreen, switching away, pasting from
-outside the exam, more than one screen. Severity is set by the server's rules, never by the
+outside the exam, more than one screen; and with the camera: no face, a second face, looking
+away, talking, screen sharing stopped. `SIGNAL_LOST` is made by the server (heartbeats arrive,
+proctoring has stopped). Severity is set by the server's rules, never by the
 browser (PRC-07). A teacher's decision (dismissed or flagged) always records who and when.
 Students never see these rows (PRC-09).
 """
@@ -25,7 +27,18 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, IdMixin, TenantMixin
 
-KINDS = ("FULLSCREEN_EXIT", "TAB_SWITCH", "PASTE_BLOCKED", "MULTIPLE_SCREENS")
+KINDS = (
+    "FULLSCREEN_EXIT",
+    "TAB_SWITCH",
+    "PASTE_BLOCKED",
+    "MULTIPLE_SCREENS",
+    "FACE_ABSENT",
+    "MULTIPLE_FACES",
+    "GAZE_AWAY",
+    "VOICE_DETECTED",
+    "SCREEN_SHARE_STOPPED",
+    "SIGNAL_LOST",
+)
 SEVERITIES = ("LOW", "MEDIUM", "HIGH")
 DECISIONS = ("DISMISSED", "FLAGGED")
 

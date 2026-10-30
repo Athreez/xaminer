@@ -25,7 +25,7 @@ from app.authz.ownership import get_owned, not_found
 from app.core.errors import AppError
 from app.core.storage import Storage
 from app.exams.models import Exam, ExamAssignment, ExamVersion
-from app.exams.schemas import NavigationMode
+from app.exams.schemas import NavigationMode, ProctoringMode, Sensitivity
 from app.proctoring import consent
 from app.questions.student_view import StudentQuestion, from_snapshot
 from domain_core import shuffle, timer
@@ -55,6 +55,15 @@ class AttemptItem(BaseModel):
     )
 
 
+class ProctoringSettings(BaseModel):
+    """What the exam screen watches for (PRD § 6.5); none of it is shown to the student."""
+
+    mode: ProctoringMode
+    screen_sharing: bool
+    sensitivity: Sensitivity
+    gaze: bool
+
+
 class AttemptView(BaseModel):
     """Everything the exam screen needs, in one response (architecture § 9)."""
 
@@ -74,6 +83,7 @@ class AttemptView(BaseModel):
     counted_submission: Literal["BEST", "LAST"] = Field(
         description="Coding questions: which submission gives the score"
     )
+    proctoring: ProctoringSettings | None = Field(default=None, description="When proctored")
     total_points: Decimal
     questions: list[AttemptItem]
 
@@ -311,8 +321,21 @@ async def view(
         # Exams published before the setting existed had none.
         browser_checks=snapshot["settings"].get("browser_checks", False),
         counted_submission=snapshot["settings"].get("counted_submission", "BEST"),
+        proctoring=_proctoring(snapshot),
         total_points=Decimal(snapshot["total_points"]),
         questions=items,
+    )
+
+
+def _proctoring(snapshot: dict[str, Any]) -> ProctoringSettings | None:
+    if consent.mode(snapshot) == "OFF":
+        return None
+    detectors = snapshot["settings"].get("proctoring_detectors") or {}
+    return ProctoringSettings(
+        mode=consent.mode(snapshot),  # type: ignore[arg-type]
+        screen_sharing=consent.screen_sharing(snapshot),
+        sensitivity=detectors.get("sensitivity", "STANDARD"),
+        gaze=bool(detectors.get("gaze", False)),
     )
 
 

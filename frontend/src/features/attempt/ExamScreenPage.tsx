@@ -13,6 +13,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AnswerControls } from "@/features/questions/AnswerControls";
 import { NO_ANSWER } from "@/features/questions/lib";
 import { MarksNote } from "@/features/questions/StudentQuestionCard";
+import { ProctoringPanel, ShareScreenAgain } from "@/features/proctoring/ProctoringPanel";
+import { useProctoring } from "@/features/proctoring/useProctoring";
 import { unwrap } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -25,7 +27,7 @@ import { canOpen, isAnswered, navState, type AttemptItem, type AttemptView } fro
 import { QuestionNavigator, type NavItem } from "./QuestionNavigator";
 import { ReviewPage } from "./ReviewPage";
 import { ServerClock } from "./sync/clock";
-import { useExamSession, type Ended } from "./useExamSession";
+import { ProctorLink, useExamSession, type Ended } from "./useExamSession";
 
 /**
  * `/attempt/:attemptId`, the exam screen (FRONTEND_SPEC § 6). No app navigation: only the exam.
@@ -63,12 +65,20 @@ export function ExamScreenPage() {
 }
 
 function ExamScreen({ view, clock }: { view: AttemptView; clock: ServerClock }) {
-  const session = useExamSession(view, clock);
+  const [proctorLink] = useState(() => new ProctorLink());
+  const session = useExamSession(view, clock, proctorLink);
   const me = useSession();
   // Who is taking the exam, remembered if the session expires (only they may log back in).
   const [user, setUser] = useState<User | null>(null);
   if (me.status === "authenticated" && me.user.id !== user?.id) setUser(me.user);
   const preview = user?.role === "TEACHER";
+  // Camera proctoring (when the exam has it; never on a teacher's own preview).
+  const proctoring = useProctoring(
+    view,
+    me.status === "authenticated" && !preview && session.ended === null && !session.receipt,
+    session.recordEvent,
+    proctorLink,
+  );
   // Browser checks (when the exam has them; never on a teacher's own preview).
   const checks = useBrowserChecks(
     view.browser_checks && !preview && session.ended === null && !session.receipt,
@@ -155,6 +165,7 @@ function ExamScreen({ view, clock }: { view: AttemptView; clock: ServerClock }) 
     );
   }
 
+  const panel = proctoring.active && <ProctoringPanel proctoring={proctoring} />;
   if (!checks.inFullscreen) {
     return (
       <Centered>
@@ -166,6 +177,16 @@ function ExamScreen({ view, clock }: { view: AttemptView; clock: ServerClock }) 
         <Button className="mt-4" onClick={checks.enterFullscreen} autoFocus>
           Return to fullscreen
         </Button>
+        {panel}
+      </Centered>
+    );
+  }
+
+  if (proctoring.screenNeeded) {
+    return (
+      <Centered>
+        <ShareScreenAgain proctoring={proctoring} />
+        {panel}
       </Centered>
     );
   }
@@ -178,6 +199,7 @@ function ExamScreen({ view, clock }: { view: AttemptView; clock: ServerClock }) 
 
   return (
     <div className="bg-background flex min-h-svh flex-col">
+      {panel}
       <div className="sticky top-0 z-10">
         <ExamHeader
           title={view.title}

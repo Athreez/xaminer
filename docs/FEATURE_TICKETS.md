@@ -210,7 +210,7 @@ After M1, four people (or pairs) can work mostly in parallel:
 |---|---|---|---|---|---|---|---|
 | TCK-1001 | Consent: `consent_record` table, API, consent step UI; start blocked without consent | Camera never turns on before consent (test) | Full | M | 0604 | M | PRC-03 |
 | TCK-1002 | Pre-check stepper: camera, mic, model download + Service Worker cache, connection test, screen size | All steps per frontend § 8.1; blocked permission shows help | FE | L | 1001 | M | PRC-04 |
-| TCK-1003 | MediaPipe in a Web Worker: face count, face size, head pose at 3 fps (1 fps fallback) | ≤ 30% of one core on a mid-range laptop | AI | L | 1002 | M | PRC-05, NFR-07 |
+| TCK-1003 | MediaPipe on the page (not a Web Worker: its loader fails in module workers; rate-governed instead): face count, face size, head pose at 3 fps (1 fps fallback) | ≤ 30% of one core on a mid-range laptop | AI | L | 1002 | M | PRC-05, NFR-07 |
 | TCK-1004 | Detectors + rules engine: FACE_ABSENT, MULTIPLE_FACES, GAZE_AWAY, TAB_SWITCH; thresholds, presets, settling, merge, cooldown, 3-frame capture | Unit tests on recorded detector timelines | AI | L | 1003 | M | PRC-06 |
 | TCK-1005 | Voice activity detection (Video + Audio only), no audio leaves the browser | Network log shows no audio upload | AI | M | 1003 | M | PRC-08 |
 | TCK-1006 | Event and spot-check upload through the outbox (attempt token, budget 30, after-exam upload window); proctoring counter in heartbeat | Uploads wait behind answers; continue after submit | FE | M | 0610, 1004 | M | PRC-05 |

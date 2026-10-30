@@ -408,12 +408,13 @@ students do naturally. Values below are for the **Standard** sensitivity.
 |---|---|---|---|
 | `FACE_ABSENT` | No face for ≥ 5 s | 5–15 s LOW · 15–60 s MEDIUM · > 60 s HIGH | On |
 | `MULTIPLE_FACES` | A second face (≥ 20% of the main face's size) for ≥ 2 s | < 5 s MEDIUM · ≥ 5 s HIGH | On |
-| `GAZE_AWAY` | Head turned left/right > 35° or up > 25° for ≥ 8 s. Looking down is ignored | 8–30 s LOW · > 30 s MEDIUM | Off |
+| `GAZE_AWAY` | Head turned left/right > 35° or up > 25° for ≥ 8 s, from the student's own resting pose (learned while settling). Looking down is ignored | 8–30 s LOW · > 30 s MEDIUM | Off |
 | `TAB_SWITCH` | Tab hidden or window unfocused ≥ 2 s, or fullscreen exited | < 10 s LOW · 10–60 s MEDIUM · > 60 s HIGH. 5th+ switch at least MEDIUM | On |
 | `VOICE_DETECTED` | Speech in ≥ 50% of a 10 s window (Video + Audio only) | LOW · ≥ 20 s MEDIUM | On in Video + Audio |
 | `PHONE_DETECTED` | Spot-check frame: phone found with confidence ≥ 0.70 | 0.70–0.85 MEDIUM · ≥ 0.85 HIGH | On |
 | `BOOK_DETECTED` | Spot-check frame: book found with confidence ≥ 0.70 (for closed-book exams) | LOW | Off |
 | `SIGNAL_LOST` | Heartbeats arrive but proctoring has stopped for ≥ 60 s | MEDIUM · > 5 min HIGH | On |
+| `SCREEN_SHARE_STOPPED` | The whole screen stopped being shared (PRC-17); questions hidden until shared again | < 10 s LOW · 10–60 s MEDIUM · > 60 s HIGH | With screen sharing |
 
 **Rules for all detectors**
 

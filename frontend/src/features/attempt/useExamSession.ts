@@ -32,11 +32,38 @@ const SUBMIT_AFTER_DEADLINE_MS = 2_000;
 export type Ended = "TIME_UP" | "SUBMITTED" | "AUTO_SUBMITTED" | "VOIDED";
 
 export interface BrowserEvent {
-  kind: "FULLSCREEN_EXIT" | "TAB_SWITCH" | "PASTE_BLOCKED" | "MULTIPLE_SCREENS";
+  kind:
+    | "FULLSCREEN_EXIT"
+    | "TAB_SWITCH"
+    | "PASTE_BLOCKED"
+    | "MULTIPLE_SCREENS"
+    | "FACE_ABSENT"
+    | "MULTIPLE_FACES"
+    | "GAZE_AWAY"
+    | "VOICE_DETECTED"
+    | "SCREEN_SHARE_STOPPED";
   /** When it started (ms since epoch); now by default. */
   at?: number;
   durationMs?: number;
   details?: Record<string, string | number | boolean>;
+}
+
+/** Joins the camera proctoring (when the exam has it) to the session: its frame count for the
+ *  heartbeat, and events still open, recorded before submitting. */
+export class ProctorLink {
+  private source: { frames: () => number; flush: () => Promise<void> } | null = null;
+
+  attach(source: { frames: () => number; flush: () => Promise<void> } | null): void {
+    this.source = source;
+  }
+
+  frames(): number | undefined {
+    return this.source?.frames();
+  }
+
+  async flush(): Promise<void> {
+    await this.source?.flush();
+  }
 }
 
 export interface ExamSession {
@@ -54,8 +81,8 @@ export interface ExamSession {
   dismissExtension: () => void;
   setAnswer: (examQuestionId: string, value: AnswerValue, typing?: boolean) => void;
   setFlag: (examQuestionId: string, marked: boolean) => void;
-  /** A browser-check event for the teacher (proctoring): queued like answers, sent last. */
-  recordEvent: (event: BrowserEvent) => void;
+  /** A proctoring event for the teacher: queued like answers, sent last. */
+  recordEvent: (event: BrowserEvent) => Promise<void>;
   /** Coding questions: saved code per language, and the language last used. */
   drafts: Record<string, Record<string, string>>;
   lastLanguage: Record<string, string>;
@@ -76,7 +103,11 @@ export interface ExamSession {
  * device first and is uploaded in the background, so the network never blocks the student. The
  * timer follows the server's clock; heartbeats bring teacher actions (extra time, force-submit).
  */
-export function useExamSession(view: AttemptView, clock: ServerClock): ExamSession {
+export function useExamSession(
+  view: AttemptView,
+  clock: ServerClock,
+  proctor?: ProctorLink,
+): ExamSession {
   const attemptId = view.id;
   const [ready, setReady] = useState(false);
   const [storageError, setStorageError] = useState<unknown>(null);
@@ -234,7 +265,10 @@ export function useExamSession(view: AttemptView, clock: ServerClock): ExamSessi
       try {
         const { data, response } = await api.POST("/api/v1/attempts/{attempt_id}/heartbeat", {
           params: { path: { attempt_id: attemptId } },
-          body: { unsynced: Math.min(unsent.current, 10_000) },
+          body: {
+            unsynced: Math.min(unsent.current, 10_000),
+            proctoring_frames: proctor?.frames(),
+          },
           signal: AbortSignal.timeout(TIMEOUT_MS),
         });
         if (response.status === 404) return setEnded("VOIDED");
@@ -257,7 +291,7 @@ export function useExamSession(view: AttemptView, clock: ServerClock): ExamSessi
     void beat();
     const id = window.setInterval(beat, HEARTBEAT_MS);
     return () => window.clearInterval(id);
-  }, [attemptId, view.deadline_at, clock, failed, reached]);
+  }, [attemptId, view.deadline_at, clock, failed, reached, proctor]);
 
   useEffect(() => {
     const up = () => {
@@ -303,6 +337,7 @@ export function useExamSession(view: AttemptView, clock: ServerClock): ExamSessi
   );
 
   const submit = useCallback(async () => {
+    await proctor?.flush();
     await sendAll();
     const done = unwrap(
       await api.POST("/api/v1/attempts/{attempt_id}/submit", {
@@ -311,7 +346,7 @@ export function useExamSession(view: AttemptView, clock: ServerClock): ExamSessi
       }),
     );
     await finish(done);
-  }, [sendAll, attemptId, finish]);
+  }, [sendAll, attemptId, finish, proctor]);
 
   // Submitted elsewhere (the teacher, or the server after the grace): fetch the receipt.
   useEffect(() => {
@@ -404,19 +439,17 @@ export function useExamSession(view: AttemptView, clock: ServerClock): ExamSessi
   );
 
   const recordEvent = useCallback(
-    (event: BrowserEvent) => {
+    async (event: BrowserEvent) => {
       if (finished.current) return;
       const clientId = crypto.randomUUID();
-      void (async () => {
-        await tools.current?.outbox.put(attemptId, "event", clientId, {
-          client_id: clientId,
-          kind: event.kind,
-          occurred_at: new Date(event.at ?? Date.now()).toISOString(),
-          duration_ms: event.durationMs ?? null,
-          details: event.details ?? {},
-        });
-        void flush();
-      })();
+      await tools.current?.outbox.put(attemptId, "event", clientId, {
+        client_id: clientId,
+        kind: event.kind,
+        occurred_at: new Date(event.at ?? Date.now()).toISOString(),
+        duration_ms: event.durationMs ?? null,
+        details: event.details ?? {},
+      });
+      void flush();
     },
     [attemptId, flush],
   );

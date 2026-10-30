@@ -1,6 +1,6 @@
-"""Browser-check events: upload from the exam screen, the server's severity rules, the teacher's
-review and the attempt's integrity outcome (PRD PRC-06, PRC-07, PRC-09..11; TCK-1101, TCK-1105,
-TCK-1106, browser-check events first).
+"""Proctoring events: upload from the exam screen, the server's severity rules, the teacher's
+review and the attempt's integrity outcome (PRD PRC-06, PRC-07, PRC-09..11; TCK-1101, TCK-1104,
+TCK-1105, TCK-1106).
 
 Severity comes from these rules, never from the browser:
 
@@ -10,6 +10,14 @@ Severity comes from these rules, never from the browser:
 | FULLSCREEN_EXIT | back within 5 s | | longer |
 | PASTE_BLOCKED (from outside the exam) | | under 200 characters | 200 or more |
 | MULTIPLE_SCREENS | | always | |
+| FACE_ABSENT (no face) | under 15 s | under 60 s | 60 s or more |
+| MULTIPLE_FACES | | under 5 s | 5 s or more |
+| GAZE_AWAY (head turned) | up to 30 s | longer | |
+| VOICE_DETECTED (talking) | under 20 s | 20 s or more | |
+| SCREEN_SHARE_STOPPED | under 10 s | under 60 s | 60 s or more |
+| SIGNAL_LOST (from heartbeats) | | under 5 min | 5 min or more |
+
+Camera events carry no pictures yet; until they do, these rules alone set their severity.
 
 Events are accepted while the attempt is in progress and for 15 minutes after it ends (the last
 ones may still be on their way). Nothing about events is ever returned to a student; the upload
@@ -38,7 +46,19 @@ from app.exams.models import Exam
 from app.proctoring.models import ProctoringEvent
 
 AFTER_END = timedelta(minutes=15)
-Kind = Literal["FULLSCREEN_EXIT", "TAB_SWITCH", "PASTE_BLOCKED", "MULTIPLE_SCREENS"]
+# What the exam screen may send (SIGNAL_LOST is the server's own).
+Kind = Literal[
+    "FULLSCREEN_EXIT",
+    "TAB_SWITCH",
+    "PASTE_BLOCKED",
+    "MULTIPLE_SCREENS",
+    "FACE_ABSENT",
+    "MULTIPLE_FACES",
+    "GAZE_AWAY",
+    "VOICE_DETECTED",
+    "SCREEN_SHARE_STOPPED",
+]
+DETAILS = ("length", "how", "screens", "faces", "direction")
 
 
 class EventIn(BaseModel):
@@ -67,6 +87,18 @@ def severity(kind: str, duration_ms: int | None, details: dict[str, Any]) -> str
     if kind == "PASTE_BLOCKED":
         length = details.get("length", 0)
         return "HIGH" if isinstance(length, int) and length >= 200 else "MEDIUM"
+    if kind == "FACE_ABSENT":
+        return "LOW" if seconds < 15 else "MEDIUM" if seconds < 60 else "HIGH"
+    if kind == "MULTIPLE_FACES":
+        return "MEDIUM" if seconds < 5 else "HIGH"
+    if kind == "GAZE_AWAY":
+        return "LOW" if seconds <= 30 else "MEDIUM"
+    if kind == "VOICE_DETECTED":
+        return "LOW" if seconds < 20 else "MEDIUM"
+    if kind == "SCREEN_SHARE_STOPPED":
+        return "LOW" if seconds < 10 else "MEDIUM" if seconds < 60 else "HIGH"
+    if kind == "SIGNAL_LOST":
+        return "MEDIUM" if seconds < 300 else "HIGH"
     return "MEDIUM"  # MULTIPLE_SCREENS
 
 
@@ -85,7 +117,7 @@ async def upload(
     if attempt.status == "VOIDED" or (attempt.status != "IN_PROGRESS" and now > ended + AFTER_END):
         raise AppError("ATTEMPT_CLOSED", "This attempt no longer takes events.", status_code=409)
     for event in body.events:
-        details = {k: v for k, v in event.details.items() if k in ("length", "how", "screens")}
+        details = {k: v for k, v in event.details.items() if k in DETAILS}
         await session.execute(
             insert(ProctoringEvent)
             .values(

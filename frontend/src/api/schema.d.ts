@@ -2069,6 +2069,8 @@ export interface components {
              * @enum {string}
              */
             navigation_mode: "FREE" | "SEQUENTIAL";
+            /** @description When proctored */
+            proctoring?: components["schemas"]["ProctoringSettings"] | null;
             /** Questions */
             questions: components["schemas"]["AttemptItem"][];
             /** Run Code Enabled */
@@ -2466,7 +2468,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "FULLSCREEN_EXIT" | "TAB_SWITCH" | "PASTE_BLOCKED" | "MULTIPLE_SCREENS";
+            kind: "FULLSCREEN_EXIT" | "TAB_SWITCH" | "PASTE_BLOCKED" | "MULTIPLE_SCREENS" | "FACE_ABSENT" | "MULTIPLE_FACES" | "GAZE_AWAY" | "VOICE_DETECTED" | "SCREEN_SHARE_STOPPED";
             /**
              * Occurred At
              * Format: date-time
@@ -2982,6 +2984,11 @@ export interface components {
         /** HeartbeatIn */
         HeartbeatIn: {
             /**
+             * Proctoring Frames
+             * @description Proctored exams: camera frames analysed so far on this page
+             */
+            proctoring_frames?: number | null;
+            /**
              * Unsynced
              * @description Answers waiting on the device
              * @default 0
@@ -3390,6 +3397,26 @@ export interface components {
         PasswordResetRequest: {
             /** Email */
             email: string;
+        };
+        /**
+         * ProctoringSettings
+         * @description What the exam screen watches for (PRD § 6.5); none of it is shown to the student.
+         */
+        ProctoringSettings: {
+            /** Gaze */
+            gaze: boolean;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "OFF" | "VIDEO" | "VIDEO_AUDIO";
+            /** Screen Sharing */
+            screen_sharing: boolean;
+            /**
+             * Sensitivity
+             * @enum {string}
+             */
+            sensitivity: "RELAXED" | "STANDARD" | "STRICT";
         };
         /** PublishCheck */
         PublishCheck: {

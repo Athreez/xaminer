@@ -2,7 +2,8 @@
 
 Sent every few seconds. It answers with what the screen must react to: the attempt's status and
 deadline (a teacher may have extended, force-submitted or voided it) and the server's clock. It
-also renews the attempt token used for proctoring uploads.
+also renews the attempt token used for proctoring uploads, and tells whether proctoring is still
+running (`proctoring.signal`).
 
 Heartbeats land in Redis (the live monitor reads them there). Postgres gets `last_heartbeat_at`
 at most once a minute per attempt, so a full exam hall doesn't turn into a stream of writes.
@@ -22,6 +23,7 @@ from app.attempts.models import ExamAttempt
 from app.attempts.submit import finalize_if_overdue
 from app.auth.tokens import AttemptGrant, Principal, create_attempt_token
 from app.authz.ownership import get_owned
+from app.proctoring import signal
 from domain_core import timer
 
 LIVE_SECONDS = 300  # how long the monitor keeps showing the last heartbeat
@@ -41,6 +43,12 @@ class HeartbeatIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     unsynced: int = Field(default=0, ge=0, le=10_000, description="Answers waiting on the device")
+    proctoring_frames: int | None = Field(
+        default=None,
+        ge=0,
+        le=100_000_000,
+        description="Proctored exams: camera frames analysed so far on this page",
+    )
 
 
 class HeartbeatOut(BaseModel):
@@ -86,6 +94,7 @@ async def beat(
                 .values(last_heartbeat_at=now)
             )
             await session.commit()
+        await signal.check(session, redis, attempt, body.proctoring_frames, now)
     token = (
         create_attempt_token(
             AttemptGrant(attempt.id, principal.user_id, principal.institution_id),

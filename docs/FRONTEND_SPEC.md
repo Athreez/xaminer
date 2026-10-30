@@ -69,7 +69,7 @@ Imports use the `@/` alias for `src/`. shadcn components live in `src/components
 | Exam state | One hook for the runner (`useExamSession`): answers, flags, save and connection status, timer. The open question is kept on the device |
 | Outbox | IndexedDB queue of unsent answers, drafts and proctoring uploads. Survives reload and crash. One uploader sends in priority order: answers/drafts → heartbeat → code run/submit → proctoring events → spot checks |
 | Time sync | `offset = server_time − Date.now()` from every attempt response; remaining = `deadline_at − (Date.now() + offset)` |
-| Proctoring | MediaPipe runs in a **Web Worker** so the exam screen stays responsive. Detectors produce events; the uploader sends them |
+| Proctoring | MediaPipe runs on the page at 3 frames a second (1 on slow devices), kept to a fifth of one core; each analysis is short (MediaPipe's loader doesn't work in module workers). The rules produce events; the uploader sends them |
 | Caching | A Service Worker caches MediaPipe models, WASM files and editor language modes during the pre-check |
 | Markdown | One shared renderer, `MarkdownView` (`react-markdown` + `remark-gfm` + `rehype-sanitize`, raw HTML skipped), for all question text, options, rubrics and feedback |
 
@@ -348,7 +348,7 @@ not just icons.
 | Timer | From server time (§ 2.3). Warning style at 10 min, danger style + banner at 2 min. Screen readers hear it at 30, 15, 10, 5, 2 and 1 minutes left, not every second |
 | Save status | `All saved` · `Saving…` · `Offline — N answers saved on this device` · `N answers not saved` (danger, after 60 s of failures). While anything is unsent, closing the tab asks for confirmation |
 | Connection | `Online` · `Reconnecting…` · `Offline` |
-| Proctoring | `Proctoring on` with camera (or camera + mic) icon, and a small self-view the student can shrink but not turn off. If the camera is lost: `Camera not detected — check your camera` |
+| Proctoring | A corner box (bottom right): `Proctored` with a camera icon and a small self-view the student can hide but not turn off. If the camera is lost: `Camera off` and **Turn camera on** |
 | Teacher actions | A time extension shows a banner: "Your teacher added 10 minutes" |
 
 ### 6.4 Question navigator
@@ -479,7 +479,9 @@ A `Stepper`; each step must pass (or warn) before the next.
   detected**: the student is not told about events (privacy, and to avoid teaching evasion).
 - Exception: leaving fullscreen shows "Please return to fullscreen" with a button, because the student
   can fix it.
-- Camera lost: header shows the problem and a **Reconnect camera** button; the exam continues.
+- Camera lost: the corner box shows the problem and a **Turn camera on** button; the exam continues.
+- Screen sharing stopped (or a reload): the questions are hidden behind **Share my screen** until the
+  whole screen is shared again; the time without it is recorded (`SCREEN_SHARE_STOPPED`).
 
 ### 8.3 Teacher review
 

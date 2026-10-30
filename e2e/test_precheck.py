@@ -1,6 +1,8 @@
 """The device check before a proctored exam (PRD PRC-03, PRC-04; TCK-1001, TCK-1002): consent
 first, the models downloaded, a face found by the face model on the (fake) camera with the speed
-measured, the whole screen shared, then Start opens the exam."""
+measured, the whole screen shared, then Start opens the exam. In the exam (TCK-1003..1007): the
+camera corner shows, a reload asks for the screen again (the time without it recorded), and
+the heartbeats show the face model running."""
 
 import re
 
@@ -44,3 +46,33 @@ def test_device_check_then_start(page: Page, make_exam, teacher: Api) -> None:  
     page.get_by_role("dialog").get_by_role("button", name="Start").click()
     page.wait_for_url(re.compile(r"/attempt/"))
     expect(page.get_by_text("Explain recursion")).to_be_visible()
+    corner = page.get_by_role("complementary", name="Proctoring")
+    expect(corner.get_by_text("Proctored")).to_be_visible()
+    expect(corner.get_by_label("Your camera")).to_be_visible()
+
+    # A reload loses the shared screen: the questions wait until it's shared again.
+    page.reload()
+    prompt = page.get_by_role("button", name=re.compile("Return to fullscreen|Share my screen"))
+    expect(prompt).to_be_visible()
+    fullscreen = page.get_by_role("button", name="Return to fullscreen")
+    if fullscreen.is_visible():  # headless browsers may keep fullscreen over a reload
+        fullscreen.click()
+    expect(page.get_by_role("heading", name="Share your screen again")).to_be_visible()
+    expect(page.get_by_text("Explain recursion")).to_be_hidden()
+    page.get_by_role("button", name="Share my screen").click()
+    expect(page.get_by_text("Explain recursion")).to_be_visible()
+    expect(corner.get_by_text("Proctored")).to_be_visible()
+
+    # Heartbeats carry the face model's frame count: had it stood still for 60 s, the server
+    # would have recorded "proctoring stopped".
+    page.wait_for_timeout(75_000)
+    page.get_by_role("button", name=re.compile("Review & submit")).first.click()
+    page.get_by_role("button", name=re.compile("^Submit")).first.click()
+    page.get_by_role("dialog").get_by_role("button", name=re.compile("^Submit")).click()
+    expect(page.get_by_text(re.compile("receipt", re.I)).first).to_be_visible()
+
+    (row,) = teacher("GET", f"/exams/{exam}/monitor")["rows"]
+    detail = teacher("GET", f"/exams/{exam}/results/{row['attempt_id']}")
+    kinds = [e["kind"] for e in detail["events"]]
+    assert "SCREEN_SHARE_STOPPED" in kinds, kinds
+    assert "SIGNAL_LOST" not in kinds and "FACE_ABSENT" not in kinds, kinds

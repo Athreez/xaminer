@@ -716,6 +716,17 @@
             "title": "Navigation Mode",
             "type": "string"
           },
+          "proctoring": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProctoringSettings"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When proctored"
+          },
           "questions": {
             "items": {
               "$ref": "#/components/schemas/AttemptItem"
@@ -1681,7 +1692,12 @@
               "FULLSCREEN_EXIT",
               "TAB_SWITCH",
               "PASTE_BLOCKED",
-              "MULTIPLE_SCREENS"
+              "MULTIPLE_SCREENS",
+              "FACE_ABSENT",
+              "MULTIPLE_FACES",
+              "GAZE_AWAY",
+              "VOICE_DETECTED",
+              "SCREEN_SHARE_STOPPED"
             ],
             "title": "Kind",
             "type": "string"
@@ -3070,6 +3086,20 @@
       "HeartbeatIn": {
         "additionalProperties": false,
         "properties": {
+          "proctoring_frames": {
+            "anyOf": [
+              {
+                "maximum": 100000000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Proctored exams: camera frames analysed so far on this page",
+            "title": "Proctoring Frames"
+          },
           "unsynced": {
             "default": 0,
             "description": "Answers waiting on the device",
@@ -3989,6 +4019,45 @@
           "email"
         ],
         "title": "PasswordResetRequest",
+        "type": "object"
+      },
+      "ProctoringSettings": {
+        "description": "What the exam screen watches for (PRD \u00a7 6.5); none of it is shown to the student.",
+        "properties": {
+          "gaze": {
+            "title": "Gaze",
+            "type": "boolean"
+          },
+          "mode": {
+            "enum": [
+              "OFF",
+              "VIDEO",
+              "VIDEO_AUDIO"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "screen_sharing": {
+            "title": "Screen Sharing",
+            "type": "boolean"
+          },
+          "sensitivity": {
+            "enum": [
+              "RELAXED",
+              "STANDARD",
+              "STRICT"
+            ],
+            "title": "Sensitivity",
+            "type": "string"
+          }
+        },
+        "required": [
+          "mode",
+          "screen_sharing",
+          "sensitivity",
+          "gaze"
+        ],
+        "title": "ProctoringSettings",
         "type": "object"
       },
       "PublishCheck": {

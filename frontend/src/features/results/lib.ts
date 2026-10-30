@@ -53,4 +53,10 @@ export const eventLabel: Record<string, string> = {
   FULLSCREEN_EXIT: "Left fullscreen",
   PASTE_BLOCKED: "Paste from outside blocked",
   MULTIPLE_SCREENS: "More than one screen",
+  FACE_ABSENT: "No face on camera",
+  MULTIPLE_FACES: "Another person on camera",
+  GAZE_AWAY: "Head turned away",
+  VOICE_DETECTED: "Talking",
+  SCREEN_SHARE_STOPPED: "Stopped sharing the screen",
+  SIGNAL_LOST: "Proctoring stopped",
 };
