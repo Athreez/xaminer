@@ -163,6 +163,10 @@ export const router = createBrowserRouter([
                 lazy: page(() => import("@/features/exams/ExamPublishPage"), "ExamPublishPage"),
               },
               {
+                path: "monitor",
+                lazy: page(() => import("@/features/exams/MonitorPage"), "MonitorPage"),
+              },
+              {
                 path: "grading",
                 lazy: page(() => import("@/features/results/GradingPage"), "GradingPage"),
               },

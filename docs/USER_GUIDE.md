@@ -48,8 +48,10 @@ Editing a question that a published exam uses makes a new version; the exam keep
   only the window's end can change.
 - **Overview:** **Try it as a student** opens the real exam screen for you (previews never count).
 
-Extending a student's time, force-submitting or voiding an attempt (each needs a reason) works
-through the API for now; the Monitor tab with these buttons comes later.
+While it runs, the **Monitor** tab shows every student (refreshed every 10 s): not started, in
+progress or submitted, questions answered, time left, connection (online, weak, offline) and
+answers still waiting on their device. **Extend** gives extra time, **Submit now** ends an attempt
+and **Void** cancels it (the student may start again); each asks for a reason.
 
 ### 3. Grading and results
 

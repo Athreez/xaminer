@@ -8,12 +8,13 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, status
 from redis.asyncio import Redis
 
-from app.attempts import attempt, manage, saving, student_exams
+from app.attempts import attempt, manage, monitor, saving, student_exams
 from app.attempts import heartbeat as heartbeats
 from app.attempts import submit as submitting
 from app.attempts.attempt import AttemptView
 from app.attempts.heartbeat import HeartbeatIn, HeartbeatOut
 from app.attempts.manage import ExtendIn, ManagedAttempt, ReasonIn
+from app.attempts.monitor import MonitorView
 from app.attempts.saving import AnswersIn, DraftIn, DraftResult, FlagIn, SaveResult
 from app.attempts.student_exams import StudentExamDetail, StudentExams
 from app.attempts.submit import Receipt
@@ -214,3 +215,18 @@ async def void_attempt(
 ) -> ManagedAttempt:
     """Cancel an attempt (reason required). The student may then start the exam again."""
     return await manage.void(db, principal, attempt_id, body)
+
+
+monitor_router = APIRouter(tags=["monitor"])
+
+
+@monitor_router.get("/exams/{exam_id}/monitor")
+async def exam_monitor(
+    exam_id: uuid.UUID,
+    principal: Annotated[Principal, Depends(require(P.MONITOR_READ))],
+    db: TenantDB,
+    redis: Annotated[Redis, Depends(redis_of)],
+) -> MonitorView:
+    """Every assigned student now: status, answered, time left, connection, answers waiting on
+    their device. The monitor page asks every 10 s."""
+    return await monitor.monitor(db, redis, principal, exam_id)

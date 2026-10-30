@@ -3254,6 +3254,169 @@
         "title": "MarkIn",
         "type": "object"
       },
+      "MonitorRow": {
+        "properties": {
+          "answered": {
+            "title": "Answered",
+            "type": "integer"
+          },
+          "attempt_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attempt Id"
+          },
+          "connection": {
+            "anyOf": [
+              {
+                "enum": [
+                  "ONLINE",
+                  "WEAK",
+                  "OFFLINE"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "In progress only",
+            "title": "Connection"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "event_count": {
+            "description": "Proctoring events (with proctoring)",
+            "title": "Event Count",
+            "type": "integer"
+          },
+          "extra_minutes": {
+            "title": "Extra Minutes",
+            "type": "integer"
+          },
+          "full_name": {
+            "title": "Full Name",
+            "type": "string"
+          },
+          "last_seen_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Seen At"
+          },
+          "roll_no": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Roll No"
+          },
+          "seconds_left": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "In progress only",
+            "title": "Seconds Left"
+          },
+          "status": {
+            "enum": [
+              "NOT_STARTED",
+              "IN_PROGRESS",
+              "SUBMITTED",
+              "AUTO_SUBMITTED",
+              "VOIDED"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "student_id": {
+            "format": "uuid",
+            "title": "Student Id",
+            "type": "string"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          },
+          "unsynced": {
+            "description": "Answers waiting on the student's device",
+            "title": "Unsynced",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "student_id",
+          "full_name",
+          "email",
+          "roll_no",
+          "attempt_id",
+          "status",
+          "answered",
+          "total",
+          "seconds_left",
+          "extra_minutes",
+          "connection",
+          "last_seen_at",
+          "unsynced",
+          "event_count"
+        ],
+        "title": "MonitorRow",
+        "type": "object"
+      },
+      "MonitorView": {
+        "properties": {
+          "counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "description": "Students per status",
+            "title": "Counts",
+            "type": "object"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/MonitorRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "server_time": {
+            "format": "date-time",
+            "title": "Server Time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "server_time",
+          "rows",
+          "counts"
+        ],
+        "title": "MonitorView",
+        "type": "object"
+      },
       "OptionIn": {
         "additionalProperties": false,
         "properties": {
@@ -8177,6 +8340,55 @@
         "summary": "Grading Queue",
         "tags": [
           "grading"
+        ]
+      }
+    },
+    "/api/v1/exams/{exam_id}/monitor": {
+      "get": {
+        "description": "Every assigned student now: status, answered, time left, connection, answers waiting on\ntheir device. The monitor page asks every 10 s.",
+        "operationId": "exam_monitor_api_v1_exams__exam_id__monitor_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "exam_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Exam Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonitorView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Exam Monitor",
+        "tags": [
+          "monitor"
         ]
       }
     },

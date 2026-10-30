@@ -823,6 +823,7 @@ OWNED_ROUTES: list[OwnedRoute] = [
         _graded_url("/exams/{exam}/re-evaluate", kind="CODING"),
         make_body=_re_evaluate_body,
     ),
+    OwnedRoute("GET /api/v1/exams/{exam_id}/monitor", "TEACHER", _exam_url("/monitor")),
     OwnedRoute(
         "GET /api/v1/student/results/{attempt_id}",
         "STUDENT",

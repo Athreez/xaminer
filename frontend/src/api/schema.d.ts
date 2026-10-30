@@ -644,6 +644,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/exams/{exam_id}/monitor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Exam Monitor
+         * @description Every assigned student now: status, answered, time left, connection, answers waiting on
+         *     their device. The monitor page asks every 10 s.
+         */
+        get: operations["exam_monitor_api_v1_exams__exam_id__monitor_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/exams/{exam_id}/preview-attempt": {
         parameters: {
             query?: never;
@@ -2931,6 +2952,72 @@ export interface components {
              * @description 0 to the question's points
              */
             score: number | string;
+        };
+        /** MonitorRow */
+        MonitorRow: {
+            /** Answered */
+            answered: number;
+            /** Attempt Id */
+            attempt_id: string | null;
+            /**
+             * Connection
+             * @description In progress only
+             */
+            connection: ("ONLINE" | "WEAK" | "OFFLINE") | null;
+            /** Email */
+            email: string;
+            /**
+             * Event Count
+             * @description Proctoring events (with proctoring)
+             */
+            event_count: number;
+            /** Extra Minutes */
+            extra_minutes: number;
+            /** Full Name */
+            full_name: string;
+            /** Last Seen At */
+            last_seen_at: string | null;
+            /** Roll No */
+            roll_no: string | null;
+            /**
+             * Seconds Left
+             * @description In progress only
+             */
+            seconds_left: number | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "NOT_STARTED" | "IN_PROGRESS" | "SUBMITTED" | "AUTO_SUBMITTED" | "VOIDED";
+            /**
+             * Student Id
+             * Format: uuid
+             */
+            student_id: string;
+            /** Total */
+            total: number;
+            /**
+             * Unsynced
+             * @description Answers waiting on the student's device
+             */
+            unsynced: number;
+        };
+        /** MonitorView */
+        MonitorView: {
+            /**
+             * Counts
+             * @description Students per status
+             */
+            counts: {
+                [key: string]: number;
+            };
+            /** Rows */
+            rows: components["schemas"]["MonitorRow"][];
+            /**
+             * Server Time
+             * Format: date-time
+             */
+            server_time: string;
         };
         /** OptionIn */
         OptionIn: {
@@ -5222,6 +5309,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GradingQueue"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    exam_monitor_api_v1_exams__exam_id__monitor_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exam_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitorView"];
                 };
             };
             /** @description Validation Error */
