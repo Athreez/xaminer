@@ -25,6 +25,7 @@ from app.images.router import router as images_router
 from app.platform.settings import router as settings_router
 from app.questions.router import languages_router
 from app.questions.router import router as questions_router
+from app.results.router import router as results_router
 from app.users.router import groups_router
 from app.users.router import router as users_router
 
@@ -79,6 +80,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(runs_router, prefix=API_PREFIX)
     app.include_router(submissions_router, prefix=API_PREFIX)
     app.include_router(grading_router, prefix=API_PREFIX)
+    app.include_router(results_router, prefix=API_PREFIX)
     # Refuse to start if any route forgot to declare who may call it (SECURITY § 3.1).
     assert_routes_declared(app)
     return app

@@ -575,6 +575,106 @@
         "title": "AttemptItem",
         "type": "object"
       },
+      "AttemptResult": {
+        "description": "What a student sees for a released result.",
+        "properties": {
+          "attempt_id": {
+            "format": "uuid",
+            "title": "Attempt Id",
+            "type": "string"
+          },
+          "exam_id": {
+            "format": "uuid",
+            "title": "Exam Id",
+            "type": "string"
+          },
+          "exam_title": {
+            "title": "Exam Title",
+            "type": "string"
+          },
+          "integrity_outcome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Integrity Outcome"
+          },
+          "max_score": {
+            "title": "Max Score",
+            "type": "string"
+          },
+          "passed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Passed"
+          },
+          "percentage": {
+            "title": "Percentage",
+            "type": "string"
+          },
+          "questions": {
+            "items": {
+              "$ref": "#/components/schemas/QuestionResult"
+            },
+            "title": "Questions",
+            "type": "array"
+          },
+          "released_at": {
+            "format": "date-time",
+            "title": "Released At",
+            "type": "string"
+          },
+          "revisions": {
+            "items": {
+              "$ref": "#/components/schemas/Revision"
+            },
+            "title": "Revisions",
+            "type": "array"
+          },
+          "submitted_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Submitted At"
+          },
+          "total_score": {
+            "title": "Total Score",
+            "type": "string"
+          }
+        },
+        "required": [
+          "attempt_id",
+          "exam_id",
+          "exam_title",
+          "submitted_at",
+          "total_score",
+          "max_score",
+          "percentage",
+          "passed",
+          "integrity_outcome",
+          "released_at",
+          "questions",
+          "revisions"
+        ],
+        "title": "AttemptResult",
+        "type": "object"
+      },
       "AttemptView": {
         "description": "Everything the exam screen needs, in one response (architecture \u00a7 9).",
         "properties": {
@@ -1020,6 +1120,73 @@
           "allowed_languages"
         ],
         "title": "CodingIn",
+        "type": "object"
+      },
+      "CodingOutcome": {
+        "properties": {
+          "language_key": {
+            "title": "Language Key",
+            "type": "string"
+          },
+          "passed_weight": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Passed Weight"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "submission_id": {
+            "format": "uuid",
+            "title": "Submission Id",
+            "type": "string"
+          },
+          "total_weight": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Weight"
+          },
+          "verdict": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verdict"
+          }
+        },
+        "required": [
+          "submission_id",
+          "language_key",
+          "verdict",
+          "passed_weight",
+          "total_weight",
+          "score"
+        ],
+        "title": "CodingOutcome",
         "type": "object"
       },
       "CodingView": {
@@ -1627,6 +1794,74 @@
           "questions"
         ],
         "title": "ExamQuestionsIn",
+        "type": "object"
+      },
+      "ExamResults": {
+        "properties": {
+          "blocked_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Why release is not possible right now",
+            "title": "Blocked Reason"
+          },
+          "can_release": {
+            "title": "Can Release",
+            "type": "boolean"
+          },
+          "exam_id": {
+            "format": "uuid",
+            "title": "Exam Id",
+            "type": "string"
+          },
+          "pass_percent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pass Percent"
+          },
+          "release_policy": {
+            "title": "Release Policy",
+            "type": "string"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/ResultRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "unreleased": {
+            "description": "Computed results not released yet",
+            "title": "Unreleased",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "exam_id",
+          "title",
+          "release_policy",
+          "pass_percent",
+          "rows",
+          "can_release",
+          "blocked_reason",
+          "unreleased"
+        ],
+        "title": "ExamResults",
         "type": "object"
       },
       "ExamSummary": {
@@ -2891,6 +3126,19 @@
             ],
             "title": "Feedback"
           },
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 5000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Required when the result is already released (kept in its revision)",
+            "title": "Reason"
+          },
           "score": {
             "anyOf": [
               {
@@ -3179,6 +3427,93 @@
           "next_cursor"
         ],
         "title": "QuestionPage",
+        "type": "object"
+      },
+      "QuestionResult": {
+        "properties": {
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "coding": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CodingOutcome"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "exam_question_id": {
+            "format": "uuid",
+            "title": "Exam Question Id",
+            "type": "string"
+          },
+          "feedback": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Feedback"
+          },
+          "points": {
+            "title": "Points",
+            "type": "string"
+          },
+          "position": {
+            "title": "Position",
+            "type": "integer"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "selected_labels": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Selected Labels",
+            "type": "array"
+          },
+          "text_answer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text Answer"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "exam_question_id",
+          "position",
+          "type",
+          "body",
+          "points",
+          "score",
+          "feedback"
+        ],
+        "title": "QuestionResult",
         "type": "object"
       },
       "QuestionSummary": {
@@ -3672,6 +4007,161 @@
           "source"
         ],
         "title": "ReferenceView",
+        "type": "object"
+      },
+      "ResultRow": {
+        "properties": {
+          "attempt_id": {
+            "format": "uuid",
+            "title": "Attempt Id",
+            "type": "string"
+          },
+          "grading_status": {
+            "title": "Grading Status",
+            "type": "string"
+          },
+          "integrity_outcome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Integrity Outcome"
+          },
+          "max_score": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Score"
+          },
+          "passed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Passed"
+          },
+          "percentage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Percentage"
+          },
+          "released_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Released At"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "student_email": {
+            "title": "Student Email",
+            "type": "string"
+          },
+          "student_id": {
+            "format": "uuid",
+            "title": "Student Id",
+            "type": "string"
+          },
+          "student_name": {
+            "title": "Student Name",
+            "type": "string"
+          },
+          "submitted_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Submitted At"
+          },
+          "total_score": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Score"
+          }
+        },
+        "required": [
+          "attempt_id",
+          "student_id",
+          "student_name",
+          "student_email",
+          "status",
+          "grading_status",
+          "submitted_at",
+          "total_score",
+          "max_score",
+          "percentage",
+          "passed",
+          "integrity_outcome",
+          "released_at"
+        ],
+        "title": "ResultRow",
+        "type": "object"
+      },
+      "Revision": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "new_score": {
+            "title": "New Score",
+            "type": "string"
+          },
+          "old_score": {
+            "title": "Old Score",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "old_score",
+          "new_score",
+          "reason",
+          "created_at"
+        ],
+        "title": "Revision",
         "type": "object"
       },
       "RunIn": {
@@ -4444,6 +4934,109 @@
         "title": "StudentQuestion",
         "type": "object"
       },
+      "StudentResultItem": {
+        "properties": {
+          "attempt_id": {
+            "format": "uuid",
+            "title": "Attempt Id",
+            "type": "string"
+          },
+          "exam_id": {
+            "format": "uuid",
+            "title": "Exam Id",
+            "type": "string"
+          },
+          "exam_title": {
+            "title": "Exam Title",
+            "type": "string"
+          },
+          "max_score": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Score"
+          },
+          "passed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Passed"
+          },
+          "percentage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Percentage"
+          },
+          "released": {
+            "title": "Released",
+            "type": "boolean"
+          },
+          "submitted_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Submitted At"
+          },
+          "total_score": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Score"
+          }
+        },
+        "required": [
+          "attempt_id",
+          "exam_id",
+          "exam_title",
+          "submitted_at",
+          "released"
+        ],
+        "title": "StudentResultItem",
+        "type": "object"
+      },
+      "StudentResults": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/StudentResultItem"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "StudentResults",
+        "type": "object"
+      },
       "SubmissionHistory": {
         "properties": {
           "max_submissions": {
@@ -4635,6 +5228,203 @@
           "source"
         ],
         "title": "SubmitIn",
+        "type": "object"
+      },
+      "TeacherAttemptResult": {
+        "properties": {
+          "attempt_id": {
+            "format": "uuid",
+            "title": "Attempt Id",
+            "type": "string"
+          },
+          "grading_status": {
+            "title": "Grading Status",
+            "type": "string"
+          },
+          "questions": {
+            "items": {
+              "$ref": "#/components/schemas/TeacherQuestionResult"
+            },
+            "title": "Questions",
+            "type": "array"
+          },
+          "result": {
+            "$ref": "#/components/schemas/ResultRow"
+          },
+          "revisions": {
+            "items": {
+              "$ref": "#/components/schemas/Revision"
+            },
+            "title": "Revisions",
+            "type": "array"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "student_email": {
+            "title": "Student Email",
+            "type": "string"
+          },
+          "student_name": {
+            "title": "Student Name",
+            "type": "string"
+          },
+          "submitted_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Submitted At"
+          }
+        },
+        "required": [
+          "attempt_id",
+          "student_name",
+          "student_email",
+          "status",
+          "grading_status",
+          "submitted_at",
+          "result",
+          "questions",
+          "revisions"
+        ],
+        "title": "TeacherAttemptResult",
+        "type": "object"
+      },
+      "TeacherQuestionResult": {
+        "properties": {
+          "auto_score": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auto Score"
+          },
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "coding": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CodingOutcome"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "correct_labels": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Correct Labels",
+            "type": "array"
+          },
+          "exam_question_id": {
+            "format": "uuid",
+            "title": "Exam Question Id",
+            "type": "string"
+          },
+          "feedback": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Feedback"
+          },
+          "manual_score": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Manual Score"
+          },
+          "points": {
+            "title": "Points",
+            "type": "string"
+          },
+          "position": {
+            "title": "Position",
+            "type": "integer"
+          },
+          "rubric": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rubric"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "selected_labels": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Selected Labels",
+            "type": "array"
+          },
+          "text_answer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text Answer"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "exam_question_id",
+          "position",
+          "type",
+          "body",
+          "points",
+          "score",
+          "feedback",
+          "auto_score",
+          "manual_score"
+        ],
+        "title": "TeacherQuestionResult",
         "type": "object"
       },
       "TestCaseIn": {
@@ -7479,6 +8269,163 @@
         ]
       }
     },
+    "/api/v1/exams/{exam_id}/results": {
+      "get": {
+        "description": "Every attempt's score and grading status, and whether results can be released (and why\nnot).",
+        "operationId": "exam_results_api_v1_exams__exam_id__results_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "exam_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Exam Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExamResults"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Exam Results",
+        "tags": [
+          "results"
+        ]
+      }
+    },
+    "/api/v1/exams/{exam_id}/results/release": {
+      "post": {
+        "description": "Release every computed result not released yet. 409 `RESULTS_NOT_READY` while an attempt\nis in progress or still being graded.",
+        "operationId": "release_results_api_v1_exams__exam_id__results_release_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "exam_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Exam Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExamResults"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Release Results",
+        "tags": [
+          "results"
+        ]
+      }
+    },
+    "/api/v1/exams/{exam_id}/results/{attempt_id}": {
+      "get": {
+        "description": "One attempt in full: each answer with its score, the key, feedback and coding outcome.",
+        "operationId": "attempt_result_api_v1_exams__exam_id__results__attempt_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "exam_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Exam Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "attempt_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Attempt Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeacherAttemptResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Attempt Result",
+        "tags": [
+          "results"
+        ]
+      }
+    },
     "/api/v1/exams/{exam_id}/student-choices": {
       "get": {
         "description": "Students who could be assigned to this exam, for the picker (name, email, roll no.).",
@@ -9242,6 +10189,82 @@
         "summary": "Start Attempt",
         "tags": [
           "student"
+        ]
+      }
+    },
+    "/api/v1/student/results": {
+      "get": {
+        "description": "The caller's past exams; scores only on released results.",
+        "operationId": "my_results_api_v1_student_results_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentResults"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "My Results",
+        "tags": [
+          "results"
+        ]
+      }
+    },
+    "/api/v1/student/results/{attempt_id}": {
+      "get": {
+        "description": "A released result of the caller's. Not released (or not theirs): 404.",
+        "operationId": "my_result_api_v1_student_results__attempt_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "attempt_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Attempt Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttemptResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "My Result",
+        "tags": [
+          "results"
         ]
       }
     },

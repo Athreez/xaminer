@@ -5,7 +5,8 @@
 - AWAITING_MANUAL: a descriptive answer is waiting for the teacher.
 - COMPLETE: every question has a score.
 
-`refresh` runs after objective grading, after each coding result and after each teacher's mark.
+`refresh` runs after objective grading, after each coding result and after each teacher's mark;
+once complete it computes the result.
 """
 
 import uuid
@@ -19,6 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.attempts.attempt import snapshot_of
 from app.attempts.models import Answer, ExamAttempt
 from app.execution.models import CodingEvaluation, CodingSubmission
+from app.results.compute import compute
 
 ENDED = ("SUBMITTED", "AUTO_SUBMITTED")
 OBJECTIVE = ("MCQ", "MSQ", "TRUE_FALSE")
@@ -51,8 +53,15 @@ async def save_auto_score(
     )
 
 
-async def refresh(session: AsyncSession, attempt: ExamAttempt) -> str:
-    """Work out and store the attempt's grading status."""
+async def refresh(
+    session: AsyncSession,
+    attempt: ExamAttempt,
+    *,
+    reason: str | None = None,
+    changed_by: uuid.UUID | None = None,
+) -> str:
+    """Work out and store the attempt's grading status. Once complete, the result is computed
+    (again); `reason` and `changed_by` go into a revision if a released score changes."""
     if attempt.status not in ENDED:
         return attempt.grading_status
     await session.flush()
@@ -85,4 +94,6 @@ async def refresh(session: AsyncSession, attempt: ExamAttempt) -> str:
     else:
         status = "COMPLETE"
     attempt.grading_status = status
+    if status == "COMPLETE":
+        await compute(session, attempt, reason=reason, changed_by=changed_by)
     return status

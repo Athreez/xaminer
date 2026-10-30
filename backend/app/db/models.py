@@ -16,6 +16,7 @@ from app.questions.models import (
     ReferenceSolution,
     TestCase,
 )
+from app.results.models import Result, ResultRevision
 from app.users.models import User, UserGroup, UserGroupMember
 
 __all__ = [
@@ -41,6 +42,8 @@ __all__ = [
     "QuestionVersion",
     "ReferenceSolution",
     "RefreshToken",
+    "Result",
+    "ResultRevision",
     "TestCase",
     "TestCaseResult",
     "User",

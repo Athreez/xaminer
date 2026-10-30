@@ -12,6 +12,7 @@ from app.exams.models import Exam, ExamAssignment, ExamQuestion, ExamVersion
 from app.execution.models import CodeRun, CodingEvaluation, CodingSubmission, TestCaseResult
 from app.platform.models import Institution
 from app.questions.models import Question, QuestionOption, QuestionVersion
+from app.results.models import Result, ResultRevision
 from app.users.models import User, UserGroup, UserGroupMember
 
 # (table, trigger) pairs that protect locked or frozen rows.
@@ -60,6 +61,8 @@ async def purge_queued(migrator_engine: AsyncEngine) -> None:
             update(Question).where(Question.institution_id.in_(ids)).values(current_version_id=None)
         )
         for model in (
+            ResultRevision,
+            Result,
             TestCaseResult,
             CodingEvaluation,
             CodingSubmission,

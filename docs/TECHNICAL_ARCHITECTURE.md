@@ -369,7 +369,7 @@ Main error codes: `UNAUTHENTICATED`, `INVALID_CREDENTIALS`, `ACCOUNT_LOCKED`, `I
 | Proctoring upload | `POST /attempts/{id}/proctoring/events` · `POST /attempts/{id}/proctoring/spot-checks` | Attempt token |
 | Monitoring | `GET /exams/{id}/monitor` · `POST /attempts/{id}/extend` (minutes + reason; never past the window's end: 409 `WINDOW_ENDS_FIRST`; at most 600 extra) · `POST /attempts/{id}/force-submit` · `POST /attempts/{id}/void` (any non-voided attempt; the student may restart). All need a reason, kept in the audit log | Teacher |
 | Grading | `GET /exams/{id}/grading` · `PUT /attempts/{id}/answers/{eqId}/mark` · `POST /exams/{id}/re-evaluate` | Teacher |
-| Results | `GET /exams/{id}/results` · `POST /exams/{id}/results/release` · `GET /exams/{id}/analytics` · `GET /student/results` · `GET /student/results/{attemptId}` | Teacher / Student (released only) |
+| Results | `GET /exams/{id}/results` · `GET /exams/{id}/results/{attemptId}` · `POST /exams/{id}/results/release` · `GET /exams/{id}/analytics` · `GET /student/results` · `GET /student/results/{attemptId}` | Teacher / Student (released only) |
 | Review | `GET /exams/{id}/proctoring/events` · `GET /attempts/{id}/proctoring/timeline` · `GET /proctoring/events/{id}/evidence` (5-min signed URL) · `PUT /proctoring/events/{id}/review` | Teacher |
 | Notifications | `GET /notifications` · `POST /notifications/{id}/read` | all |
 | Health | `GET /health` | — |

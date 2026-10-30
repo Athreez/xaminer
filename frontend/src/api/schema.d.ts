@@ -732,6 +732,68 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/exams/{exam_id}/results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Exam Results
+         * @description Every attempt's score and grading status, and whether results can be released (and why
+         *     not).
+         */
+        get: operations["exam_results_api_v1_exams__exam_id__results_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/{exam_id}/results/release": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Release Results
+         * @description Release every computed result not released yet. 409 `RESULTS_NOT_READY` while an attempt
+         *     is in progress or still being graded.
+         */
+        post: operations["release_results_api_v1_exams__exam_id__results_release_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/{exam_id}/results/{attempt_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Attempt Result
+         * @description One attempt in full: each answer with its score, the key, feedback and coding outcome.
+         */
+        get: operations["attempt_result_api_v1_exams__exam_id__results__attempt_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/exams/{exam_id}/student-choices": {
         parameters: {
             query?: never;
@@ -1229,6 +1291,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/student/results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My Results
+         * @description The caller's past exams; scores only on released results.
+         */
+        get: operations["my_results_api_v1_student_results_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/student/results/{attempt_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My Result
+         * @description A released result of the caller's. Not released (or not theirs): 404.
+         */
+        get: operations["my_result_api_v1_student_results__attempt_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/submissions/{submission_id}": {
         parameters: {
             query?: never;
@@ -1686,6 +1788,45 @@ export interface components {
             question: components["schemas"]["StudentQuestion"];
         };
         /**
+         * AttemptResult
+         * @description What a student sees for a released result.
+         */
+        AttemptResult: {
+            /**
+             * Attempt Id
+             * Format: uuid
+             */
+            attempt_id: string;
+            /**
+             * Exam Id
+             * Format: uuid
+             */
+            exam_id: string;
+            /** Exam Title */
+            exam_title: string;
+            /** Integrity Outcome */
+            integrity_outcome: string | null;
+            /** Max Score */
+            max_score: string;
+            /** Passed */
+            passed: boolean | null;
+            /** Percentage */
+            percentage: string;
+            /** Questions */
+            questions: components["schemas"]["QuestionResult"][];
+            /**
+             * Released At
+             * Format: date-time
+             */
+            released_at: string;
+            /** Revisions */
+            revisions: components["schemas"]["Revision"][];
+            /** Submitted At */
+            submitted_at: string | null;
+            /** Total Score */
+            total_score: string;
+        };
+        /**
          * AttemptView
          * @description Everything the exam screen needs, in one response (architecture § 9).
          */
@@ -1888,6 +2029,24 @@ export interface components {
              * @default 2000
              */
             time_limit_ms: number;
+        };
+        /** CodingOutcome */
+        CodingOutcome: {
+            /** Language Key */
+            language_key: string;
+            /** Passed Weight */
+            passed_weight: number | null;
+            /** Score */
+            score: string | null;
+            /**
+             * Submission Id
+             * Format: uuid
+             */
+            submission_id: string;
+            /** Total Weight */
+            total_weight: number | null;
+            /** Verdict */
+            verdict: string | null;
         };
         /**
          * CodingView
@@ -2158,6 +2317,34 @@ export interface components {
              * @description In exam order
              */
             questions: components["schemas"]["ExamQuestionIn"][];
+        };
+        /** ExamResults */
+        ExamResults: {
+            /**
+             * Blocked Reason
+             * @description Why release is not possible right now
+             */
+            blocked_reason: string | null;
+            /** Can Release */
+            can_release: boolean;
+            /**
+             * Exam Id
+             * Format: uuid
+             */
+            exam_id: string;
+            /** Pass Percent */
+            pass_percent: string | null;
+            /** Release Policy */
+            release_policy: string;
+            /** Rows */
+            rows: components["schemas"]["ResultRow"][];
+            /** Title */
+            title: string;
+            /**
+             * Unreleased
+             * @description Computed results not released yet
+             */
+            unreleased: number;
         };
         /** ExamSummary */
         ExamSummary: {
@@ -2656,6 +2843,11 @@ export interface components {
             /** Feedback */
             feedback?: string | null;
             /**
+             * Reason
+             * @description Required when the result is already released (kept in its revision)
+             */
+            reason?: string | null;
+            /**
              * Score
              * @description 0 to the question's points
              */
@@ -2761,6 +2953,34 @@ export interface components {
             data: components["schemas"]["QuestionSummary"][];
             /** Next Cursor */
             next_cursor: string | null;
+        };
+        /** QuestionResult */
+        QuestionResult: {
+            /** Body */
+            body: string;
+            coding?: components["schemas"]["CodingOutcome"] | null;
+            /**
+             * Exam Question Id
+             * Format: uuid
+             */
+            exam_question_id: string;
+            /** Feedback */
+            feedback: string | null;
+            /** Points */
+            points: string;
+            /** Position */
+            position: number;
+            /** Score */
+            score: string | null;
+            /**
+             * Selected Labels
+             * @default []
+             */
+            selected_labels: string[];
+            /** Text Answer */
+            text_answer?: string | null;
+            /** Type */
+            type: string;
         };
         /** QuestionSummary */
         QuestionSummary: {
@@ -2953,6 +3173,55 @@ export interface components {
             language_key: string;
             /** Source */
             source: string;
+        };
+        /** ResultRow */
+        ResultRow: {
+            /**
+             * Attempt Id
+             * Format: uuid
+             */
+            attempt_id: string;
+            /** Grading Status */
+            grading_status: string;
+            /** Integrity Outcome */
+            integrity_outcome: string | null;
+            /** Max Score */
+            max_score: string | null;
+            /** Passed */
+            passed: boolean | null;
+            /** Percentage */
+            percentage: string | null;
+            /** Released At */
+            released_at: string | null;
+            /** Status */
+            status: string;
+            /** Student Email */
+            student_email: string;
+            /**
+             * Student Id
+             * Format: uuid
+             */
+            student_id: string;
+            /** Student Name */
+            student_name: string;
+            /** Submitted At */
+            submitted_at: string | null;
+            /** Total Score */
+            total_score: string | null;
+        };
+        /** Revision */
+        Revision: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** New Score */
+            new_score: string;
+            /** Old Score */
+            old_score: string;
+            /** Reason */
+            reason: string;
         };
         /** RunIn */
         RunIn: {
@@ -3315,6 +3584,38 @@ export interface components {
              */
             type: "MCQ" | "MSQ" | "TRUE_FALSE" | "DESCRIPTIVE" | "CODING";
         };
+        /** StudentResultItem */
+        StudentResultItem: {
+            /**
+             * Attempt Id
+             * Format: uuid
+             */
+            attempt_id: string;
+            /**
+             * Exam Id
+             * Format: uuid
+             */
+            exam_id: string;
+            /** Exam Title */
+            exam_title: string;
+            /** Max Score */
+            max_score?: string | null;
+            /** Passed */
+            passed?: boolean | null;
+            /** Percentage */
+            percentage?: string | null;
+            /** Released */
+            released: boolean;
+            /** Submitted At */
+            submitted_at: string | null;
+            /** Total Score */
+            total_score?: string | null;
+        };
+        /** StudentResults */
+        StudentResults: {
+            /** Items */
+            items: components["schemas"]["StudentResultItem"][];
+        };
         /** SubmissionHistory */
         SubmissionHistory: {
             /** Max Submissions */
@@ -3383,6 +3684,68 @@ export interface components {
             language_key: string;
             /** Source */
             source: string;
+        };
+        /** TeacherAttemptResult */
+        TeacherAttemptResult: {
+            /**
+             * Attempt Id
+             * Format: uuid
+             */
+            attempt_id: string;
+            /** Grading Status */
+            grading_status: string;
+            /** Questions */
+            questions: components["schemas"]["TeacherQuestionResult"][];
+            result: components["schemas"]["ResultRow"];
+            /** Revisions */
+            revisions: components["schemas"]["Revision"][];
+            /** Status */
+            status: string;
+            /** Student Email */
+            student_email: string;
+            /** Student Name */
+            student_name: string;
+            /** Submitted At */
+            submitted_at: string | null;
+        };
+        /** TeacherQuestionResult */
+        TeacherQuestionResult: {
+            /** Auto Score */
+            auto_score: string | null;
+            /** Body */
+            body: string;
+            coding?: components["schemas"]["CodingOutcome"] | null;
+            /**
+             * Correct Labels
+             * @default []
+             */
+            correct_labels: string[];
+            /**
+             * Exam Question Id
+             * Format: uuid
+             */
+            exam_question_id: string;
+            /** Feedback */
+            feedback: string | null;
+            /** Manual Score */
+            manual_score: string | null;
+            /** Points */
+            points: string;
+            /** Position */
+            position: number;
+            /** Rubric */
+            rubric?: string | null;
+            /** Score */
+            score: string | null;
+            /**
+             * Selected Labels
+             * @default []
+             */
+            selected_labels: string[];
+            /** Text Answer */
+            text_answer?: string | null;
+            /** Type */
+            type: string;
         };
         /** TestCaseIn */
         TestCaseIn: {
@@ -4917,6 +5280,100 @@ export interface operations {
             };
         };
     };
+    exam_results_api_v1_exams__exam_id__results_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exam_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamResults"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    release_results_api_v1_exams__exam_id__results_release_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exam_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamResults"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    attempt_result_api_v1_exams__exam_id__results__attempt_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exam_id: string;
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TeacherAttemptResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     student_choices_api_v1_exams__exam_id__student_choices_get: {
         parameters: {
             query?: {
@@ -5934,6 +6391,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AttemptView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_results_api_v1_student_results_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudentResults"];
+                };
+            };
+        };
+    };
+    my_result_api_v1_student_results__attempt_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttemptResult"];
                 };
             };
             /** @description Validation Error */

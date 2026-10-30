@@ -6,7 +6,8 @@ the teacher asks. A blank answer scored 0 automatically and isn't in the queue.
 
 A mark is 0 to the question's points, with optional feedback. It goes on the answer
 (`manual_score`, which `score` follows), the audit log keeps the old and new mark, and the
-attempt's grading status is worked out again.
+attempt's grading status is worked out again. Changing a mark on a released result needs a
+reason, which goes into the result's revision (GRD-08).
 """
 
 import uuid
@@ -26,6 +27,7 @@ from app.authz.ownership import get_owned, not_found
 from app.core.errors import AppError
 from app.exams.models import Exam, ExamVersion
 from app.grading.status import ENDED, refresh
+from app.results.models import Result
 from app.users.models import User
 
 Feedback = Annotated[str, StringConstraints(strip_whitespace=True, max_length=5000)]
@@ -36,6 +38,10 @@ class MarkIn(BaseModel):
 
     score: Decimal = Field(ge=0, decimal_places=2, description="0 to the question's points")
     feedback: Feedback | None = None
+    reason: Feedback | None = Field(
+        default=None,
+        description="Required when the result is already released (kept in its revision)",
+    )
 
 
 class Mark(BaseModel):
@@ -74,7 +80,7 @@ class GradingQueue(BaseModel):
 
 def _invalid(message: str) -> AppError:
     return AppError(
-        "VALIDATION_ERROR",
+        "VALIDATION_FAILED",
         message,
         status_code=422,
         details=[{"field": "score", "message": message, "type": "MARK_OUT_OF_RANGE"}],
@@ -195,6 +201,16 @@ async def mark(
     )
     if answer is None or not (answer.text_answer or "").strip():
         raise AppError("NOTHING_TO_MARK", "The student left this question blank.", status_code=409)
+    released = await session.scalar(
+        select(Result.released_at).where(Result.attempt_id == attempt.id)
+    )
+    if released is not None and not body.reason:
+        raise AppError(
+            "REASON_REQUIRED",
+            "This result is already released: say why the mark changes.",
+            status_code=422,
+            details=[{"field": "reason", "message": "Required", "type": "REASON_REQUIRED"}],
+        )
     old = answer.manual_score
     now = datetime.now(UTC)
     value = body.score.quantize(Decimal("0.01"))
@@ -214,7 +230,7 @@ async def mark(
             "score": {"old": None if old is None else str(old), "new": str(value)},
         },
     )
-    status = await refresh(session, attempt)
+    status = await refresh(session, attempt, reason=body.reason, changed_by=principal.user_id)
     await session.commit()
     return Mark(
         attempt_id=attempt.id,

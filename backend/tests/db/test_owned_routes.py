@@ -23,6 +23,7 @@ import uuid
 from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from typing import Any
 
 import pytest
@@ -31,7 +32,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from app.attempts.models import AttemptQuestion, ExamAttempt
+from app.attempts.models import Answer, AttemptQuestion, ExamAttempt
 from app.auth.dependencies import CurrentPrincipal, TenantDB
 from app.auth.tokens import Principal, create_access_token
 from app.authz.guards import access_table, require
@@ -49,6 +50,7 @@ from app.questions.models import (
     ReferenceSolution,
     TestCase,
 )
+from app.results.models import Result
 from app.users import service as users_service
 from app.users.models import User, UserGroup, UserGroupMember
 from cli import commands
@@ -511,6 +513,103 @@ def _draft_with_question_url(suffix: str) -> Callable[[World], Awaitable[str]]:
     return setup
 
 
+def _graded_url(path: str, released: bool = True) -> Callable[[World], Awaitable[str]]:
+    """An ended, fully graded attempt with its result. A TEACHER `world.owner` owns the exam; a
+    STUDENT one took it. `path` takes {exam}, {attempt} and {question} (the written question)."""
+
+    async def setup(world: World) -> str:
+        start = datetime.now(UTC) - timedelta(hours=2)
+        async with tenant_session(world.factory, world.owner.institution_id) as s:
+            other_role = "STUDENT" if world.owner.role == "TEACHER" else "TEACHER"
+            other = User(email=f"{uuid.uuid4().hex[:8]}@x.edu", full_name="Other", role=other_role)
+            s.add(other)
+            await s.flush()
+            teacher, student = (
+                (world.owner, other) if world.owner.role == "TEACHER" else (other, world.owner)
+            )
+            question = Question(owner_id=teacher.id, type="DESCRIPTIVE")
+            s.add(question)
+            await s.flush()
+            s.add(
+                QuestionVersion(
+                    question_id=question.id,
+                    version_no=1,
+                    body="Explain.",
+                    points=5,
+                    created_by=teacher.id,
+                )
+            )
+            exam = Exam(
+                owner_id=teacher.id,
+                title="Graded exam",
+                status="PUBLISHED",
+                open_at=start,
+                close_at=start + timedelta(hours=1),
+                duration_min=60,
+            )
+            s.add(exam)
+            await s.flush()
+            eq = ExamQuestion(exam_id=exam.id, question_id=question.id, order_index=0)
+            s.add(eq)
+            await s.flush()
+            snapshot = {
+                "settings": {},
+                "total_points": "5",
+                "questions": [
+                    {
+                        "exam_question_id": str(eq.id),
+                        "type": "DESCRIPTIVE",
+                        "points": "5",
+                        "body": "Explain.",
+                        "options": [],
+                        "rubric": None,
+                    }
+                ],
+            }
+            version = ExamVersion(
+                exam_id=exam.id, version_no=1, snapshot=snapshot, content_hash="0" * 64
+            )
+            s.add(version)
+            await s.flush()
+            exam.published_version_id = version.id
+            attempt = ExamAttempt(
+                exam_id=exam.id,
+                exam_version_id=version.id,
+                student_id=student.id,
+                status="SUBMITTED",
+                grading_status="COMPLETE",
+                started_at=start,
+                deadline_at=start + timedelta(minutes=60),
+                submitted_at=start + timedelta(minutes=30),
+                shuffle_seed=1,
+            )
+            s.add(attempt)
+            await s.flush()
+            s.add(
+                Answer(
+                    attempt_id=attempt.id,
+                    exam_question_id=eq.id,
+                    text_answer="An answer.",
+                    manual_score=Decimal("3"),
+                    score=Decimal("3"),
+                )
+            )
+            s.add(
+                Result(
+                    attempt_id=attempt.id,
+                    total_score=Decimal("3"),
+                    max_score=Decimal("5"),
+                    percentage=Decimal("60"),
+                    per_question=[],
+                    released_at=datetime.now(UTC) if released else None,
+                )
+            )
+            await s.commit()
+            return "/api/v1" + path.format(exam=exam.id, attempt=attempt.id, question=eq.id)
+
+    return setup
+
+
 USERS = "/api/v1/users/{user_id}"
 EXAMS = "/api/v1/exams/{exam_id}"
 QUESTIONS = "/api/v1/questions/{question_id}"
@@ -681,6 +780,33 @@ OWNED_ROUTES: list[OwnedRoute] = [
         "STUDENT",
         _attempt_url("/drafts/{coding}"),
         body={"language_key": "python312", "source": "print(1)", "client_revision": 1},
+    ),
+    OwnedRoute(
+        "GET /api/v1/exams/{exam_id}/grading", "TEACHER", _graded_url("/exams/{exam}/grading")
+    ),
+    OwnedRoute(
+        "GET /api/v1/exams/{exam_id}/results", "TEACHER", _graded_url("/exams/{exam}/results")
+    ),
+    OwnedRoute(
+        "GET /api/v1/exams/{exam_id}/results/{attempt_id}",
+        "TEACHER",
+        _graded_url("/exams/{exam}/results/{attempt}"),
+    ),
+    OwnedRoute(
+        "POST /api/v1/exams/{exam_id}/results/release",
+        "TEACHER",
+        _graded_url("/exams/{exam}/results/release", released=False),
+    ),
+    OwnedRoute(
+        "PUT /api/v1/attempts/{attempt_id}/answers/{exam_question_id}/mark",
+        "TEACHER",
+        _graded_url("/attempts/{attempt}/answers/{question}/mark"),
+        body={"score": "4", "reason": "Re-read"},
+    ),
+    OwnedRoute(
+        "GET /api/v1/student/results/{attempt_id}",
+        "STUDENT",
+        _graded_url("/student/results/{attempt}"),
     ),
     OwnedRoute(f"GET {GROUPS}", "TEACHER", _group_url(), scope="institution"),
     OwnedRoute(
