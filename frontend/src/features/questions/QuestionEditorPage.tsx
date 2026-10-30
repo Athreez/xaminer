@@ -499,20 +499,22 @@ function QuestionForm({
         <div className="bg-card shadow-card space-y-3 rounded-xl border p-6">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="font-semibold">{coding ? "Problem statement" : "Question"}</h2>
-            <div className="flex gap-1" role="tablist" aria-label="Question text">
-              {(["write", "preview"] as const).map((t) => (
-                <Button
-                  key={t}
-                  type="button"
-                  size="sm"
-                  role="tab"
-                  aria-selected={tab === t}
-                  variant={tab === t ? "secondary" : "ghost"}
-                  onClick={() => setTab(t)}
-                >
-                  {t === "write" ? "Write" : "Preview"}
-                </Button>
-              ))}
+            <div className="flex gap-1">
+              <div className="flex gap-1" role="tablist" aria-label="Question text">
+                {(["write", "preview"] as const).map((t) => (
+                  <Button
+                    key={t}
+                    type="button"
+                    size="sm"
+                    role="tab"
+                    aria-selected={tab === t}
+                    variant={tab === t ? "secondary" : "ghost"}
+                    onClick={() => setTab(t)}
+                  >
+                    {t === "write" ? "Write" : "Preview"}
+                  </Button>
+                ))}
+              </div>
               <Button
                 type="button"
                 size="sm"

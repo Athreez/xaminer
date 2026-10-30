@@ -261,6 +261,33 @@ describe("Uploader", () => {
     expect((await first).state).toBe("saved");
   });
 
+  it("submit waits for a save under way, then sends what came after it", async () => {
+    let release: () => void = () => undefined;
+    const { transport, calls } = fakeTransport();
+    let first = true;
+    const slow: Transport = {
+      ...transport,
+      saveAnswers: async (attempt, answers) => {
+        if (first) {
+          first = false;
+          await new Promise<void>((resolve) => (release = resolve));
+        }
+        return transport.saveAnswers(attempt, answers);
+      },
+    };
+    await outbox.put(ATTEMPT, "answer", "q1", { exam_question_id: "q1", text_answer: "a" });
+    const uploader = make(slow);
+    const background = uploader.flush();
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    await outbox.put(ATTEMPT, "answer", "q2", { exam_question_id: "q2", text_answer: "typed" });
+    const submitting = uploader.flush(true);
+    release();
+    await background;
+    expect(await submitting).toEqual({ state: "saved", unsent: 0, refused: 0 });
+    const sent = calls.flatMap((c) => (c.kind === "answers" ? (c.detail as AnswerOut[]) : []));
+    expect(sent.map((a) => a.exam_question_id)).toEqual(["q1", "q2"]);
+  });
+
   it("time up: everything still queued is kept aside and counted honestly", async () => {
     const { transport } = fakeTransport({ fail: new SendError("closed", "TIME_UP") });
     await outbox.put(ATTEMPT, "answer", "q1", { exam_question_id: "q1" });

@@ -3,7 +3,7 @@
         backend-lint backend-typecheck backend-test frontend-lint frontend-typecheck frontend-test \
         up down ps logs platform-admin api-client \
         create-institution create-admin invite-user list-institutions list-languages \
-        runners runners-check sandbox-check demo-https demo-data backup backup-check restore
+        runners runners-check sandbox-check demo-https demo-data backup backup-check restore e2e
 
 # Regenerate the frontend's typed API client after changing backend endpoints. Commit the result.
 api-client:
@@ -50,6 +50,10 @@ list-institutions:
 
 list-languages:
 	$(ADMIN_CLI) list-languages
+
+# Browser tests (e2e/): the stack up, runners built and `make demo-data` done first.
+e2e:
+	cd backend && uv run --no-project --with pytest --with playwright --with requests python -m pytest ../e2e -q -p no:cacheprovider
 
 # Backups (README, "Backups"): one now; a restore test into a fresh database; putting one back.
 backup:

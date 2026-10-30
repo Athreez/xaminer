@@ -193,3 +193,56 @@ jobs:
           uv python install 3.12
           uv sync --locked
           uv run pytest -q -p no:randomly tests/sandbox
+
+  e2e:
+    name: Browser tests (full stack, accessibility, exam paths)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      XAMINER_DEMO_PASSWORD: ci-demo-password-2026
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Frontend packages (axe-core for the accessibility checks)
+        working-directory: frontend
+        run: npm ci
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Backend tools
+        working-directory: backend
+        run: |
+          uv python install 3.12
+          uv sync --locked
+
+      - name: Start the whole stack with throwaway secrets
+        run: |
+          python3 scripts/ci_env.py
+          docker compose -f deploy/docker-compose.yml up -d --build
+          for i in $(seq 1 60); do curl -sf http://localhost:8080/api/v1/health && break; sleep 5; done
+
+      - name: Language runners into the sandbox
+        working-directory: backend
+        run: uv run python ../runners/build.py
+
+      - name: Demo data (accounts, questions, exams)
+        run: make demo-data
+
+      - name: Browser tests
+        run: |
+          cd backend
+          uv run --no-project --with pytest --with playwright --with requests python -m playwright install --with-deps chromium
+          uv run --no-project --with pytest --with playwright --with requests python -m pytest ../e2e -q -p no:cacheprovider
+
+      - name: Stack logs (on failure)
+        if: failure()
+        run: docker compose -f deploy/docker-compose.yml logs --tail 80 api app-worker exec-worker web

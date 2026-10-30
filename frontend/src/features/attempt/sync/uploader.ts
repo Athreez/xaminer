@@ -69,7 +69,7 @@ export class Uploader {
   private failures = 0;
   private firstFailureAt: number | null = null;
   private nextTryAt = 0;
-  private running = false;
+  private inflight: Promise<void> | null = null;
   private unsent = 0;
   private refused = 0;
   private readonly now: () => number;
@@ -118,14 +118,28 @@ export class Uploader {
     return this.nextTryAt;
   }
 
-  /** Send what's queued, once. Respects the backoff unless `force` (e.g. at time up). */
+  /**
+   * Send what's queued, once. Respects the backoff unless `force` (submit, time up): then it also
+   * waits for a send already under way and sends whatever is still queued after it, so the
+   * answer typed a moment ago is never reported as unsent while it's on its way.
+   */
   async flush(force = false): Promise<Status> {
-    if (this.running) return this.status();
+    if (this.inflight && !force) return this.status(); // "saving" while it's under way
+    while (this.inflight) await this.inflight;
     if (!force && this.now() < this.nextTryAt) {
       await this.count();
       return this.status();
     }
-    this.running = true;
+    this.inflight = this.send();
+    try {
+      await this.inflight;
+    } finally {
+      this.inflight = null;
+    }
+    return this.status();
+  }
+
+  private async send(): Promise<void> {
     try {
       const pending = await this.outbox.pending(this.attemptId);
       this.unsent = pending.length; // a status asked for meanwhile says "saving", not "saved"
@@ -138,10 +152,8 @@ export class Uploader {
     } catch (error) {
       if (!(error instanceof SendError) || error.failure === "network") this.failed();
     } finally {
-      this.running = false;
       await this.count();
     }
-    return this.status();
   }
 
   private async sendAnswers(batch: Entry[]): Promise<void> {
