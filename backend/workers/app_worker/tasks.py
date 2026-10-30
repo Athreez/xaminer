@@ -145,3 +145,28 @@ async def _delete_old_runs() -> int:
         return await delete(create_session_factory(engine))
     finally:
         await engine.dispose()
+
+
+@shared_task(
+    name="execution.auto_submit",
+    autoretry_for=(OSError,),
+    retry_backoff=10,
+    max_retries=6,
+)
+def auto_submit_drafts(attempt_id: str) -> None:
+    """An attempt ended: grade each coding question's newer draft (EXE-06). Safe to repeat."""
+    asyncio.run(_auto_submit(uuid.UUID(attempt_id)))
+
+
+async def _auto_submit(attempt_id: uuid.UUID) -> int:
+    import app.db.models  # noqa: F401  (every table, so foreign keys resolve)
+    from app.core.storage import Storage
+    from app.db.session import create_engine, create_session_factory
+    from app.execution.auto_submit import auto_submit
+
+    settings = get_settings()
+    engine = create_engine(settings.database_url("app"))
+    try:
+        return await auto_submit(create_session_factory(engine), Storage(settings), attempt_id)
+    finally:
+        await engine.dispose()

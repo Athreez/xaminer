@@ -224,11 +224,39 @@ async def submit(
     if await _used(session, attempt.id, exam_question_id) >= limit:
         raise _refuse("SUBMISSION_LIMIT", f"You've used all {limit} submissions for this question.")
 
+    submission, job = await create(
+        session,
+        attempt,
+        question,
+        language_key=body.language_key,
+        source=body.source,
+        storage=storage,
+        now=now,
+    )
+    await session.commit()
+    queue.send(job, queues.EXEC_SUBMIT)  # after the commit, so the result finds the job
+    return await view(session, submission, uuid.UUID(question["version_id"]))
+
+
+async def create(
+    session: AsyncSession,
+    attempt: ExamAttempt,
+    question: dict[str, Any],
+    *,
+    language_key: str,
+    source: str,
+    storage: Storage,
+    now: datetime,
+    auto: bool = False,
+) -> tuple[CodingSubmission, ExecJob]:
+    """The next submission of this question, its first evaluation (QUEUED) and the job to send
+    once the caller has committed. `auto`: the last draft, submitted when the attempt ended."""
+    exam_question_id = uuid.UUID(question["exam_question_id"])
     version_id = uuid.UUID(question["version_id"])
     config = await session.scalar(
         select(CodingConfig).where(CodingConfig.version_id == version_id).with_for_update()
     )
-    language = await session.scalar(select(Language).where(Language.key == body.language_key))
+    language = await session.scalar(select(Language).where(Language.key == language_key))
     if config is None or language is None:
         raise AppError("INTERNAL_ERROR", "Coding setup missing.", status_code=500)
     bundle_key = config.bundle_key or await bundles.ensure(session, storage, config)
@@ -247,8 +275,9 @@ async def submit(
         exam_question_id=exam_question_id,
         submission_no=number,
         language_key=language.key,
-        source=body.source,
+        source=source,
         created_at=now,
+        is_auto=auto,
     )
     session.add(submission)
     await session.flush()
@@ -271,14 +300,12 @@ async def submit(
         ),
         time_limit_ms=effective_limit_ms(config.time_limit_ms, language.time_multiplier),
         memory_limit_mb=config.memory_limit_mb,
-        source=body.source,
+        source=source,
         bundle_url=storage.internal_url(bundles.BUNDLES, bundle_key, LINK_SECONDS),
         bundle_sha256=bundle_key.rsplit("/", 1)[1].removesuffix(".tar"),
         cases="all",
     )
-    await session.commit()
-    queue.send(job, queues.EXEC_SUBMIT)  # after the commit, so the result finds the job
-    return await view(session, submission, version_id)
+    return submission, job
 
 
 async def _readable_attempt(

@@ -25,7 +25,7 @@ from app.attempts.models import Answer, AttemptQuestion, ExamAttempt
 from app.audit.service import record
 from app.auth.tokens import Principal
 from app.authz.ownership import get_owned, not_found
-from app.db.session import SessionFactory, system_session
+from app.db.session import SessionFactory, after_commit, system_session
 from domain_core import timer
 
 SWEEP_BATCH = 500
@@ -72,7 +72,15 @@ async def finalize(
         target_id=attempt_id,
         changes={"status": status, "submitted_at": now.isoformat()},
     )
+    # Unsubmitted code is graded too (EXE-06): once this is committed, so the worker sees it ended.
+    after_commit(session, lambda: _queue_auto_submit(attempt_id))
     return True
+
+
+def _queue_auto_submit(attempt_id: uuid.UUID) -> None:
+    from app.execution.auto_submit import queue_auto_submit  # imports this package
+
+    queue_auto_submit(attempt_id)
 
 
 async def finalize_if_overdue(session: AsyncSession, attempt: ExamAttempt, now: datetime) -> bool:

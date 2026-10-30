@@ -133,3 +133,13 @@ def no_exec_jobs(monkeypatch: pytest.MonkeyPatch) -> list[tuple[str, object]]:
     sent: list[tuple[str, object]] = []
     monkeypatch.setattr(queue, "send", lambda job, name: sent.append((name, job)))
     return sent
+
+
+@pytest.fixture(autouse=True)
+def no_auto_submit_jobs(monkeypatch: pytest.MonkeyPatch) -> list[uuid.UUID]:
+    """Ended attempts queue a grading of their drafts; tests record the attempt ids instead."""
+    from app.execution import auto_submit
+
+    queued: list[uuid.UUID] = []
+    monkeypatch.setattr(auto_submit, "queue_auto_submit", queued.append)
+    return queued
