@@ -5,7 +5,7 @@ Submitting joins in a later ticket."""
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
 from redis.asyncio import Redis
 
 from app.attempts import attempt, manage, saving, student_exams
@@ -22,6 +22,8 @@ from app.auth.tokens import Principal
 from app.authz.guards import require
 from app.authz.permissions import P
 from app.core.config import Settings
+from app.execution import runs
+from app.execution.runs import RunIn, RunView
 from app.images.router import AppStorage
 
 router = APIRouter(prefix="/student/exams", tags=["student"])
@@ -119,6 +121,31 @@ async def submit_attempt(attempt_id: uuid.UUID, principal: Taker, db: TenantDB) 
 async def attempt_receipt(attempt_id: uuid.UUID, principal: Taker, db: TenantDB) -> Receipt:
     """The receipt of your submitted attempt (404 while it's still in progress)."""
     return await submitting.get_receipt(db, principal, attempt_id)
+
+
+@attempts_router.post(
+    "/{attempt_id}/questions/{exam_question_id}/runs", status_code=status.HTTP_202_ACCEPTED
+)
+async def run_code(
+    attempt_id: uuid.UUID,
+    exam_question_id: uuid.UUID,
+    body: RunIn,
+    principal: Taker,
+    db: TenantDB,
+    storage: AppStorage,
+) -> RunView:
+    """Run Code (PRD EXE-02, EXE-03): your code on the public test cases, or on `custom_input`.
+    Never graded. One at a time, 8 s apart, 20 per question; poll GET /runs/{id} for the result."""
+    return await runs.start(db, principal, attempt_id, exam_question_id, body, storage)
+
+
+runs_router = APIRouter(prefix="/runs", tags=["attempts"])
+
+
+@runs_router.get("/{run_id}")
+async def get_run(run_id: uuid.UUID, principal: Taker, db: TenantDB) -> RunView:
+    """A run's status and, when done, its results (public cases only)."""
+    return await runs.get_run(db, principal, run_id)
 
 
 # ----------------------------------------------------------------------------- teacher actions

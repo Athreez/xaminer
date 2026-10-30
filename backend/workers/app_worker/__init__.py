@@ -15,6 +15,12 @@ app.conf.beat_schedule = {
         "schedule": 30.0,
         "options": {"queue": "maintenance", "expires": 25},
     },
+    # Run Code results are kept for 24 hours (TECHNICAL_ARCHITECTURE.md § 5).
+    "delete-old-runs": {
+        "task": "execution.delete_old_runs",
+        "schedule": 3600.0,
+        "options": {"queue": "maintenance", "expires": 3000},
+    },
 }
 
 __all__ = ["app"]

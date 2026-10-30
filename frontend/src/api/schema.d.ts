@@ -167,6 +167,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/attempts/{attempt_id}/questions/{exam_question_id}/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run Code
+         * @description Run Code (PRD EXE-02, EXE-03): your code on the public test cases, or on `custom_input`.
+         *     Never graded. One at a time, 8 s apart, 20 per question; poll GET /runs/{id} for the result.
+         */
+        post: operations["run_code_api_v1_attempts__attempt_id__questions__exam_question_id__runs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/attempts/{attempt_id}/receipt": {
         parameters: {
             query?: never;
@@ -1052,6 +1073,26 @@ export interface paths {
          *     something is missing (the coding view's `blocks`).
          */
         post: operations["validate_question_api_v1_questions__question_id__validate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/runs/{run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Run
+         * @description A run's status and, when done, its results (public cases only).
+         */
+        get: operations["get_run_api_v1_runs__run_id__get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2698,6 +2739,61 @@ export interface components {
             /** Source */
             source: string;
         };
+        /** RunIn */
+        RunIn: {
+            /**
+             * Custom Input
+             * @description Run on this input instead of the examples
+             */
+            custom_input?: string | null;
+            /** Language Key */
+            language_key: string;
+            /** Source */
+            source: string;
+        };
+        /** RunView */
+        RunView: {
+            /** Compile Output */
+            compile_output: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Custom Input */
+            custom_input: boolean;
+            /** Finished At */
+            finished_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Language Key */
+            language_key: string;
+            /**
+             * Poll After Ms
+             * @description Ask again after this long while QUEUED
+             */
+            poll_after_ms: number | null;
+            /**
+             * Results
+             * @description Per public case: input, expected and actual output, passed, time. Custom input: the output only
+             */
+            results: {
+                [key: string]: unknown;
+            }[] | null;
+            /**
+             * Runs Left
+             * @description Runs still allowed on this question
+             */
+            runs_left: number;
+            /**
+             * Status
+             * @description QUEUED, COMPLETED or FAILED (the platform couldn't run it)
+             */
+            status: string;
+        };
         /** SaveResult */
         SaveResult: {
             /**
@@ -3466,6 +3562,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HeartbeatOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    run_code_api_v1_attempts__attempt_id__questions__exam_question_id__runs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attempt_id: string;
+                exam_question_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RunIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunView"];
                 };
             };
             /** @description Validation Error */
@@ -5254,6 +5386,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["QuestionView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_run_api_v1_runs__run_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunView"];
                 };
             };
             /** @description Validation Error */

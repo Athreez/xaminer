@@ -85,7 +85,7 @@ def _invalid(field: str, message: str) -> AppError:
     )
 
 
-async def _open_attempt(
+async def open_attempt(
     session: AsyncSession, principal: Principal, attempt_id: uuid.UUID, now: datetime
 ) -> tuple[ExamAttempt, dict[str, dict[str, Any]]]:
     """The caller's attempt if it still takes saves, with its questions from the frozen version."""
@@ -161,7 +161,7 @@ async def save_answers(
     session: AsyncSession, principal: Principal, attempt_id: uuid.UUID, body: AnswersIn
 ) -> SaveResult:
     now = datetime.now(UTC)
-    attempt, questions = await _open_attempt(session, principal, attempt_id, now)
+    attempt, questions = await open_attempt(session, principal, attempt_id, now)
     # One answer per question per batch: the newest revision in the batch wins.
     latest: dict[uuid.UUID, tuple[int, AnswerIn]] = {}
     for i, answer in enumerate(body.answers):
@@ -209,7 +209,7 @@ async def set_flag(
 ) -> None:
     """Mark or unmark a question for review (ATT-07)."""
     now = datetime.now(UTC)
-    attempt, questions = await _open_attempt(session, principal, attempt_id, now)
+    attempt, questions = await open_attempt(session, principal, attempt_id, now)
     if str(exam_question_id) not in questions:
         raise not_found()
     await session.execute(
@@ -232,7 +232,7 @@ async def save_draft(
 ) -> DraftResult:
     """Unsubmitted code for a coding question, per language (only newer revisions are kept)."""
     now = datetime.now(UTC)
-    attempt, questions = await _open_attempt(session, principal, attempt_id, now)
+    attempt, questions = await open_attempt(session, principal, attempt_id, now)
     question = questions.get(str(exam_question_id))
     if question is None:
         raise not_found()

@@ -3348,6 +3348,137 @@
         "title": "ReferenceView",
         "type": "object"
       },
+      "RunIn": {
+        "properties": {
+          "custom_input": {
+            "anyOf": [
+              {
+                "maxLength": 65536,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Run on this input instead of the examples",
+            "title": "Custom Input"
+          },
+          "language_key": {
+            "maxLength": 32,
+            "title": "Language Key",
+            "type": "string"
+          },
+          "source": {
+            "maxLength": 262144,
+            "minLength": 1,
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "language_key",
+          "source"
+        ],
+        "title": "RunIn",
+        "type": "object"
+      },
+      "RunView": {
+        "properties": {
+          "compile_output": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compile Output"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "custom_input": {
+            "title": "Custom Input",
+            "type": "boolean"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "language_key": {
+            "title": "Language Key",
+            "type": "string"
+          },
+          "poll_after_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Ask again after this long while QUEUED",
+            "title": "Poll After Ms"
+          },
+          "results": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Per public case: input, expected and actual output, passed, time. Custom input: the output only",
+            "title": "Results"
+          },
+          "runs_left": {
+            "description": "Runs still allowed on this question",
+            "title": "Runs Left",
+            "type": "integer"
+          },
+          "status": {
+            "description": "QUEUED, COMPLETED or FAILED (the platform couldn't run it)",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "language_key",
+          "custom_input",
+          "created_at",
+          "finished_at",
+          "compile_output",
+          "results",
+          "runs_left",
+          "poll_after_ms"
+        ],
+        "title": "RunView",
+        "type": "object"
+      },
       "SaveResult": {
         "properties": {
           "saved": {
@@ -5008,6 +5139,75 @@
           }
         ],
         "summary": "Heartbeat",
+        "tags": [
+          "attempts"
+        ]
+      }
+    },
+    "/api/v1/attempts/{attempt_id}/questions/{exam_question_id}/runs": {
+      "post": {
+        "description": "Run Code (PRD EXE-02, EXE-03): your code on the public test cases, or on `custom_input`.\nNever graded. One at a time, 8 s apart, 20 per question; poll GET /runs/{id} for the result.",
+        "operationId": "run_code_api_v1_attempts__attempt_id__questions__exam_question_id__runs_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "attempt_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Attempt Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "exam_question_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Exam Question Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Run Code",
         "tags": [
           "attempts"
         ]
@@ -8066,6 +8266,55 @@
         "summary": "Validate Question",
         "tags": [
           "questions"
+        ]
+      }
+    },
+    "/api/v1/runs/{run_id}": {
+      "get": {
+        "description": "A run's status and, when done, its results (public cases only).",
+        "operationId": "get_run_api_v1_runs__run_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Run",
+        "tags": [
+          "attempts"
         ]
       }
     },

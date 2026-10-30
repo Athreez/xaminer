@@ -3,7 +3,7 @@ the right submission, move grading on. A result that arrives twice changes nothi
 
 import uuid
 from collections.abc import AsyncIterator, Iterator
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from typing import Any
@@ -37,6 +37,8 @@ class World:
     attempt_id: uuid.UUID
     exam_question_id: uuid.UUID
     institution_id: uuid.UUID
+    me: dict[str, str] = field(default_factory=dict)  # the student's auth header
+    essay_id: uuid.UUID | None = None
 
     async def submission(self, no: int, points: str = "10") -> uuid.UUID:
         """A submission and its queued evaluation (the job); returns the evaluation id."""
@@ -160,8 +162,14 @@ async def build(app_engine: AsyncEngine, client: TestClient, counted: str) -> tu
         await s.commit()
     attempt = client.post(f"/api/v1/student/exams/{exam['id']}/attempts", headers=me).json()
     coding = next(i for i in attempt["questions"] if i["question"]["type"] == "CODING")
+    essay_item = next(i for i in attempt["questions"] if i["question"]["type"] == "DESCRIPTIVE")
     world = World(
-        factory, uuid.UUID(attempt["id"]), uuid.UUID(coding["exam_question_id"]), college.id
+        factory,
+        uuid.UUID(attempt["id"]),
+        uuid.UUID(coding["exam_question_id"]),
+        college.id,
+        me,
+        uuid.UUID(essay_item["exam_question_id"]),
     )
     return world, college
 

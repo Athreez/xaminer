@@ -93,7 +93,15 @@ async def build(factory: SessionFactory, storage: Storage, version_id: uuid.UUID
 
 async def ensure(session: AsyncSession, storage: Storage, config: CodingConfig) -> str:
     """The bundle of this config's current test cases, built now if missing or stale. The caller
-    holds the config row (locked) and commits."""
+    holds the config row (locked) and commits. A locked version's row can't change (the database
+    refuses), so for one the bundle is only stored: its name comes from its content anyway."""
+    version = await session.get(QuestionVersion, config.version_id)
+    if version is not None and version.is_locked:
+        data, digest = pack(await all_test_cases(session, config.version_id))
+        key = key_for(config.institution_id, digest)
+        if config.bundle_key != key:
+            await storage.put(BUNDLES, key, data, "application/x-tar")
+        return key
     return await _store(session, storage, config)
 
 

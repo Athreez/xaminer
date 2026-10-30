@@ -125,3 +125,23 @@ async def _apply_result(result: "ExecResult") -> None:
         await handle(create_session_factory(engine), result)
     finally:
         await engine.dispose()
+
+
+@shared_task(name="execution.delete_old_runs")
+def delete_old_runs() -> None:
+    """Hourly: Run Code results are practice and are deleted after 24 hours."""
+    deleted = asyncio.run(_delete_old_runs())
+    if deleted:
+        logger.info("old code runs deleted", extra={"count": deleted})
+
+
+async def _delete_old_runs() -> int:
+    import app.db.models  # noqa: F401  (every table, so foreign keys resolve)
+    from app.db.session import create_engine, create_session_factory
+    from app.execution.runs import delete_old_runs as delete
+
+    engine = create_engine(get_settings().database_url("app"))
+    try:
+        return await delete(create_session_factory(engine))
+    finally:
+        await engine.dispose()

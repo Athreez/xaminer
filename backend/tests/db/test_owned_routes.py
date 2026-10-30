@@ -39,6 +39,7 @@ from app.authz.ownership import get_owned, not_found
 from app.authz.permissions import P
 from app.db.session import SessionFactory, create_session_factory, system_session, tenant_session
 from app.exams.models import Exam, ExamAssignment, ExamQuestion, ExamVersion
+from app.execution.models import CodeRun
 from app.main import create_app
 from app.platform.models import Institution
 from app.questions.models import (
@@ -334,17 +335,30 @@ async def _attempt(world: World) -> str:
             s.add(eq)
             await s.flush()
             rows.append(eq)
-            snapshot_questions.append(
-                {
-                    "exam_question_id": str(eq.id),
-                    "version_id": str(version.id),
-                    "type": kind,
-                    "body": "Q",
-                    "points": "1.00",
-                    "negative_marks": "0.00",
-                    "options": [],
+            entry = {
+                "exam_question_id": str(eq.id),
+                "version_id": str(version.id),
+                "type": kind,
+                "body": "Q",
+                "points": "1.00",
+                "negative_marks": "0.00",
+                "options": [],
+            }
+            if kind == "CODING":
+                s.add(CodingConfig(version_id=version.id))
+                entry["coding"] = {  # as student_view.coding_part makes it
+                    "input_format": "",
+                    "output_format": "",
+                    "constraints": "",
+                    "languages": [{"key": "python312", "display_name": "Py", "starter_code": ""}],
+                    "time_limit_ms": 1000,
+                    "memory_limit_mb": 128,
+                    "run_code_allowed": True,
+                    "max_submissions": 10,
+                    "partial_scoring": True,
+                    "examples": [],
                 }
-            )
+            snapshot_questions.append(entry)
         exam_version = ExamVersion(
             exam_id=exam.id,
             version_no=1,
@@ -379,6 +393,25 @@ async def _attempt(world: World) -> str:
         await s.commit()
         world.notes["written"], world.notes["coding"] = str(rows[0].id), str(rows[1].id)
         return str(attempt.id)
+
+
+async def _run_url(world: World) -> str:
+    """A Run Code result of `world.owner`'s attempt."""
+    attempt_id = await _attempt(world)
+    async with tenant_session(world.factory, world.owner.institution_id) as s:
+        run = CodeRun(
+            attempt_id=uuid.UUID(attempt_id),
+            exam_question_id=uuid.UUID(world.notes["coding"]),
+            language_key="python312",
+            source="print(1)",
+        )
+        s.add(run)
+        await s.commit()
+        return f"/api/v1/runs/{run.id}"
+
+
+async def _run_body(world: World) -> dict[str, Any]:
+    return {"language_key": "python312", "source": "print(1)", "custom_input": "x"}
 
 
 def _attempt_url(suffix: str = "", submitted: bool = False) -> Callable[[World], Awaitable[str]]:
@@ -562,6 +595,13 @@ OWNED_ROUTES: list[OwnedRoute] = [
     OwnedRoute("GET /api/v1/student/exams/{exam_id}", "STUDENT", _assigned_exam_url),
     OwnedRoute("POST /api/v1/student/exams/{exam_id}/attempts", "STUDENT", _assigned("/attempts")),
     OwnedRoute("GET /api/v1/attempts/{attempt_id}", "STUDENT", _attempt_url()),
+    OwnedRoute(
+        "POST /api/v1/attempts/{attempt_id}/questions/{exam_question_id}/runs",
+        "STUDENT",
+        _attempt_url("/questions/{coding}/runs"),
+        make_body=_run_body,
+    ),
+    OwnedRoute("GET /api/v1/runs/{run_id}", "STUDENT", _run_url),
     OwnedRoute("POST /api/v1/attempts/{attempt_id}/submit", "STUDENT", _attempt_url("/submit")),
     OwnedRoute(
         "POST /api/v1/attempts/{attempt_id}/extend",
