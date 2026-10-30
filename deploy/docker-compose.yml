@@ -171,6 +171,40 @@ services:
     networks: [backend]
     restart: unless-stopped
 
+  # Nightly backups (TCK-1406): database dump + stored files, kept 7 days in BACKUP_DIR.
+  # `make backup` runs one now, `make backup-check` tests a restore, `make restore` puts one back.
+  backup: &backup
+    image: postgres:16-alpine
+    entrypoint: ["sh", "/scripts/nightly.sh"]
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB}
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-7}
+      BACKUP_HOUR: ${BACKUP_HOUR:-20}
+      BACKUP_MINUTE: ${BACKUP_MINUTE:-30}
+    volumes:
+      - ./backup:/scripts:ro
+      - storage-data:/storage:ro
+      - ${BACKUP_DIR:-../backups}:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [backend]
+    restart: unless-stopped
+
+  # Only for `make restore`: like backup, but may write the stored files.
+  restore:
+    <<: *backup
+    entrypoint: ["sh"]
+    volumes:
+      - ./backup:/scripts:ro
+      - storage-data:/storage
+      - ${BACKUP_DIR:-../backups}:/backups
+    restart: "no"
+    profiles: [restore]
+
   # One-off: create the `migrator` and `app` database users and the test database (safe to re-run).
   db-init:
     image: postgres:16-alpine

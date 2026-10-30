@@ -3,7 +3,7 @@
         backend-lint backend-typecheck backend-test frontend-lint frontend-typecheck frontend-test \
         up down ps logs platform-admin api-client \
         create-institution create-admin invite-user list-institutions list-languages \
-        runners runners-check sandbox-check demo-https demo-data
+        runners runners-check sandbox-check demo-https demo-data backup backup-check restore
 
 # Regenerate the frontend's typed API client after changing backend endpoints. Commit the result.
 api-client:
@@ -50,6 +50,19 @@ list-institutions:
 
 list-languages:
 	$(ADMIN_CLI) list-languages
+
+# Backups (README, "Backups"): one now; a restore test into a fresh database; putting one back.
+backup:
+	$(COMPOSE) exec backup sh /scripts/backup.sh
+
+backup-check:
+	$(COMPOSE) exec backup sh /scripts/check.sh
+
+restore:
+	$(COMPOSE) stop web api app-worker scheduler exec-worker
+	$(COMPOSE) stop storage
+	$(COMPOSE) run --rm --no-deps restore /scripts/restore.sh "$(STAMP)"
+	$(COMPOSE) up -d
 
 # The demo (README, "Run the demo"): HTTPS for this laptop's Wi-Fi address, then demo data.
 demo-https:
