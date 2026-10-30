@@ -98,7 +98,9 @@ async def monitor(
                 .where(AttemptQuestion.attempt_id.in_(ids))
                 .group_by(AttemptQuestion.attempt_id)
             )
-        ).tuples().all()
+        )
+        .tuples()
+        .all()
     )
     written = select(Answer.attempt_id, Answer.exam_question_id).where(
         Answer.attempt_id.in_(ids),
@@ -116,7 +118,9 @@ async def monitor(
                     done.c.attempt_id
                 )
             )
-        ).tuples().all()
+        )
+        .tuples()
+        .all()
     )
 
     live_ids = [a.id for a in attempts.values() if a.status == "IN_PROGRESS"]

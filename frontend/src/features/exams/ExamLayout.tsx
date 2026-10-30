@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import type { ExamContext } from "./context";
 import { statusLabel, windowLabel, windowState, type ExamStatus } from "./lib";
 
-/** Tabs inside an exam (FRONTEND_SPEC § 4). Review and Analytics join with their tickets. */
+/** Tabs inside an exam (FRONTEND_SPEC § 4). Review joins with proctoring. */
 const TABS = [
   { to: "", label: "Overview", end: true },
   { to: "questions", label: "Questions" },
@@ -21,6 +21,7 @@ const TABS = [
   { to: "monitor", label: "Monitor" },
   { to: "grading", label: "Grading" },
   { to: "results", label: "Results" },
+  { to: "analytics", label: "Analytics" },
 ];
 
 export function ExamStatusBadge({ status }: { status: ExamStatus }) {

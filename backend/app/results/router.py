@@ -9,7 +9,8 @@ from app.auth.dependencies import TenantDB
 from app.auth.tokens import Principal
 from app.authz.guards import require
 from app.authz.permissions import P
-from app.results import dashboard, service
+from app.results import analytics, dashboard, service
+from app.results.analytics import ExamAnalytics
 from app.results.dashboard import TeacherDashboard
 from app.results.service import AttemptResult, ExamResults, StudentResults, TeacherAttemptResult
 
@@ -58,3 +59,14 @@ async def teacher_dashboard(principal: Releaser, db: TenantDB) -> TeacherDashboa
     """The caller's published exams with what needs doing (answers to mark, results to release),
     and how many drafts and questions they have."""
     return await dashboard.dashboard(db, principal)
+
+
+@router.get("/exams/{exam_id}/analytics")
+async def exam_analytics(
+    exam_id: uuid.UUID,
+    principal: Annotated[Principal, Depends(require(P.ANALYTICS_READ))],
+    db: TenantDB,
+) -> ExamAnalytics:
+    """Scores, per-question numbers and, for coding, verdicts and pass rate per test case (low
+    ones flagged as possibly broken). Over fully graded attempts."""
+    return await analytics.analytics(db, principal, exam_id)

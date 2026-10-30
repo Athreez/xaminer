@@ -175,6 +175,10 @@ export const router = createBrowserRouter([
                 lazy: page(() => import("@/features/results/ExamResultsPage"), "ExamResultsPage"),
               },
               {
+                path: "analytics",
+                lazy: page(() => import("@/features/results/AnalyticsPage"), "AnalyticsPage"),
+              },
+              {
                 path: "results/:attemptId",
                 lazy: page(
                   () => import("@/features/results/AttemptResultPage"),

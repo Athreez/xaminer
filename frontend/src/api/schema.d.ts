@@ -564,6 +564,27 @@ export interface paths {
         patch: operations["update_exam_api_v1_exams__exam_id__patch"];
         trace?: never;
     };
+    "/api/v1/exams/{exam_id}/analytics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Exam Analytics
+         * @description Scores, per-question numbers and, for coding, verdicts and pass rate per test case (low
+         *     ones flagged as possibly broken). Over fully graded attempts.
+         */
+        get: operations["exam_analytics_api_v1_exams__exam_id__analytics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/exams/{exam_id}/archive": {
         parameters: {
             query?: never;
@@ -2248,6 +2269,36 @@ export interface components {
              */
             server_time: string;
         };
+        /** ExamAnalytics */
+        ExamAnalytics: {
+            /** Average */
+            average: string | null;
+            /**
+             * Graded
+             * @description Fully graded attempts the numbers are about
+             */
+            graded: number;
+            /** Highest */
+            highest: string | null;
+            /**
+             * Histogram
+             * @description Attempts per 10 % band: 0-9, 10-19, ..., 90-100
+             */
+            histogram: number[];
+            /** Lowest */
+            lowest: string | null;
+            /** Max Score */
+            max_score: string | null;
+            /** Median */
+            median: string | null;
+            /**
+             * Pass Rate
+             * @description Share that passed, with a pass mark
+             */
+            pass_rate: number | null;
+            /** Questions */
+            questions: components["schemas"]["QuestionStat"][];
+        };
         /** ExamCreate */
         ExamCreate: {
             /** Close At */
@@ -3026,6 +3077,15 @@ export interface components {
             /** Label */
             label: string;
         };
+        /** OptionPicks */
+        OptionPicks: {
+            /** Is Correct */
+            is_correct: boolean;
+            /** Label */
+            label: string;
+            /** Picked */
+            picked: number;
+        };
         /** OptionView */
         OptionView: {
             /**
@@ -3147,6 +3207,47 @@ export interface components {
             text_answer?: string | null;
             /** Type */
             type: string;
+        };
+        /** QuestionStat */
+        QuestionStat: {
+            /** Average */
+            average: string;
+            /**
+             * Exam Question Id
+             * Format: uuid
+             */
+            exam_question_id: string;
+            /**
+             * Full Marks
+             * @description Attempts that got all the points
+             */
+            full_marks: number;
+            /**
+             * Options
+             * @default []
+             */
+            options: components["schemas"]["OptionPicks"][];
+            /** Points */
+            points: string;
+            /** Position */
+            position: number;
+            /**
+             * Test Cases
+             * @default []
+             */
+            test_cases: components["schemas"]["TestCaseStat"][];
+            /** Title */
+            title: string;
+            /** Type */
+            type: string;
+            /**
+             * Verdicts
+             * @description Coding: counted submissions' verdicts
+             * @default {}
+             */
+            verdicts: {
+                [key: string]: number;
+            };
         };
         /** QuestionSummary */
         QuestionSummary: {
@@ -3990,6 +4091,26 @@ export interface components {
             visibility?: ("PUBLIC" | "HIDDEN") | null;
             /** Weight */
             weight?: number | null;
+        };
+        /** TestCaseStat */
+        TestCaseStat: {
+            /** Hidden */
+            hidden: boolean;
+            /** Number */
+            number: number;
+            /** Pass Rate */
+            pass_rate: number;
+            /** Passed */
+            passed: number;
+            /**
+             * Possibly Broken
+             * @description Passed by under 30% of students
+             */
+            possibly_broken: boolean;
+            /** Total */
+            total: number;
+            /** Weight */
+            weight: number;
         };
         /**
          * TestCaseView
@@ -5149,6 +5270,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ExamView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    exam_analytics_api_v1_exams__exam_id__analytics_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exam_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExamAnalytics"];
                 };
             };
             /** @description Validation Error */

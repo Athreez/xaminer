@@ -1516,6 +1516,110 @@
         "title": "DraftResult",
         "type": "object"
       },
+      "ExamAnalytics": {
+        "properties": {
+          "average": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Average"
+          },
+          "graded": {
+            "description": "Fully graded attempts the numbers are about",
+            "title": "Graded",
+            "type": "integer"
+          },
+          "highest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Highest"
+          },
+          "histogram": {
+            "description": "Attempts per 10 % band: 0-9, 10-19, ..., 90-100",
+            "items": {
+              "type": "integer"
+            },
+            "title": "Histogram",
+            "type": "array"
+          },
+          "lowest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lowest"
+          },
+          "max_score": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Score"
+          },
+          "median": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median"
+          },
+          "pass_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Share that passed, with a pass mark",
+            "title": "Pass Rate"
+          },
+          "questions": {
+            "items": {
+              "$ref": "#/components/schemas/QuestionStat"
+            },
+            "title": "Questions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "graded",
+          "max_score",
+          "average",
+          "median",
+          "highest",
+          "lowest",
+          "pass_rate",
+          "histogram",
+          "questions"
+        ],
+        "title": "ExamAnalytics",
+        "type": "object"
+      },
       "ExamCreate": {
         "additionalProperties": false,
         "properties": {
@@ -3438,6 +3542,29 @@
         "title": "OptionIn",
         "type": "object"
       },
+      "OptionPicks": {
+        "properties": {
+          "is_correct": {
+            "title": "Is Correct",
+            "type": "boolean"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "picked": {
+            "title": "Picked",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "label",
+          "is_correct",
+          "picked"
+        ],
+        "title": "OptionPicks",
+        "type": "object"
+      },
       "OptionView": {
         "properties": {
           "id": {
@@ -3772,6 +3899,76 @@
           "feedback"
         ],
         "title": "QuestionResult",
+        "type": "object"
+      },
+      "QuestionStat": {
+        "properties": {
+          "average": {
+            "title": "Average",
+            "type": "string"
+          },
+          "exam_question_id": {
+            "format": "uuid",
+            "title": "Exam Question Id",
+            "type": "string"
+          },
+          "full_marks": {
+            "description": "Attempts that got all the points",
+            "title": "Full Marks",
+            "type": "integer"
+          },
+          "options": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/OptionPicks"
+            },
+            "title": "Options",
+            "type": "array"
+          },
+          "points": {
+            "title": "Points",
+            "type": "string"
+          },
+          "position": {
+            "title": "Position",
+            "type": "integer"
+          },
+          "test_cases": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/TestCaseStat"
+            },
+            "title": "Test Cases",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          },
+          "verdicts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "default": {},
+            "description": "Coding: counted submissions' verdicts",
+            "title": "Verdicts",
+            "type": "object"
+          }
+        },
+        "required": [
+          "exam_question_id",
+          "position",
+          "type",
+          "title",
+          "points",
+          "average",
+          "full_marks"
+        ],
+        "title": "QuestionStat",
         "type": "object"
       },
       "QuestionSummary": {
@@ -5869,6 +6066,50 @@
           }
         },
         "title": "TestCasePatch",
+        "type": "object"
+      },
+      "TestCaseStat": {
+        "properties": {
+          "hidden": {
+            "title": "Hidden",
+            "type": "boolean"
+          },
+          "number": {
+            "title": "Number",
+            "type": "integer"
+          },
+          "pass_rate": {
+            "title": "Pass Rate",
+            "type": "number"
+          },
+          "passed": {
+            "title": "Passed",
+            "type": "integer"
+          },
+          "possibly_broken": {
+            "description": "Passed by under 30% of students",
+            "title": "Possibly Broken",
+            "type": "boolean"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          },
+          "weight": {
+            "title": "Weight",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "number",
+          "hidden",
+          "weight",
+          "passed",
+          "total",
+          "pass_rate",
+          "possibly_broken"
+        ],
+        "title": "TestCaseStat",
         "type": "object"
       },
       "TestCaseView": {
@@ -8076,6 +8317,55 @@
         "summary": "Update Exam",
         "tags": [
           "exams"
+        ]
+      }
+    },
+    "/api/v1/exams/{exam_id}/analytics": {
+      "get": {
+        "description": "Scores, per-question numbers and, for coding, verdicts and pass rate per test case (low\nones flagged as possibly broken). Over fully graded attempts.",
+        "operationId": "exam_analytics_api_v1_exams__exam_id__analytics_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "exam_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Exam Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExamAnalytics"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Exam Analytics",
+        "tags": [
+          "results"
         ]
       }
     },

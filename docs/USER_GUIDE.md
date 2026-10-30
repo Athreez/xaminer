@@ -66,6 +66,11 @@ Multiple choice, true/false and coding are graded automatically when an attempt 
   every submission to it. Changed released scores are shown to the student with your reason.
 - Changing a mark after release needs a reason; the student sees the old and new score.
 
+- **Analytics:** average, median, highest, lowest and pass rate, a histogram of scores, each
+  question's average and how often each option was picked, and for coding questions the pass
+  rate of every test case. A test most students fail is flagged as **possibly broken**: check it,
+  fix it in the question bank, then **Re-evaluate code**.
+
 The **Dashboard** lists what needs you: answers to mark and results to release.
 
 ## Student
