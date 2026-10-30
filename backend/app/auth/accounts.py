@@ -1,5 +1,6 @@
 """Invitations and password reset (PRD AUTH-02, AUTH-05; SECURITY_AND_ACCESS.md § 2.1)."""
 
+import asyncio
 import uuid
 from datetime import UTC, datetime, timedelta
 
@@ -162,7 +163,7 @@ async def accept_invitation(factory: SessionFactory, raw: str, password: str) ->
             check_policy(password, email=user.email, full_name=user.full_name)
         except WeakPasswordError as exc:
             raise _weak(exc) from exc  # the link stays valid so they can try another password
-        user.password_hash = hash_password(password)
+        user.password_hash = await asyncio.to_thread(hash_password, password)
         user.status = "ACTIVE"
         token.used_at = now
         record(
@@ -218,7 +219,7 @@ async def confirm_password_reset(factory: SessionFactory, raw: str, password: st
             check_policy(password, email=user.email, full_name=user.full_name)
         except WeakPasswordError as exc:
             raise _weak(exc) from exc
-        user.password_hash = hash_password(password)
+        user.password_hash = await asyncio.to_thread(hash_password, password)
         user.failed_logins = 0
         user.locked_until = None
         token.used_at = now

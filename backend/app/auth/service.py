@@ -1,5 +1,6 @@
 """Login and logout (PRD AUTH-01, AUTH-04). HTTP details live in router.py."""
 
+import asyncio
 import uuid
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -62,15 +63,16 @@ async def login(
             query = query.where(User.institution_id == institution_id)
         candidates = (await session.execute(query)).all()
 
+        # Argon2 is slow on purpose: off the event loop, so other requests keep going meanwhile.
         if not candidates:
-            verify_password(_DUMMY_HASH, password)
+            await asyncio.to_thread(verify_password, _DUMMY_HASH, password)
             raise invalid_credentials()
 
         matches = [
             (user, institution)
             for user, institution in candidates
             if user.password_hash is not None
-            and verify_password(user.password_hash, password)
+            and await asyncio.to_thread(verify_password, user.password_hash, password)
             and user.status == "ACTIVE"
             and institution.status == "ACTIVE"
         ]
@@ -113,7 +115,7 @@ async def login(
             target_id=user.id,
         )
         if user.password_hash is not None and needs_rehash(user.password_hash):
-            user.password_hash = hash_password(password)
+            user.password_hash = await asyncio.to_thread(hash_password, password)
 
         raw, hashed = new_opaque_token()
         session.add(

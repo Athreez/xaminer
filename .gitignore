@@ -22,3 +22,4 @@ Thumbs.db
 
 # Database and file backups (make backup)
 backups/
+scripts/load/state.json

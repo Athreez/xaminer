@@ -59,6 +59,13 @@ def _parser() -> argparse.ArgumentParser:
     demo.add_argument(
         "--password-stdin", action="store_true", help="Read the password from standard input."
     )
+    load = sub.add_parser(
+        "seed-load-test", help="Load Test College: a teacher and N students (scripts/load)."
+    )
+    load.add_argument("--students", type=int, default=200)
+    load.add_argument(
+        "--password-stdin", action="store_true", help="Read the password from standard input."
+    )
     sub.add_parser("list-institutions", help="List all institutions.")
     sub.add_parser("list-languages", help="List the programming language catalogue.")
     return parser
@@ -74,6 +81,7 @@ async def _run(args: argparse.Namespace) -> None:
         "list-institutions": _list_institutions,
         "list-languages": _list_languages,
         "seed-demo-users": _seed_demo_users,
+        "seed-load-test": _seed_load_test,
     }
     try:
         await handlers[args.command](factory, args)
@@ -131,6 +139,11 @@ async def _seed_demo_users(factory: SessionFactory, args: argparse.Namespace) ->
         print(f"{'created' if created else 'kept   '}  {email}")
 
 
+async def _seed_load_test(factory: SessionFactory, args: argparse.Namespace) -> None:
+    rows = await commands.seed_load_test(factory, args.password, args.students)
+    print(f"{sum(c for _, c in rows)} created, {sum(not c for _, c in rows)} kept")
+
+
 async def _list_institutions(factory: SessionFactory, _: argparse.Namespace) -> None:
     rows = await commands.list_institutions(factory)
     if not rows:
@@ -148,7 +161,7 @@ async def _list_languages(factory: SessionFactory, _: argparse.Namespace) -> Non
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
-        if args.command in ("create-admin", "seed-demo-users"):
+        if args.command in ("create-admin", "seed-demo-users", "seed-load-test"):
             # Asked before connecting, so a typo doesn't leave a half-open database connection.
             args.password = _read_password(args.password_stdin)
         asyncio.run(_run(args))

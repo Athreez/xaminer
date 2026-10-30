@@ -1,5 +1,6 @@
 """Password hashing (Argon2id) and the password policy (PRD AUTH-07, SECURITY § 2.1)."""
 
+import threading
 from pathlib import Path
 
 from argon2 import PasswordHasher
@@ -39,13 +40,20 @@ def check_policy(password: str, *, email: str = "", full_name: str = "") -> None
         raise WeakPasswordError("Password must not contain your name or email.")
 
 
+# Each hash takes 64 MB and real CPU on purpose. A login rush (a class logging in at once) must
+# queue here, not run 200 at a time and starve the server of memory: two per API process.
+_AT_ONCE = threading.BoundedSemaphore(2)
+
+
 def hash_password(password: str) -> str:
-    return _hasher.hash(password)
+    with _AT_ONCE:
+        return _hasher.hash(password)
 
 
 def verify_password(password_hash: str, password: str) -> bool:
     try:
-        return _hasher.verify(password_hash, password)
+        with _AT_ONCE:
+            return _hasher.verify(password_hash, password)
     except (VerificationError, InvalidHashError):
         return False
 

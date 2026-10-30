@@ -25,6 +25,7 @@ x-backend-env: &backend-env
   MAIL_FROM: ${MAIL_FROM:-Xaminer <no-reply@xaminer.local>}
   MAIL_SKIP_DOMAINS: ${MAIL_SKIP_DOMAINS:-}
   PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
+  LOGIN_RATE_PER_MINUTE: ${LOGIN_RATE_PER_MINUTE:-10} # logins per minute from one address
   JWT_SECRET: ${JWT_SECRET}
 
 # Untrusted-input workers get Redis only. No database or storage credentials (SECURITY § 5.5).
@@ -56,7 +57,8 @@ services:
     # Only nginx can reach the API (frontend network), so trusting its X-Forwarded-* headers is safe.
     command:
       ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000",
-       "--proxy-headers", "--forwarded-allow-ips", "*", "--no-access-log"]
+       "--proxy-headers", "--forwarded-allow-ips", "*", "--no-access-log",
+       "--workers", "${API_WORKERS:-4}"]
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')"]
       interval: 10s
@@ -103,7 +105,7 @@ services:
   exec-worker:
     build: { context: ../backend, target: exec }
     # Runs untrusted code on sandbox-docker; holds no database or storage credentials.
-    command: ["celery", "-A", "workers.exec_worker", "worker", "--queues=exec.validation,exec.submit,exec.run", "--concurrency=2", "--hostname=exec@%h", "--loglevel=INFO"]
+    command: ["celery", "-A", "workers.exec_worker", "worker", "--queues=exec.validation,exec.submit,exec.run", "--concurrency=${EXEC_CONCURRENCY:-2}", "--hostname=exec@%h", "--loglevel=INFO"]
     environment:
       <<: *untrusted-env
       DOCKER_HOST: tcp://sandbox-docker:2376

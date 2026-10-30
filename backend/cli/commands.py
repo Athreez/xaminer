@@ -221,22 +221,50 @@ def demo_people() -> list[tuple[str, str, str, str | None]]:
 async def seed_demo_users(factory: SessionFactory, password: str) -> list[tuple[str, bool]]:
     """Demo College with an admin, two teachers and ten students (all ACTIVE, one password) in a
     group. Safe to run again: existing accounts are kept as they are. Returns (email, created)."""
+    return await _seed_people(factory, DEMO_INSTITUTION, DEMO_GROUP, demo_people(), password)
+
+
+LOAD_INSTITUTION = "Load Test College"
+LOAD_DOMAIN = "load.test"  # reserved (.test): no email is ever sent there
+
+
+async def seed_load_test(
+    factory: SessionFactory, password: str, students: int
+) -> list[tuple[str, bool]]:
+    """Load Test College (TCK-1403): a teacher and `students` students in one group, for
+    scripts/load. Kept apart from real and demo data."""
+    people: list[tuple[str, str, str, str | None]] = [
+        (f"teacher@{LOAD_DOMAIN}", "Load Teacher", "TEACHER", None)
+    ] + [
+        (f"s{i:03d}@{LOAD_DOMAIN}", f"Load Student {i:03d}", "STUDENT", f"LOAD-{i:03d}")
+        for i in range(1, students + 1)
+    ]
+    return await _seed_people(factory, LOAD_INSTITUTION, "Load test", people, password)
+
+
+async def _seed_people(
+    factory: SessionFactory,
+    institution: str,
+    group_name: str,
+    people: list[tuple[str, str, str, str | None]],
+    password: str,
+) -> list[tuple[str, bool]]:
     from app.users.models import UserGroup, UserGroupMember
 
-    for email, name, _, _ in demo_people():
+    for email, name, _, _ in people[:3]:
         try:
             check_policy(password, email=email, full_name=name)
         except WeakPasswordError as exc:
             raise CommandError(str(exc)) from exc
     names = {i.name for i in await list_institutions(factory)}
-    if DEMO_INSTITUTION not in names:
-        await create_institution(factory, DEMO_INSTITUTION)
-    target = await find_institution(factory, DEMO_INSTITUTION)
+    if institution not in names:
+        await create_institution(factory, institution)
+    target = await find_institution(factory, institution)
     hashed = hash_password(password)
     out: list[tuple[str, bool]] = []
     async with tenant_session(factory, target.id) as session:
         students: list[User] = []
-        for email, name, role, roll_no in demo_people():
+        for email, name, role, roll_no in people:
             user = await session.scalar(select(User).where(User.email == email))
             created = user is None
             if user is None:
@@ -262,9 +290,9 @@ async def seed_demo_users(factory: SessionFactory, password: str) -> list[tuple[
             if role == "STUDENT":
                 students.append(user)
             out.append((email, created))
-        group = await session.scalar(select(UserGroup).where(UserGroup.name == DEMO_GROUP))
+        group = await session.scalar(select(UserGroup).where(UserGroup.name == group_name))
         if group is None:
-            group = UserGroup(name=DEMO_GROUP)
+            group = UserGroup(name=group_name)
             session.add(group)
             await session.flush()
         members = set(
