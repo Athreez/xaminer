@@ -1036,6 +1036,28 @@ export interface paths {
         patch: operations["update_test_case_api_v1_questions__question_id__test_cases__case_id__patch"];
         trace?: never;
     };
+    "/api/v1/questions/{question_id}/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Validate Question
+         * @description Run your reference solutions on every test case (PRD CQ-08). Returns at once with status
+         *     VALIDATING; the report fills in as each language finishes. 409 `VALIDATION_BLOCKED` while
+         *     something is missing (the coding view's `blocks`).
+         */
+        post: operations["validate_question_api_v1_questions__question_id__validate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/student/exams": {
         parameters: {
             query?: never;
@@ -5201,6 +5223,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TestCaseView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    validate_question_api_v1_questions__question_id__validate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                question_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuestionView"];
                 };
             };
             /** @description Validation Error */
