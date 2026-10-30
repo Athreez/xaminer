@@ -13,7 +13,7 @@ export interface paths {
         };
         /**
          * List Exams For Admin
-         * @description Every exam in the institution: title, owner, window and status only.
+         * @description Every exam in the institution: title, owner, window and status only (admins).
          */
         get: operations["list_exams_for_admin_api_v1_admin_exams_get"];
         put?: never;

@@ -6595,7 +6595,7 @@
   "paths": {
     "/api/v1/admin/exams": {
       "get": {
-        "description": "Every exam in the institution: title, owner, window and status only.",
+        "description": "Every exam in the institution: title, owner, window and status only (admins).",
         "operationId": "list_exams_for_admin_api_v1_admin_exams_get",
         "parameters": [
           {
