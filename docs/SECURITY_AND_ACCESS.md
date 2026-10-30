@@ -319,15 +319,17 @@ For real deployment, use gVisor or run `sandbox-docker` on a separate VM.
 |---|---|
 | Infinite loop | Killed at the time limit → `TIMEOUT` |
 | `sleep` forever (uses no CPU) | Wall-clock kill → `TIMEOUT` |
-| Fork bomb | Process limit stops it → `RUNTIME_ERROR` |
+| Fork bomb | 64-process limit stops it, then the time limit → `RUNTIME_ERROR` or `TIMEOUT`; the next run is unaffected |
 | Allocating huge memory | Memory limit → `MEMORY_LIMIT` |
 | Printing gigabytes | Output read stops at 64 KB → `OUTPUT_LIMIT` |
-| Filling the disk | Work folder is a small size-capped tmpfs; root filesystem is read-only |
+| Filling the disk | Only `/tmp` is writable, a 16 MB tmpfs; files are capped at 64 MB; everything else is read-only |
 | Network access (download answers, attack servers) | No network interface exists in the container |
-| Reading other students' code or test cases | Each container sees only its own source and one input; containers are destroyed after each case |
+| Reading other students' code or test cases | Each container sees only its own source and one input; expected outputs never enter the sandbox; no secrets in its environment, no Docker socket; containers are destroyed after each case |
 | Remembering earlier test cases | Fresh container per case; nothing carries over |
 | Huge compile (template bombs) | Compile step has its own time and memory limits → `COMPILE_ERROR` |
 | Forging a "passed" result | The worker doesn't decide pass/fail; Z1 compares outputs against expected output from the database |
+
+Each row is tested on real containers: `backend/tests/sandbox` (`make sandbox-check`, and in CI).
 
 **Remaining risk:** a fully compromised `exec-worker` could report false output for the jobs it handles.
 It could not read the database, other students' data, or score anything itself.
