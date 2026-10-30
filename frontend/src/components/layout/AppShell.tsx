@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from "react-router";
 
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { NotificationBell } from "@/components/layout/NotificationBell";
 import { UserMenu } from "@/components/layout/UserMenu";
 import { cn } from "@/lib/utils";
 
@@ -56,6 +57,7 @@ export function AppShell({ roleLabel, nav, layout }: AppShellProps) {
               {links}
             </nav>
             <div className="ml-auto flex items-center gap-2">
+              <NotificationBell />
               <UserMenu compact />
               <ThemeToggle />
             </div>
@@ -79,6 +81,7 @@ export function AppShell({ roleLabel, nav, layout }: AppShellProps) {
           {links}
         </nav>
         <div className="mt-8 space-y-3 border-t pt-4">
+          <NotificationBell withLabel />
           <UserMenu />
           <div className="px-1">
             <ThemeToggle />

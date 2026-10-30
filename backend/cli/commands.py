@@ -198,7 +198,7 @@ async def invite_user(
 
 
 DEMO_INSTITUTION = "Demo College"
-DEMO_DOMAIN = "demo.edu"
+DEMO_DOMAIN = "demo.test"  # reserved (.test): no email is ever sent there
 DEMO_GROUP = "CSE 2nd year"
 
 

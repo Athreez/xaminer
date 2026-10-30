@@ -23,6 +23,7 @@ x-backend-env: &backend-env
   SMTP_PASSWORD: ${SMTP_PASSWORD:-}
   SMTP_STARTTLS: ${SMTP_STARTTLS:-false}
   MAIL_FROM: ${MAIL_FROM:-Xaminer <no-reply@xaminer.local>}
+  MAIL_SKIP_DOMAINS: ${MAIL_SKIP_DOMAINS:-}
   PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
   JWT_SECRET: ${JWT_SECRET}
 

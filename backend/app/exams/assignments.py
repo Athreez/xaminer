@@ -20,6 +20,7 @@ from app.auth.tokens import Principal
 from app.authz.ownership import not_found
 from app.core.errors import AppError
 from app.core.pagination import like_pattern
+from app.exams import notify
 from app.exams.models import Exam, ExamAssignment
 from app.exams.service import get_own
 from app.users.models import User, UserGroup, UserGroupMember
@@ -195,6 +196,8 @@ async def assign(
             target_id=exam.id,
             changes={"added": len(new), "group_ids": [str(g) for g in group_ids]},
         )
+        if exam.status == "PUBLISHED":  # a draft's students hear about it when it's published
+            await notify.exam_assigned(session, exam, list(new))
         await session.commit()
     return AssignResult(added=len(new), already_assigned=len(already), skipped_inactive=skipped)
 

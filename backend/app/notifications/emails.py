@@ -75,6 +75,20 @@ def password_reset_email(
     )
 
 
+RESERVED = {"test", "example", "invalid", "localhost"}  # RFC 2606: never real mailboxes
+
+
+def deliverable(address: str, skip_domains: str = "") -> bool:
+    """False for addresses on reserved test domains or on MAIL_SKIP_DOMAINS: nothing is sent."""
+    domain = address.rsplit("@", 1)[-1].strip().lower()
+    skipped = {d.strip().lower() for d in skip_domains.split(",") if d.strip()}
+    return not (
+        domain.rsplit(".", 1)[-1] in RESERVED
+        or domain in skipped
+        or any(domain.endswith("." + d) for d in skipped)
+    )
+
+
 def queue_email(email: Email) -> None:
     """Hand the email to app-worker. Returns at once; sending happens in the background."""
     enqueue(
@@ -84,4 +98,36 @@ def queue_email(email: Email) -> None:
         subject=email.subject,
         text=email.text,
         html=email.html,
+    )
+
+
+def exam_assigned_email(
+    *, to: str, full_name: str, exam_title: str, when: str, duration: str, link: str
+) -> Email:
+    """A student was given an exam (sent when it's published, or on a later assignment)."""
+    lines = [
+        f"Hello {full_name},",
+        f"You have a new exam: {exam_title}.",
+        f"It opens {when} and lasts {duration} once you start.",
+        "Open it before it starts to read the instructions.",
+    ]
+    return Email(
+        to=to,
+        subject=f"New exam: {exam_title}",
+        text="\n\n".join([*lines, link]),
+        html=_html(lines, "View the exam", link),
+    )
+
+
+def result_released_email(*, to: str, full_name: str, exam_title: str, link: str) -> Email:
+    lines = [
+        f"Hello {full_name},",
+        f"Your result for {exam_title} is out: your score, each question and your teacher's "
+        "feedback.",
+    ]
+    return Email(
+        to=to,
+        subject=f"Your result: {exam_title}",
+        text="\n\n".join([*lines, link]),
+        html=_html(lines, "See my result", link),
     )

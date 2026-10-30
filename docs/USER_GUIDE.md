@@ -101,6 +101,12 @@ is submitted for you.
 exams released on submit): your total, each question's score, feedback on written answers and how
 your code did. Correct answers are not shown.
 
+## Notifications
+
+The bell at the top shows how many are unread. Students hear about a new exam, a released result
+and a changed score; new exams and released results also arrive by email. Opening one marks it
+read and takes you there.
+
 ## Proctored exams
 
 Some exams use your webcam. Before starting you read and accept the consent text: what is used,

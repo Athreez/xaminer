@@ -27,6 +27,7 @@ from app.authz.ownership import get_owned, not_found
 from app.core.errors import AppError
 from app.exams.models import Exam
 from app.execution.models import CodingEvaluation, CodingSubmission
+from app.results import notify
 from app.results.models import Result, ResultRevision
 from app.users.models import User
 
@@ -227,10 +228,13 @@ async def release(session: AsyncSession, principal: Principal, exam_id: uuid.UUI
         )
     now = datetime.now(UTC)
     ids = [r.attempt_id for r in current.rows if r.released_at is None]
+    released: list[uuid.UUID] = []
     for result in await session.scalars(
         select(Result).where(Result.attempt_id.in_(ids)).with_for_update()
     ):
         result.released_at = now
+        released.append(result.attempt_id)
+    await notify.released(session, exam, released)  # in-app now, emails once committed
     record(
         session,
         "results.released",

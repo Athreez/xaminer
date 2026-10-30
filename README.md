@@ -20,6 +20,7 @@ AI-assisted webcam proctoring where the AI only flags and a teacher decides.
 | E06c Coding in the exam screen | ✅ Done: coding panel with problem, CodeMirror per language with kept drafts, Run (public tests, not graded, cooldown, custom input) and Submit (confirmed, graded, hidden tests as pass/fail only), results with visible whitespace and differences, submission history with the counted one, a submitted tick in the navigator (TCK-0615) |
 | E09 Grading and results | ✅ Done: objective scoring in `domain_core` (single choice, multiple choice all-or-nothing or partial, true/false, negative marks, half-up rounding, total never below 0) (TCK-0901); objective answers graded by app-worker when an attempt ends, unanswered ones scored 0, safe to repeat (TCK-0902); grading status per attempt: pending, awaiting coding, awaiting manual, complete, worked out from what is still unscored; coding questions take the counted submission's score (TCK-0903); marking API: queue per descriptive question with students anonymous unless asked, mark 0 to points with feedback, audited (TCK-0904); results computed when grading completes (total, %, pass/fail), release refused until every attempt is graded, "on submit" exams release at once (TCK-0905); students see their own released results only, no keys (TCK-0906); a changed released score needs a reason and keeps a revision (TCK-0907); grading page (one answer at a time, keyboard only, names hidden), results table with release and its reason, attempt detail, student results list and detail (TCK-0908 to TCK-0910); teacher dashboard with answers to mark and results to release |
 | E14 Quality and demo | In progress: demo set-up: HTTPS with a self-signed certificate for this laptop's Wi-Fi address, real email through Gmail, `make demo-data` with Demo College, its people, questions and three exams; README "Run the demo" (TCK-1407); standard consent text covering every point of the security doc § 8.2, used when neither the exam nor the institution has its own, and a user guide for admins, teachers and students (TCK-1408) |
+| E13 Notifications | ✅ Done: notification table and API, created when an exam is assigned (on publish or later), a result is released (by the teacher or on submit) and a released score changes; read one or all, only your own (TCK-1301); bell with the unread count in every role's header and a notifications page (TCK-1302); emails for a released result (TCK-1303) and for a new exam, only to active accounts, never to reserved test domains or `MAIL_SKIP_DOMAINS` |
 | E12 Monitoring and analytics | ✅ Done: live monitor API, every assigned student's status, answered count, time left, connection from the heartbeat and answers waiting on the device, 200 students in under 0.5 s (TCK-1201); Monitor tab refreshed every 10 s with Extend, Submit now and Void, each with a reason (TCK-1202); analytics API: average, median, highest, lowest, pass rate, histogram, per-question average, full marks and option picks, coding verdicts and pass rate per test case with low ones flagged, matching a hand-worked sample (TCK-1203); Analytics tab with the histogram and possibly broken test cases highlighted (TCK-1204) |
 
 `exec-worker` and `inference-worker` are placeholders until their tickets. The design lives in
@@ -202,9 +203,9 @@ From a fresh laptop to a demo that other laptops and phones on the same Wi-Fi ca
 
    | Account | Role |
    |---|---|
-   | `admin@demo.edu` | Admin of Demo College |
-   | `teacher@demo.edu`, `teacher2@demo.edu` | Teachers (the first owns the sample exams) |
-   | `student01@demo.edu` … `student10@demo.edu` | Students in the group "CSE 2nd year" |
+   | `admin@demo.test` | Admin of Demo College |
+   | `teacher@demo.test`, `teacher2@demo.test` | Teachers (the first owns the sample exams) |
+   | `student01@demo.test` … `student10@demo.test` | Students in the group "CSE 2nd year" |
 
    Exams: **Programming Fundamentals: Mid-term** (open now; every question type, two coding),
    **Quick Quiz: Data Structures** (open now; results show on submit) and **Algorithms:
@@ -237,7 +238,8 @@ Emails (invitations, password resets) go to Mailpit until you set this up:
 4. `make up`, then send yourself a test: as the demo admin, invite a user with your own email.
 
 Links in emails use `PUBLIC_BASE_URL` (set by `make demo-https`). Gmail sends at most about 500
-emails a day from a personal account.
+emails a day from a personal account. Nothing is ever sent to reserved test domains (the demo's
+`@demo.test` accounts) or to the domains in `MAIL_SKIP_DOMAINS`.
 
 Services: `web`, `api`, `app-worker`, `scheduler`, `exec-worker`, `sandbox-docker`, `inference-worker`,
 `postgres`, `redis`, `storage` (+ one-off `storage-init` that creates the buckets), `mailpit`. See

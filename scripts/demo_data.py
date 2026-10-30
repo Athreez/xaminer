@@ -3,10 +3,10 @@
     make demo-data        (the stack must be up and the runners built: make up, make runners)
 
 Asks once for a demo password (or set XAMINER_DEMO_PASSWORD); every demo account uses it:
-admin@demo.edu, teacher@demo.edu, teacher2@demo.edu, student01..student10@demo.edu.
+admin@demo.test, teacher@demo.test, teacher2@demo.test, student01..student10@demo.test.
 
 1. `seed-demo-users` (platform-admin command) makes the institution, accounts and a group.
-2. As teacher@demo.edu, through the API: questions of every type (three coding ones from
+2. As teacher@demo.test, through the API: questions of every type (three coding ones from
    seed_coding_questions.py, validated on the real runner) and three published exams:
    one open now, a quick quiz that shows results on submit, and one opening in three days.
 
@@ -218,10 +218,10 @@ def main() -> None:
     password = ask_password()
     seed_users(password)
     port = os.environ.get("WEB_PORT", "8080")
-    call = connect(f"http://localhost:{port}", "teacher@demo.edu", password)
+    call = connect(f"http://localhost:{port}", "teacher@demo.test", password)
     exams(call, bank(call))
     print("\nDemo ready. Log in with the password you chose:")
-    print("  admin@demo.edu, teacher@demo.edu, teacher2@demo.edu, student01@demo.edu ... student10@demo.edu")
+    print("  admin@demo.test, teacher@demo.test, teacher2@demo.test, student01@demo.test ... student10@demo.test")
 
 
 if __name__ == "__main__":

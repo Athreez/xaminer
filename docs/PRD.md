@@ -316,6 +316,7 @@ Priority: **M** = must have (core demo), **S** = should have (if time allows).
 | NOT-01 | Emails: invitation, password reset | M |
 | NOT-02 | In-app notifications: exam assigned, result released, result changed; unread count in the header | S |
 | NOT-03 | Email for result released | S |
+| NOT-04 | Email for an exam assigned (on publish, or a later assignment). Added 2026-10-30 at the user's request. Emails are never sent to reserved test domains (`.test` …) or to `MAIL_SKIP_DOMAINS` | S |
 
 ### 5.13 Audit log — `AUD`
 

@@ -42,6 +42,7 @@ from app.db.session import SessionFactory, create_session_factory, system_sessio
 from app.exams.models import Exam, ExamAssignment, ExamQuestion, ExamVersion
 from app.execution.models import CodeRun, CodingSubmission
 from app.main import create_app
+from app.notifications.models import Notification
 from app.platform.models import Institution
 from app.questions.models import (
     CodingConfig,
@@ -624,6 +625,14 @@ async def _re_evaluate_body(world: World) -> dict[str, Any]:
     return {"exam_question_id": world.notes["re_evaluate_question"], "reason": "Fixed a test"}
 
 
+async def _notification_url(world: World) -> str:
+    async with tenant_session(world.factory, world.owner.institution_id) as s:
+        n = Notification(user_id=world.owner.id, kind="EXAM_ASSIGNED", title="New exam")
+        s.add(n)
+        await s.commit()
+        return f"/api/v1/notifications/{n.id}/read"
+
+
 USERS = "/api/v1/users/{user_id}"
 EXAMS = "/api/v1/exams/{exam_id}"
 QUESTIONS = "/api/v1/questions/{question_id}"
@@ -824,6 +833,7 @@ OWNED_ROUTES: list[OwnedRoute] = [
         make_body=_re_evaluate_body,
     ),
     OwnedRoute("GET /api/v1/exams/{exam_id}/monitor", "TEACHER", _exam_url("/monitor")),
+    OwnedRoute("POST /api/v1/notifications/{notification_id}/read", "STUDENT", _notification_url),
     OwnedRoute("GET /api/v1/exams/{exam_id}/analytics", "TEACHER", _exam_url("/analytics")),
     OwnedRoute(
         "GET /api/v1/student/results/{attempt_id}",

@@ -38,8 +38,14 @@ def heartbeat() -> None:
     max_retries=8,
 )
 def send_email(to: str, subject: str, text: str, html: str) -> None:
-    """Send one email over SMTP. Content (it holds one-time links) and recipient are not logged."""
+    """Send one email over SMTP. Content (it holds one-time links) and recipient are not logged.
+    Test addresses (reserved domains, MAIL_SKIP_DOMAINS) are dropped, never sent."""
+    from app.notifications.emails import deliverable
+
     settings = get_settings()
+    if not deliverable(to, settings.mail_skip_domains):
+        logger.info("email skipped: test address", extra={"subject_length": len(subject)})
+        return
     message = EmailMessage()
     message["From"] = settings.mail_from
     message["To"] = to

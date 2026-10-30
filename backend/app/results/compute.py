@@ -6,7 +6,7 @@ percentage, and pass/fail when the exam has a pass mark. It is computed again wh
 changes. An exam released "on submit" releases each result as soon as it's computed.
 
 If a released result's total changes, a `result_revision` keeps the old and new score, the reason
-and who made the change (GRD-08).
+and who made the change (GRD-08). Students are notified of both (NOT-02).
 """
 
 import uuid
@@ -18,6 +18,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.attempts.attempt import snapshot_of
 from app.attempts.models import Answer, ExamAttempt
+from app.exams.models import Exam
+from app.results import notify
 from app.results.models import Result, ResultRevision
 from domain_core.objective_score import total
 
@@ -61,12 +63,14 @@ async def compute(
     passed = None if pass_percent is None else worked.percentage >= Decimal(str(pass_percent))
     now = datetime.now(UTC)
 
+    released_now = False
     result = await session.get(Result, attempt.id, with_for_update=True)
     if result is None:
         result = Result(attempt_id=attempt.id, institution_id=attempt.institution_id)
         session.add(result)
         if settings.get("release_policy") == "ON_SUBMIT" and not attempt.is_preview:
             result.released_at = now
+            released_now = True
     elif result.released_at is not None and result.total_score != worked.score:
         session.add(
             ResultRevision(
@@ -78,9 +82,14 @@ async def compute(
                 changed_by=changed_by,
             )
         )
+        await notify.changed(
+            session, attempt, result.total_score, worked.score, reason or "Score recalculated"
+        )
     result.total_score, result.max_score = worked.score, worked.max_score
     result.percentage, result.passed = worked.percentage, passed
     result.per_question = per_question
     result.computed_at = now
     await session.flush()
+    if released_now:  # only now: the result row is complete
+        await notify.released(session, await session.get_one(Exam, attempt.exam_id), [attempt.id])
     return result

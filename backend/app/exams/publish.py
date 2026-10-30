@@ -21,8 +21,8 @@ from app.audit.service import record
 from app.auth.tokens import Principal
 from app.authz.ownership import get_owned
 from app.core.errors import AppError
-from app.exams import publish_check
-from app.exams.models import Exam, ExamQuestion, ExamVersion
+from app.exams import notify, publish_check
+from app.exams.models import Exam, ExamAssignment, ExamQuestion, ExamVersion
 from app.platform.consent import standard_consent
 from app.platform.models import Institution
 from app.questions import student_view
@@ -212,5 +212,9 @@ async def publish(session: AsyncSession, principal: Principal, exam_id: uuid.UUI
             "questions": question_count,
         },
     )
+    students = await session.scalars(
+        select(ExamAssignment.student_id).where(ExamAssignment.exam_id == exam.id)
+    )
+    await notify.exam_assigned(session, exam, list(students))
     await session.commit()
     return exam

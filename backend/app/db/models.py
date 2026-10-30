@@ -7,6 +7,7 @@ from app.auth.models import AuthToken, RefreshToken
 from app.db.base import Base
 from app.exams.models import Exam, ExamAssignment, ExamQuestion, ExamVersion
 from app.execution.models import CodeRun, CodingEvaluation, CodingSubmission, TestCaseResult
+from app.notifications.models import Notification
 from app.platform.models import Institution, Language
 from app.questions.models import (
     CodingConfig,
@@ -37,6 +38,7 @@ __all__ = [
     "ExamVersion",
     "Institution",
     "Language",
+    "Notification",
     "Question",
     "QuestionOption",
     "QuestionVersion",

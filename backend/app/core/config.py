@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     smtp_password: SecretStr = SecretStr("")
     smtp_starttls: bool = False  # turn on for a real SMTP server (e.g. port 587)
     mail_from: str = "Xaminer <no-reply@xaminer.local>"
+    # Never email these domains (comma-separated), on top of the reserved test domains (.test,
+    # .example, .invalid, localhost): for test accounts with made-up addresses on real domains.
+    mail_skip_domains: str = ""
     # Where users open the app; used to build links in emails.
     public_base_url: str = "http://localhost:8080"
 

@@ -69,6 +69,13 @@ export const router = createBrowserRouter([
         ),
         children: [
           { index: true, element: <Navigate to="users" replace /> },
+          {
+            path: "notifications",
+            lazy: page(
+              () => import("@/features/notifications/NotificationsPage"),
+              "NotificationsPage",
+            ),
+          },
           { path: "users", lazy: page(() => import("@/features/admin/UsersPage"), "UsersPage") },
           {
             path: "users/import",
@@ -107,6 +114,13 @@ export const router = createBrowserRouter([
             lazy: page(
               () => import("@/features/exams/TeacherDashboardPage"),
               "TeacherDashboardPage",
+            ),
+          },
+          {
+            path: "notifications",
+            lazy: page(
+              () => import("@/features/notifications/NotificationsPage"),
+              "NotificationsPage",
             ),
           },
           {
@@ -202,6 +216,13 @@ export const router = createBrowserRouter([
             lazy: page(
               () => import("@/features/student/StudentDashboardPage"),
               "StudentDashboardPage",
+            ),
+          },
+          {
+            path: "notifications",
+            lazy: page(
+              () => import("@/features/notifications/NotificationsPage"),
+              "NotificationsPage",
             ),
           },
           {

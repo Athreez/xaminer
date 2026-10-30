@@ -143,3 +143,13 @@ def no_auto_submit_jobs(monkeypatch: pytest.MonkeyPatch) -> list[uuid.UUID]:
     queued: list[uuid.UUID] = []
     monkeypatch.setattr(auto_submit, "queue_auto_submit", queued.append)
     return queued
+
+
+@pytest.fixture(autouse=True)
+def notification_emails(monkeypatch: pytest.MonkeyPatch) -> list[object]:
+    """Emails for notifications (exam assigned, result released); tests record them instead."""
+    from app.notifications import inbox
+
+    sent: list[object] = []
+    monkeypatch.setattr(inbox, "queue_email", sent.append)
+    return sent

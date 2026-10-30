@@ -10,6 +10,7 @@ from app.attempts.models import Answer, AttemptQuestion, CodeDraft, ExamAttempt
 from app.auth.models import AuthToken, RefreshToken
 from app.exams.models import Exam, ExamAssignment, ExamQuestion, ExamVersion
 from app.execution.models import CodeRun, CodingEvaluation, CodingSubmission, TestCaseResult
+from app.notifications.models import Notification
 from app.platform.models import Institution
 from app.questions.models import Question, QuestionOption, QuestionVersion
 from app.results.models import Result, ResultRevision
@@ -61,6 +62,7 @@ async def purge_queued(migrator_engine: AsyncEngine) -> None:
             update(Question).where(Question.institution_id.in_(ids)).values(current_version_id=None)
         )
         for model in (
+            Notification,
             ResultRevision,
             Result,
             TestCaseResult,
