@@ -261,6 +261,69 @@
         "title": "AnswerIn",
         "type": "object"
       },
+      "AnswerToMark": {
+        "properties": {
+          "attempt_id": {
+            "format": "uuid",
+            "title": "Attempt Id",
+            "type": "string"
+          },
+          "feedback": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Feedback"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The teacher's mark; null until marked",
+            "title": "Score"
+          },
+          "student_label": {
+            "description": "\"Student 14\": stable within this exam",
+            "title": "Student Label",
+            "type": "string"
+          },
+          "student_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Only when names were asked for",
+            "title": "Student Name"
+          },
+          "text_answer": {
+            "title": "Text Answer",
+            "type": "string"
+          }
+        },
+        "required": [
+          "attempt_id",
+          "student_label",
+          "student_name",
+          "text_answer",
+          "score",
+          "feedback"
+        ],
+        "title": "AnswerToMark",
+        "type": "object"
+      },
       "AnswersIn": {
         "additionalProperties": false,
         "properties": {
@@ -2096,6 +2159,32 @@
         "title": "FlagIn",
         "type": "object"
       },
+      "GradingQueue": {
+        "properties": {
+          "marked": {
+            "title": "Marked",
+            "type": "integer"
+          },
+          "questions": {
+            "items": {
+              "$ref": "#/components/schemas/QuestionToMark"
+            },
+            "title": "Questions",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "questions",
+          "marked",
+          "total"
+        ],
+        "title": "GradingQueue",
+        "type": "object"
+      },
       "GroupDetail": {
         "properties": {
           "created_at": {
@@ -2739,6 +2828,89 @@
         "title": "ManagedAttempt",
         "type": "object"
       },
+      "Mark": {
+        "properties": {
+          "attempt_id": {
+            "format": "uuid",
+            "title": "Attempt Id",
+            "type": "string"
+          },
+          "exam_question_id": {
+            "format": "uuid",
+            "title": "Exam Question Id",
+            "type": "string"
+          },
+          "feedback": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Feedback"
+          },
+          "graded_at": {
+            "format": "date-time",
+            "title": "Graded At",
+            "type": "string"
+          },
+          "grading_status": {
+            "title": "Grading Status",
+            "type": "string"
+          },
+          "score": {
+            "title": "Score",
+            "type": "string"
+          }
+        },
+        "required": [
+          "attempt_id",
+          "exam_question_id",
+          "score",
+          "feedback",
+          "graded_at",
+          "grading_status"
+        ],
+        "title": "Mark",
+        "type": "object"
+      },
+      "MarkIn": {
+        "additionalProperties": false,
+        "properties": {
+          "feedback": {
+            "anyOf": [
+              {
+                "maxLength": 5000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Feedback"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "description": "0 to the question's points",
+            "title": "Score"
+          }
+        },
+        "required": [
+          "score"
+        ],
+        "title": "MarkIn",
+        "type": "object"
+      },
       "OptionIn": {
         "additionalProperties": false,
         "properties": {
@@ -3099,6 +3271,60 @@
           "updated_at"
         ],
         "title": "QuestionSummary",
+        "type": "object"
+      },
+      "QuestionToMark": {
+        "properties": {
+          "answers": {
+            "items": {
+              "$ref": "#/components/schemas/AnswerToMark"
+            },
+            "title": "Answers",
+            "type": "array"
+          },
+          "body": {
+            "title": "Body",
+            "type": "string"
+          },
+          "exam_question_id": {
+            "format": "uuid",
+            "title": "Exam Question Id",
+            "type": "string"
+          },
+          "marked": {
+            "title": "Marked",
+            "type": "integer"
+          },
+          "points": {
+            "title": "Points",
+            "type": "string"
+          },
+          "position": {
+            "title": "Position",
+            "type": "integer"
+          },
+          "rubric": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rubric"
+          }
+        },
+        "required": [
+          "exam_question_id",
+          "position",
+          "body",
+          "points",
+          "rubric",
+          "marked",
+          "answers"
+        ],
+        "title": "QuestionToMark",
         "type": "object"
       },
       "QuestionUpdate": {
@@ -5158,6 +5384,75 @@
         ]
       }
     },
+    "/api/v1/attempts/{attempt_id}/answers/{exam_question_id}/mark": {
+      "put": {
+        "description": "Mark a descriptive answer (0 to the question's points, optional feedback). Audited.",
+        "operationId": "mark_answer_api_v1_attempts__attempt_id__answers__exam_question_id__mark_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "attempt_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Attempt Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "exam_question_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Exam Question Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Mark"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Mark Answer",
+        "tags": [
+          "grading"
+        ]
+      }
+    },
     "/api/v1/attempts/{attempt_id}/drafts/{exam_question_id}": {
       "put": {
         "description": "Save unsubmitted code for a coding question (one draft per language).",
@@ -6869,6 +7164,65 @@
         "summary": "Unassign Student",
         "tags": [
           "exams"
+        ]
+      }
+    },
+    "/api/v1/exams/{exam_id}/grading": {
+      "get": {
+        "description": "Descriptive questions with the answers to mark. Students are \"Student n\" unless\n`show_names` is set.",
+        "operationId": "grading_queue_api_v1_exams__exam_id__grading_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "exam_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Exam Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "show_names",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Show Names",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GradingQueue"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Grading Queue",
+        "tags": [
+          "grading"
         ]
       }
     },

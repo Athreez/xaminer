@@ -20,6 +20,7 @@ from app.core.storage import Storage
 from app.db.session import create_engine, create_session_factory
 from app.exams.router import admin_router as admin_exams_router
 from app.exams.router import router as exams_router
+from app.grading.router import router as grading_router
 from app.images.router import router as images_router
 from app.platform.settings import router as settings_router
 from app.questions.router import languages_router
@@ -77,6 +78,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(attempts_router, prefix=API_PREFIX)
     app.include_router(runs_router, prefix=API_PREFIX)
     app.include_router(submissions_router, prefix=API_PREFIX)
+    app.include_router(grading_router, prefix=API_PREFIX)
     # Refuse to start if any route forgot to declare who may call it (SECURITY § 3.1).
     assert_routes_declared(app)
     return app

@@ -65,6 +65,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/attempts/{attempt_id}/answers/{exam_question_id}/mark": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Mark Answer
+         * @description Mark a descriptive answer (0 to the question's points, optional feedback). Audited.
+         */
+        put: operations["mark_answer_api_v1_attempts__attempt_id__answers__exam_question_id__mark_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/attempts/{attempt_id}/drafts/{exam_question_id}": {
         parameters: {
             query?: never;
@@ -598,6 +618,27 @@ export interface paths {
         post?: never;
         /** Unassign Student */
         delete: operations["unassign_student_api_v1_exams__exam_id__assignments__student_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/{exam_id}/grading": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Grading Queue
+         * @description Descriptive questions with the answers to mark. Students are "Student n" unless
+         *     `show_names` is set.
+         */
+        get: operations["grading_queue_api_v1_exams__exam_id__grading_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1499,6 +1540,33 @@ export interface components {
              */
             text_answer?: string | null;
         };
+        /** AnswerToMark */
+        AnswerToMark: {
+            /**
+             * Attempt Id
+             * Format: uuid
+             */
+            attempt_id: string;
+            /** Feedback */
+            feedback: string | null;
+            /**
+             * Score
+             * @description The teacher's mark; null until marked
+             */
+            score: string | null;
+            /**
+             * Student Label
+             * @description "Student 14": stable within this exam
+             */
+            student_label: string;
+            /**
+             * Student Name
+             * @description Only when names were asked for
+             */
+            student_name: string | null;
+            /** Text Answer */
+            text_answer: string;
+        };
         /** AnswersIn */
         AnswersIn: {
             /** Answers */
@@ -2250,6 +2318,15 @@ export interface components {
             /** Marked */
             marked: boolean;
         };
+        /** GradingQueue */
+        GradingQueue: {
+            /** Marked */
+            marked: number;
+            /** Questions */
+            questions: components["schemas"]["QuestionToMark"][];
+            /** Total */
+            total: number;
+        };
         /** GroupDetail */
         GroupDetail: {
             /**
@@ -2550,6 +2627,40 @@ export interface components {
             /** Submitted At */
             submitted_at: string | null;
         };
+        /** Mark */
+        Mark: {
+            /**
+             * Attempt Id
+             * Format: uuid
+             */
+            attempt_id: string;
+            /**
+             * Exam Question Id
+             * Format: uuid
+             */
+            exam_question_id: string;
+            /** Feedback */
+            feedback: string | null;
+            /**
+             * Graded At
+             * Format: date-time
+             */
+            graded_at: string;
+            /** Grading Status */
+            grading_status: string;
+            /** Score */
+            score: string;
+        };
+        /** MarkIn */
+        MarkIn: {
+            /** Feedback */
+            feedback?: string | null;
+            /**
+             * Score
+             * @description 0 to the question's points
+             */
+            score: number | string;
+        };
         /** OptionIn */
         OptionIn: {
             /** Is Correct */
@@ -2691,6 +2802,26 @@ export interface components {
              * @enum {string}
              */
             visibility: "PRIVATE" | "INSTITUTION";
+        };
+        /** QuestionToMark */
+        QuestionToMark: {
+            /** Answers */
+            answers: components["schemas"]["AnswerToMark"][];
+            /** Body */
+            body: string;
+            /**
+             * Exam Question Id
+             * Format: uuid
+             */
+            exam_question_id: string;
+            /** Marked */
+            marked: number;
+            /** Points */
+            points: string;
+            /** Position */
+            position: number;
+            /** Rubric */
+            rubric: string | null;
         };
         /**
          * QuestionUpdate
@@ -3554,6 +3685,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SaveResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mark_answer_api_v1_attempts__attempt_id__answers__exam_question_id__mark_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attempt_id: string;
+                exam_question_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarkIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Mark"];
                 };
             };
             /** @description Validation Error */
@@ -4546,6 +4713,39 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    grading_queue_api_v1_exams__exam_id__grading_get: {
+        parameters: {
+            query?: {
+                show_names?: boolean;
+            };
+            header?: never;
+            path: {
+                exam_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GradingQueue"];
+                };
             };
             /** @description Validation Error */
             422: {
