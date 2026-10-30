@@ -39,7 +39,7 @@ from app.authz.ownership import get_owned, not_found
 from app.authz.permissions import P
 from app.db.session import SessionFactory, create_session_factory, system_session, tenant_session
 from app.exams.models import Exam, ExamAssignment, ExamQuestion, ExamVersion
-from app.execution.models import CodeRun
+from app.execution.models import CodeRun, CodingSubmission
 from app.main import create_app
 from app.platform.models import Institution
 from app.questions.models import (
@@ -410,6 +410,26 @@ async def _run_url(world: World) -> str:
         return f"/api/v1/runs/{run.id}"
 
 
+async def _submission_url(world: World) -> str:
+    """A code submission in `world.owner`'s attempt."""
+    attempt_id = await _attempt(world)
+    async with tenant_session(world.factory, world.owner.institution_id) as s:
+        submission = CodingSubmission(
+            attempt_id=uuid.UUID(attempt_id),
+            exam_question_id=uuid.UUID(world.notes["coding"]),
+            submission_no=1,
+            language_key="python312",
+            source="print(1)",
+        )
+        s.add(submission)
+        await s.commit()
+        return f"/api/v1/submissions/{submission.id}"
+
+
+async def _submit_body(world: World) -> dict[str, Any]:
+    return {"language_key": "python312", "source": "print(1)"}
+
+
 async def _run_body(world: World) -> dict[str, Any]:
     return {"language_key": "python312", "source": "print(1)", "custom_input": "x"}
 
@@ -602,6 +622,18 @@ OWNED_ROUTES: list[OwnedRoute] = [
         make_body=_run_body,
     ),
     OwnedRoute("GET /api/v1/runs/{run_id}", "STUDENT", _run_url),
+    OwnedRoute(
+        "POST /api/v1/attempts/{attempt_id}/questions/{exam_question_id}/submissions",
+        "STUDENT",
+        _attempt_url("/questions/{coding}/submissions"),
+        make_body=_submit_body,
+    ),
+    OwnedRoute(
+        "GET /api/v1/attempts/{attempt_id}/questions/{exam_question_id}/submissions",
+        "STUDENT",
+        _attempt_url("/questions/{coding}/submissions"),
+    ),
+    OwnedRoute("GET /api/v1/submissions/{submission_id}", "STUDENT", _submission_url),
     OwnedRoute("POST /api/v1/attempts/{attempt_id}/submit", "STUDENT", _attempt_url("/submit")),
     OwnedRoute(
         "POST /api/v1/attempts/{attempt_id}/extend",

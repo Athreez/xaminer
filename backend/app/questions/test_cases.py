@@ -35,3 +35,12 @@ async def all_test_cases(session: AsyncSession, version_id: uuid.UUID) -> list[T
         select(TestCase).where(TestCase.version_id == version_id).order_by(TestCase.order_index)
     )
     return list(rows)
+
+
+async def positions(session: AsyncSession, ids: list[uuid.UUID]) -> dict[uuid.UUID, int]:
+    """Where each of these test cases sits (1 = first): enough to say "Hidden test 4: Passed"
+    without reading anything else of a hidden case."""
+    rows = await session.execute(
+        select(TestCase.id, TestCase.order_index).where(TestCase.id.in_(ids))
+    )
+    return {case_id: order + 1 for case_id, order in rows.all()}

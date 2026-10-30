@@ -22,8 +22,9 @@ from app.auth.tokens import Principal
 from app.authz.guards import require
 from app.authz.permissions import P
 from app.core.config import Settings
-from app.execution import runs
+from app.execution import runs, submissions
 from app.execution.runs import RunIn, RunView
+from app.execution.submissions import SubmissionHistory, SubmissionView, SubmitIn
 from app.images.router import AppStorage
 
 router = APIRouter(prefix="/student/exams", tags=["student"])
@@ -137,6 +138,43 @@ async def run_code(
     """Run Code (PRD EXE-02, EXE-03): your code on the public test cases, or on `custom_input`.
     Never graded. One at a time, 8 s apart, 20 per question; poll GET /runs/{id} for the result."""
     return await runs.start(db, principal, attempt_id, exam_question_id, body, storage)
+
+
+@attempts_router.post(
+    "/{attempt_id}/questions/{exam_question_id}/submissions",
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def submit_code(
+    attempt_id: uuid.UUID,
+    exam_question_id: uuid.UUID,
+    body: SubmitIn,
+    principal: Taker,
+    db: TenantDB,
+    storage: AppStorage,
+) -> SubmissionView:
+    """Submit code for grading (PRD EXE-04): every test case. 5 s apart, up to the question's
+    limit; accepted until the deadline plus 60 s. Poll GET /submissions/{id} for the result."""
+    return await submissions.submit(db, principal, attempt_id, exam_question_id, body, storage)
+
+
+@attempts_router.get("/{attempt_id}/questions/{exam_question_id}/submissions")
+async def submission_history(
+    attempt_id: uuid.UUID, exam_question_id: uuid.UUID, principal: Taker, db: TenantDB
+) -> SubmissionHistory:
+    """Every submission for the question, newest first, with the one that counts (EXE-05). The
+    student's own, or the exam's owner (a teacher)."""
+    return await submissions.history(db, principal, attempt_id, exam_question_id)
+
+
+submissions_router = APIRouter(prefix="/submissions", tags=["attempts"])
+
+
+@submissions_router.get("/{submission_id}")
+async def get_submission(
+    submission_id: uuid.UUID, principal: Taker, db: TenantDB
+) -> SubmissionView:
+    """A submission's status and result: public cases in full, hidden ones as pass/fail only."""
+    return await submissions.get_submission(db, principal, submission_id)
 
 
 runs_router = APIRouter(prefix="/runs", tags=["attempts"])

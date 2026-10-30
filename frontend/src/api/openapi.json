@@ -776,6 +776,87 @@
         "title": "Body_upload_image_api_v1_uploads_images_post",
         "type": "object"
       },
+      "CaseShown": {
+        "description": "One test case as the student may see it. Hidden ones carry only their number and whether\nthey passed.",
+        "properties": {
+          "expected_output": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Output"
+          },
+          "hidden": {
+            "title": "Hidden",
+            "type": "boolean"
+          },
+          "input": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input"
+          },
+          "number": {
+            "title": "Number",
+            "type": "integer"
+          },
+          "outcome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Public cases only, e.g. WRONG_ANSWER",
+            "title": "Outcome"
+          },
+          "passed": {
+            "title": "Passed",
+            "type": "boolean"
+          },
+          "stdout": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stdout"
+          },
+          "time_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time Ms"
+          }
+        },
+        "required": [
+          "number",
+          "hidden",
+          "passed",
+          "outcome"
+        ],
+        "title": "CaseShown",
+        "type": "object"
+      },
       "CodingIn": {
         "additionalProperties": false,
         "description": "The whole coding setup; PUT replaces it. Limits per PRD CQ-03, CQ-06, CQ-07.",
@@ -4089,6 +4170,199 @@
         "title": "StudentQuestion",
         "type": "object"
       },
+      "SubmissionHistory": {
+        "properties": {
+          "max_submissions": {
+            "title": "Max Submissions",
+            "type": "integer"
+          },
+          "submissions": {
+            "description": "Newest first",
+            "items": {
+              "$ref": "#/components/schemas/SubmissionView"
+            },
+            "title": "Submissions",
+            "type": "array"
+          },
+          "submissions_left": {
+            "title": "Submissions Left",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "submissions",
+          "submissions_left",
+          "max_submissions"
+        ],
+        "title": "SubmissionHistory",
+        "type": "object"
+      },
+      "SubmissionView": {
+        "properties": {
+          "cases": {
+            "items": {
+              "$ref": "#/components/schemas/CaseShown"
+            },
+            "title": "Cases",
+            "type": "array"
+          },
+          "compile_output": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Compile Output"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_auto": {
+            "description": "Submitted automatically when the attempt ended",
+            "title": "Is Auto",
+            "type": "boolean"
+          },
+          "is_counted": {
+            "description": "This one gives the question's score (EXE-05)",
+            "title": "Is Counted",
+            "type": "boolean"
+          },
+          "language_key": {
+            "title": "Language Key",
+            "type": "string"
+          },
+          "max_score": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Score"
+          },
+          "passed_cases": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Passed Cases"
+          },
+          "poll_after_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Poll After Ms"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "status": {
+            "description": "QUEUED, EVALUATED or FAILED (the platform couldn't grade it)",
+            "title": "Status",
+            "type": "string"
+          },
+          "submission_no": {
+            "title": "Submission No",
+            "type": "integer"
+          },
+          "total_cases": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Cases"
+          },
+          "verdict": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verdict"
+          }
+        },
+        "required": [
+          "id",
+          "submission_no",
+          "language_key",
+          "source",
+          "created_at",
+          "status",
+          "is_counted",
+          "is_auto",
+          "verdict",
+          "score",
+          "max_score",
+          "passed_cases",
+          "total_cases",
+          "compile_output",
+          "cases",
+          "poll_after_ms"
+        ],
+        "title": "SubmissionView",
+        "type": "object"
+      },
+      "SubmitIn": {
+        "properties": {
+          "language_key": {
+            "maxLength": 32,
+            "title": "Language Key",
+            "type": "string"
+          },
+          "source": {
+            "maxLength": 262144,
+            "minLength": 1,
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "language_key",
+          "source"
+        ],
+        "title": "SubmitIn",
+        "type": "object"
+      },
       "TestCaseIn": {
         "additionalProperties": false,
         "properties": {
@@ -5208,6 +5482,132 @@
           }
         ],
         "summary": "Run Code",
+        "tags": [
+          "attempts"
+        ]
+      }
+    },
+    "/api/v1/attempts/{attempt_id}/questions/{exam_question_id}/submissions": {
+      "get": {
+        "description": "Every submission for the question, newest first, with the one that counts (EXE-05). The\nstudent's own, or the exam's owner (a teacher).",
+        "operationId": "submission_history_api_v1_attempts__attempt_id__questions__exam_question_id__submissions_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "attempt_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Attempt Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "exam_question_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Exam Question Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionHistory"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Submission History",
+        "tags": [
+          "attempts"
+        ]
+      },
+      "post": {
+        "description": "Submit code for grading (PRD EXE-04): every test case. 5 s apart, up to the question's\nlimit; accepted until the deadline plus 60 s. Poll GET /submissions/{id} for the result.",
+        "operationId": "submit_code_api_v1_attempts__attempt_id__questions__exam_question_id__submissions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "attempt_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Attempt Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "exam_question_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Exam Question Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Submit Code",
         "tags": [
           "attempts"
         ]
@@ -8440,6 +8840,55 @@
         "summary": "Start Attempt",
         "tags": [
           "student"
+        ]
+      }
+    },
+    "/api/v1/submissions/{submission_id}": {
+      "get": {
+        "description": "A submission's status and result: public cases in full, hidden ones as pass/fail only.",
+        "operationId": "get_submission_api_v1_submissions__submission_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "submission_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Submission Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Submission",
+        "tags": [
+          "attempts"
         ]
       }
     },

@@ -39,6 +39,7 @@ class World:
     institution_id: uuid.UUID
     me: dict[str, str] = field(default_factory=dict)  # the student's auth header
     essay_id: uuid.UUID | None = None
+    teacher: dict[str, str] = field(default_factory=dict)  # the exam owner's auth header
 
     async def submission(self, no: int, points: str = "10") -> uuid.UUID:
         """A submission and its queued evaluation (the job); returns the evaluation id."""
@@ -170,6 +171,7 @@ async def build(app_engine: AsyncEngine, client: TestClient, counted: str) -> tu
         college.id,
         me,
         uuid.UUID(essay_item["exam_question_id"]),
+        t,
     )
     return world, college
 

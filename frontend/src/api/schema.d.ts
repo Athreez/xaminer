@@ -188,6 +188,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/attempts/{attempt_id}/questions/{exam_question_id}/submissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Submission History
+         * @description Every submission for the question, newest first, with the one that counts (EXE-05). The
+         *     student's own, or the exam's owner (a teacher).
+         */
+        get: operations["submission_history_api_v1_attempts__attempt_id__questions__exam_question_id__submissions_get"];
+        put?: never;
+        /**
+         * Submit Code
+         * @description Submit code for grading (PRD EXE-04): every test case. 5 s apart, up to the question's
+         *     limit; accepted until the deadline plus 60 s. Poll GET /submissions/{id} for the result.
+         */
+        post: operations["submit_code_api_v1_attempts__attempt_id__questions__exam_question_id__submissions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/attempts/{attempt_id}/receipt": {
         parameters: {
             query?: never;
@@ -1162,6 +1188,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/submissions/{submission_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Submission
+         * @description A submission's status and result: public cases in full, hidden ones as pass/fail only.
+         */
+        get: operations["get_submission_api_v1_submissions__submission_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/uploads/images": {
         parameters: {
             query?: never;
@@ -1676,6 +1722,32 @@ export interface components {
              * @description PNG, JPEG or WebP, at most 2 MB
              */
             file: string;
+        };
+        /**
+         * CaseShown
+         * @description One test case as the student may see it. Hidden ones carry only their number and whether
+         *     they passed.
+         */
+        CaseShown: {
+            /** Expected Output */
+            expected_output?: string | null;
+            /** Hidden */
+            hidden: boolean;
+            /** Input */
+            input?: string | null;
+            /** Number */
+            number: number;
+            /**
+             * Outcome
+             * @description Public cases only, e.g. WRONG_ANSWER
+             */
+            outcome: string | null;
+            /** Passed */
+            passed: boolean;
+            /** Stdout */
+            stdout?: string | null;
+            /** Time Ms */
+            time_ms?: number | null;
         };
         /**
          * CodingIn
@@ -3086,6 +3158,75 @@ export interface components {
              */
             type: "MCQ" | "MSQ" | "TRUE_FALSE" | "DESCRIPTIVE" | "CODING";
         };
+        /** SubmissionHistory */
+        SubmissionHistory: {
+            /** Max Submissions */
+            max_submissions: number;
+            /**
+             * Submissions
+             * @description Newest first
+             */
+            submissions: components["schemas"]["SubmissionView"][];
+            /** Submissions Left */
+            submissions_left: number;
+        };
+        /** SubmissionView */
+        SubmissionView: {
+            /** Cases */
+            cases: components["schemas"]["CaseShown"][];
+            /** Compile Output */
+            compile_output: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Is Auto
+             * @description Submitted automatically when the attempt ended
+             */
+            is_auto: boolean;
+            /**
+             * Is Counted
+             * @description This one gives the question's score (EXE-05)
+             */
+            is_counted: boolean;
+            /** Language Key */
+            language_key: string;
+            /** Max Score */
+            max_score: string | null;
+            /** Passed Cases */
+            passed_cases: number | null;
+            /** Poll After Ms */
+            poll_after_ms: number | null;
+            /** Score */
+            score: string | null;
+            /** Source */
+            source: string;
+            /**
+             * Status
+             * @description QUEUED, EVALUATED or FAILED (the platform couldn't grade it)
+             */
+            status: string;
+            /** Submission No */
+            submission_no: number;
+            /** Total Cases */
+            total_cases: number | null;
+            /** Verdict */
+            verdict: string | null;
+        };
+        /** SubmitIn */
+        SubmitIn: {
+            /** Language Key */
+            language_key: string;
+            /** Source */
+            source: string;
+        };
         /** TestCaseIn */
         TestCaseIn: {
             /** Expected Output */
@@ -3598,6 +3739,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RunView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submission_history_api_v1_attempts__attempt_id__questions__exam_question_id__submissions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attempt_id: string;
+                exam_question_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubmissionHistory"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_code_api_v1_attempts__attempt_id__questions__exam_question_id__submissions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attempt_id: string;
+                exam_question_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmitIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubmissionView"];
                 };
             };
             /** @description Validation Error */
@@ -5499,6 +5708,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AttemptView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_submission_api_v1_submissions__submission_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                submission_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubmissionView"];
                 };
             };
             /** @description Validation Error */
