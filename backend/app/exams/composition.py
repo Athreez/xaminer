@@ -15,6 +15,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.attempts.models import ExamAttempt
 from app.audit.service import record
 from app.auth.tokens import Principal
 from app.core.errors import AppError
@@ -200,6 +201,11 @@ async def set_questions(
         return await list_questions(session, principal, exam.id)
 
     if removed:
+        # A draft's preview attempts point at its questions; they are the teacher's throwaway test
+        # runs (a draft has no student attempts), so they go rather than block the removal.
+        await session.execute(
+            delete(ExamAttempt).where(ExamAttempt.exam_id == exam.id, ExamAttempt.is_preview)
+        )
         await session.execute(
             delete(ExamQuestion).where(
                 ExamQuestion.exam_id == exam.id, ExamQuestion.question_id.in_(removed)

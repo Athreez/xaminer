@@ -146,3 +146,26 @@ async def test_only_the_owner_previews(world: World) -> None:
         f"/api/v1/exams/{exam_id}/preview-attempt", headers=world.me
     ).json()
     assert student["error"]["code"] == "FORBIDDEN"
+
+
+async def test_removing_a_previewed_question_drops_the_draft_preview(world: World) -> None:
+    exam_id, _ = draft(world)
+    body = preview(world, exam_id).json()
+    eq = body["questions"][0]["exam_question_id"]
+    world.client.put(
+        f"/api/v1/attempts/{body['id']}/answers",
+        json={"answers": [{"exam_question_id": eq, "text_answer": "LIFO", "client_revision": 1}]},
+        headers=world.teacher,
+    )
+    removed = world.client.put(
+        f"/api/v1/exams/{exam_id}/questions", json={"questions": []}, headers=world.teacher
+    )
+    assert removed.status_code == 200, removed.text  # used to fail on the preview's answer
+    assert await attempts_of(world, exam_id) == []
+
+
+async def test_a_previewed_draft_can_be_deleted(world: World) -> None:
+    exam_id, _ = draft(world)
+    assert preview(world, exam_id).status_code == 200
+    gone = world.client.delete(f"/api/v1/exams/{exam_id}", headers=world.teacher)
+    assert gone.status_code == 204, gone.text

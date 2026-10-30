@@ -13,6 +13,7 @@ from typing import Any
 from sqlalchemy import Select, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.attempts.models import ExamAttempt
 from app.audit.service import record
 from app.auth.tokens import Principal
 from app.authz.ownership import get_owned
@@ -326,6 +327,8 @@ async def delete_exam(session: AsyncSession, principal: Principal, exam_id: uuid
             "status", "Only draft exams can be deleted. Archive it instead.", "EXAM_NOT_DRAFT", 409
         )
     _audit(session, principal, "exam.deleted", exam.id, {"title": exam.title})
+    # A draft only has the teacher's preview attempts; they go with it.
+    await session.execute(delete(ExamAttempt).where(ExamAttempt.exam_id == exam.id))
     await session.execute(delete(Exam).where(Exam.id == exam.id))
     await session.commit()
 
