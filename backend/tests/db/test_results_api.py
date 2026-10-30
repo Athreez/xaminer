@@ -160,3 +160,31 @@ async def test_teacher_dashboard_counts_what_needs_doing(world: World) -> None:
     world.client.post(f"/api/v1/exams/{world.exam_id}/results/release", headers=world.teacher)
     assert mine()["to_release"] == 0
     assert world.client.get("/api/v1/teacher/dashboard", headers=world.me).status_code == 403
+
+
+async def test_a_result_completed_by_grading_alone_adds_up(world: World) -> None:
+    """Saved objective answers and a blank essay: grading completes in one go, and the total
+    must use the scores it just wrote (it once read the answers as loaded before scoring)."""
+    attempt = world.client.post(world.start_url, headers=world.me).json()
+    mcq, _msq, true_false, essay = attempt["questions"]
+    answers = [
+        {"exam_question_id": mcq["exam_question_id"], "selected_option_ids": pick(mcq, "Option 0")},
+        {
+            "exam_question_id": true_false["exam_question_id"],
+            "selected_option_ids": pick(true_false, "True"),
+        },
+        {"exam_question_id": essay["exam_question_id"], "text_answer": "  "},
+    ]
+    world.client.put(
+        f"/api/v1/attempts/{attempt['id']}/answers",
+        json={"answers": [{**a, "client_revision": 1} for a in answers]},
+        headers=world.me,
+    )
+    assert world.client.post(
+        f"/api/v1/attempts/{attempt['id']}/submit", headers=world.me
+    ).is_success
+    await grade(world.factory, uuid.UUID(attempt["id"]))
+    (row,) = world.client.get(
+        f"/api/v1/exams/{world.exam_id}/results", headers=world.teacher
+    ).json()["rows"]
+    assert (row["grading_status"], row["total_score"]) == ("COMPLETE", "3.00")  # 2 + 0 + 1 + 0

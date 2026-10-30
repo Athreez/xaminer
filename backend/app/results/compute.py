@@ -30,9 +30,15 @@ async def compute(
     changed_by: uuid.UUID | None = None,
 ) -> Result:
     snapshot = await snapshot_of(session, attempt)
+    # populate_existing: scores were just written with plain SQL, and answers this session loaded
+    # earlier would otherwise keep their old values.
     scores = {
         a.exam_question_id: a.score
-        for a in await session.scalars(select(Answer).where(Answer.attempt_id == attempt.id))
+        for a in await session.scalars(
+            select(Answer)
+            .where(Answer.attempt_id == attempt.id)
+            .execution_options(populate_existing=True)
+        )
     }
     per_question = []
     for position, q in enumerate(snapshot["questions"], start=1):
