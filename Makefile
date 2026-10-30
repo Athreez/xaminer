@@ -2,7 +2,8 @@
 .PHONY: setup check lint typecheck test format \
         backend-lint backend-typecheck backend-test frontend-lint frontend-typecheck frontend-test \
         up down ps logs platform-admin api-client \
-        create-institution create-admin invite-user list-institutions list-languages \n        runners runners-check sandbox-check
+        create-institution create-admin invite-user list-institutions list-languages \
+        runners runners-check sandbox-check demo-https demo-data
 
 # Regenerate the frontend's typed API client after changing backend endpoints. Commit the result.
 api-client:
@@ -49,6 +50,13 @@ list-institutions:
 
 list-languages:
 	$(ADMIN_CLI) list-languages
+
+# The demo (README, "Run the demo"): HTTPS for this laptop's Wi-Fi address, then demo data.
+demo-https:
+	python scripts/demo_https.py $(if $(IP),--ip $(IP),)
+
+demo-data:
+	cd backend && uv run --with requests python ../scripts/demo_data.py
 
 # Any other platform-admin command. Avoid nested quotes here in Windows PowerShell 5.1.
 platform-admin:

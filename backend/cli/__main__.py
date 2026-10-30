@@ -5,6 +5,7 @@
     python -m cli invite-user --institution "ABC" --email s@abc.edu --name "Ravi K" --role STUDENT
     python -m cli list-institutions
     python -m cli list-languages
+    python -m cli seed-demo-users --password-stdin
 
 In Docker:  docker compose -f deploy/docker-compose.yml run --rm api python -m cli <command>
 """
@@ -51,6 +52,13 @@ def _parser() -> argparse.ArgumentParser:
     invite.add_argument("--role", required=True, choices=["ADMIN", "TEACHER", "STUDENT"])
     invite.add_argument("--roll-no", default=None, help="Optional student roll number")
 
+    demo = sub.add_parser(
+        "seed-demo-users",
+        help="Demo College: an admin, two teachers and ten students sharing one password.",
+    )
+    demo.add_argument(
+        "--password-stdin", action="store_true", help="Read the password from standard input."
+    )
     sub.add_parser("list-institutions", help="List all institutions.")
     sub.add_parser("list-languages", help="List the programming language catalogue.")
     return parser
@@ -65,6 +73,7 @@ async def _run(args: argparse.Namespace) -> None:
         "invite-user": _invite_user,
         "list-institutions": _list_institutions,
         "list-languages": _list_languages,
+        "seed-demo-users": _seed_demo_users,
     }
     try:
         await handlers[args.command](factory, args)
@@ -117,6 +126,11 @@ async def _invite_user(factory: SessionFactory, args: argparse.Namespace) -> Non
     print("The email is on its way (in development: http://localhost:8025).")
 
 
+async def _seed_demo_users(factory: SessionFactory, args: argparse.Namespace) -> None:
+    for email, created in await commands.seed_demo_users(factory, args.password):
+        print(f"{'created' if created else 'kept   '}  {email}")
+
+
 async def _list_institutions(factory: SessionFactory, _: argparse.Namespace) -> None:
     rows = await commands.list_institutions(factory)
     if not rows:
@@ -134,7 +148,7 @@ async def _list_languages(factory: SessionFactory, _: argparse.Namespace) -> Non
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
-        if args.command == "create-admin":
+        if args.command in ("create-admin", "seed-demo-users"):
             # Asked before connecting, so a typo doesn't leave a half-open database connection.
             args.password = _read_password(args.password_stdin)
         asyncio.run(_run(args))

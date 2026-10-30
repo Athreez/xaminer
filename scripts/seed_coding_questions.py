@@ -18,7 +18,9 @@ import random
 import subprocess
 import sys
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
+from typing import Any
 
 import requests
 
@@ -68,7 +70,7 @@ rng = random.Random(2026)
 
 def _two_sum_big() -> str:
     n = 10_000
-    nums = rng.sample(range(-10**9, 10**9), n)
+    nums = rng.sample(range(-(10**9), 10**9), n)
     i, j = 1234, 8765
     return f"{n} {nums[i] + nums[j]}\n{' '.join(map(str, nums))}\n"
 
@@ -84,7 +86,7 @@ def _word(n: int, alphabet: str) -> str:
 
 
 def _sorted(n: int) -> str:
-    return " ".join(map(str, sorted(rng.randint(-10**6, 10**6) for _ in range(n))))
+    return " ".join(map(str, sorted(rng.randint(-(10**6), 10**6) for _ in range(n))))
 
 
 PROBLEMS = [
@@ -157,7 +159,13 @@ for i, c in enumerate(s):
 print(best)
 """,
         ["abcabcbb\n", "bbbbb\n"],
-        ["pwwkew\n", "\n", "dvdf\n", "abba\n", _word(50_000, "abcdefghijklmnopqrstuvwxyz0123456789") + "\n"],
+        [
+            "pwwkew\n",
+            "\n",
+            "dvdf\n",
+            "abba\n",
+            _word(50_000, "abcdefghijklmnopqrstuvwxyz0123456789") + "\n",
+        ],
     ),
     Problem(
         4,
@@ -181,7 +189,12 @@ median = c[k // 2] if k % 2 else (c[k // 2 - 1] + c[k // 2]) / 2
 print(f"{median:.5f}")
 """,
         ["2 1\n1 3\n2\n", "2 2\n1 2\n3 4\n"],
-        ["0 1\n\n1\n", "1 0\n-5\n\n", "3 4\n1 1 1\n1 1 1 1\n", f"1000 999\n{_sorted(1000)}\n{_sorted(999)}\n"],
+        [
+            "0 1\n\n1\n",
+            "1 0\n-5\n\n",
+            "3 4\n1 1 1\n1 1 1 1\n",
+            f"1000 999\n{_sorted(1000)}\n{_sorted(999)}\n",
+        ],
     ),
     Problem(
         5,
@@ -326,7 +339,13 @@ def match(i, j):
 print("true" if match(0, 0) else "false")
 """,
         ["aa\na\n", "aa\na*\n"],
-        ["ab\n.*\n", "aab\nc*a*b\n", "mississippi\nmis*is*p*.\n", "\na*b*\n", "aaaaaaaaaaaaaaaaaaab\na*a*a*a*a*a*a*a*a*c\n"],
+        [
+            "ab\n.*\n",
+            "aab\nc*a*b\n",
+            "mississippi\nmis*is*p*.\n",
+            "\na*b*\n",
+            "aaaaaaaaaaaaaaaaaaab\na*a*a*a*a*a*a*a*a*c\n",
+        ],
     ),
 ]
 
@@ -340,78 +359,101 @@ def expected(reference: str, case: str) -> str:
     return done.stdout
 
 
+Call = Callable[..., Any]
+
+
+def connect(base: str, email: str, password: str) -> Call:
+    """Log in; returns call(method, path, **requests_kwargs) -> JSON, stopping on any error."""
+    api = f"{base.rstrip('/')}/api/v1"
+    login = requests.post(f"{api}/auth/login", json={"email": email, "password": password})
+    if not login.ok:
+        raise SystemExit(f"Login failed: {login.text}")
+    h = {"Authorization": "Bearer " + login.json()["access_token"]}
+
+    def call(method: str, path: str, **kw: Any) -> Any:
+        r = requests.request(method, api + path, headers=h, timeout=60, **kw)
+        if not r.ok:
+            raise SystemExit(f"{method} {path}: {r.status_code} {r.text}")
+        return r.json() if r.content else None
+
+    return call
+
+
+def existing(call: Call, p: Problem) -> str | None:
+    found = call("GET", "/questions", params={"tag": f"leetcode-{p.number}", "owner": "mine"})
+    return found["data"][0]["id"] if found["data"] else None
+
+
+def add(call: Call, p: Problem) -> str:
+    """Create the question, its coding setup, tests and reference, and start validating it."""
+    q: str = call(
+        "POST",
+        "/questions",
+        json={
+            "type": "CODING",
+            "tags": ["leetcode", f"leetcode-{p.number}", p.difficulty, *p.topics],
+            "body": f"## {p.number}. {p.title}\n\n{p.statement}",
+            "points": str(p.points),
+        },
+    )["id"]
+    call(
+        "PUT",
+        f"/questions/{q}/coding",
+        json={
+            "input_format": p.input_format,
+            "output_format": p.output_format,
+            "constraints": p.constraints,
+            "allowed_languages": [
+                {"language_key": key, "starter_code": code} for key, code in STARTERS.items()
+            ],
+            "time_limit_ms": p.time_limit_ms,
+            "comparison_mode": "TRIM",
+            "partial_scoring": True,
+        },
+    )
+    for visibility, cases in (("PUBLIC", p.public), ("HIDDEN", p.hidden)):
+        for case in cases:
+            call(
+                "POST",
+                f"/questions/{q}/test-cases",
+                json={
+                    "input": case,
+                    "expected_output": expected(p.reference, case),
+                    "visibility": visibility,
+                },
+            )
+    call("PUT", f"/questions/{q}/reference-solutions/python312", json={"source": p.reference})
+    call("POST", f"/questions/{q}/validate")
+    return q
+
+
+def validation(call: Call, q: str) -> str:
+    """Wait for the question's validation to finish; returns PASSED or FAILED."""
+    for _ in range(180):
+        status: str = call("GET", f"/questions/{q}")["coding"]["validation_status"]
+        if status != "VALIDATING":
+            return status
+        time.sleep(1)
+    return "VALIDATING"
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--email", required=True, help="a teacher's email")
     parser.add_argument("--base", default="http://localhost:8080")
     args = parser.parse_args()
     password = os.environ.get("XAMINER_PASSWORD") or getpass.getpass("Password: ")
-    api = f"{args.base.rstrip('/')}/api/v1"
-    login = requests.post(f"{api}/auth/login", json={"email": args.email, "password": password})
-    if not login.ok:
-        raise SystemExit(f"Login failed: {login.text}")
-    h = {"Authorization": "Bearer " + login.json()["access_token"]}
-
-    def call(method: str, path: str, **kw):  # type: ignore[no-untyped-def]
-        r = requests.request(method, api + path, headers=h, timeout=60, **kw)
-        if not r.ok:
-            raise SystemExit(f"{method} {path}: {r.status_code} {r.text}")
-        return r.json() if r.content else None
+    call = connect(args.base, args.email, password)
 
     started: list[tuple[Problem, str]] = []
     for p in PROBLEMS:
-        tag = f"leetcode-{p.number}"
-        if call("GET", "/questions", params={"tag": tag, "owner": "mine"})["data"]:
+        if existing(call, p):
             print(f"skip   {p.number}. {p.title} (already there)")
             continue
-        q = call(
-            "POST",
-            "/questions",
-            json={
-                "type": "CODING",
-                "tags": ["leetcode", tag, p.difficulty, *p.topics],
-                "body": f"## {p.number}. {p.title}\n\n{p.statement}",
-                "points": str(p.points),
-            },
-        )["id"]
-        call(
-            "PUT",
-            f"/questions/{q}/coding",
-            json={
-                "input_format": p.input_format,
-                "output_format": p.output_format,
-                "constraints": p.constraints,
-                "allowed_languages": [
-                    {"language_key": key, "starter_code": code} for key, code in STARTERS.items()
-                ],
-                "time_limit_ms": p.time_limit_ms,
-                "comparison_mode": "TRIM",
-                "partial_scoring": True,
-            },
-        )
-        for visibility, cases in (("PUBLIC", p.public), ("HIDDEN", p.hidden)):
-            for case in cases:
-                call(
-                    "POST",
-                    f"/questions/{q}/test-cases",
-                    json={
-                        "input": case,
-                        "expected_output": expected(p.reference, case),
-                        "visibility": visibility,
-                    },
-                )
-        call("PUT", f"/questions/{q}/reference-solutions/python312", json={"source": p.reference})
-        call("POST", f"/questions/{q}/validate")
-        started.append((p, q))
+        started.append((p, add(call, p)))
         print(f"added  {p.number}. {p.title} ({len(p.public)} public, {len(p.hidden)} hidden)")
-
     for p, q in started:
-        for _ in range(120):
-            status = call("GET", f"/questions/{q}")["coding"]["validation_status"]
-            if status != "VALIDATING":
-                break
-            time.sleep(1)
-        print(f"{status:<8} {p.number}. {p.title}")
+        print(f"{validation(call, q):<8} {p.number}. {p.title}")
 
 
 if __name__ == "__main__":

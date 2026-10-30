@@ -195,3 +195,85 @@ async def invite_user(
             raise CommandError("That roll number is already used in this institution.") from exc
     queue_email(message)  # only after the commit, so nobody gets a link that doesn't work
     return user, created
+
+
+DEMO_INSTITUTION = "Demo College"
+DEMO_DOMAIN = "demo.edu"
+DEMO_GROUP = "CSE 2nd year"
+
+
+def demo_people() -> list[tuple[str, str, str, str | None]]:
+    """(email, name, role, roll number) of the demo accounts."""
+    students = [
+        "Aarav Sharma", "Diya Patel", "Kabir Singh", "Ananya Iyer", "Vihaan Gupta",
+        "Ishita Reddy", "Arjun Nair", "Meera Joshi", "Rohan Das", "Sara Khan",
+    ]  # fmt: skip
+    return [
+        (f"admin@{DEMO_DOMAIN}", "Asha Admin", "ADMIN", None),
+        (f"teacher@{DEMO_DOMAIN}", "Ravi Kumar", "TEACHER", None),
+        (f"teacher2@{DEMO_DOMAIN}", "Neha Verma", "TEACHER", None),
+    ] + [
+        (f"student{i:02d}@{DEMO_DOMAIN}", name, "STUDENT", f"CSE-{i:03d}")
+        for i, name in enumerate(students, start=1)
+    ]
+
+
+async def seed_demo_users(factory: SessionFactory, password: str) -> list[tuple[str, bool]]:
+    """Demo College with an admin, two teachers and ten students (all ACTIVE, one password) in a
+    group. Safe to run again: existing accounts are kept as they are. Returns (email, created)."""
+    from app.users.models import UserGroup, UserGroupMember
+
+    for email, name, _, _ in demo_people():
+        try:
+            check_policy(password, email=email, full_name=name)
+        except WeakPasswordError as exc:
+            raise CommandError(str(exc)) from exc
+    names = {i.name for i in await list_institutions(factory)}
+    if DEMO_INSTITUTION not in names:
+        await create_institution(factory, DEMO_INSTITUTION)
+    target = await find_institution(factory, DEMO_INSTITUTION)
+    hashed = hash_password(password)
+    out: list[tuple[str, bool]] = []
+    async with tenant_session(factory, target.id) as session:
+        students: list[User] = []
+        for email, name, role, roll_no in demo_people():
+            user = await session.scalar(select(User).where(User.email == email))
+            created = user is None
+            if user is None:
+                user = User(
+                    email=email,
+                    full_name=name,
+                    role=role,
+                    status="ACTIVE",
+                    password_hash=hashed,
+                    roll_no=roll_no,
+                )
+                session.add(user)
+                await session.flush()
+                record(
+                    session,
+                    "user.created",
+                    institution_id=target.id,
+                    actor_role=PLATFORM,
+                    target_type="user",
+                    target_id=user.id,
+                    changes={"role": {"old": None, "new": role}, "demo": True},
+                )
+            if role == "STUDENT":
+                students.append(user)
+            out.append((email, created))
+        group = await session.scalar(select(UserGroup).where(UserGroup.name == DEMO_GROUP))
+        if group is None:
+            group = UserGroup(name=DEMO_GROUP)
+            session.add(group)
+            await session.flush()
+        members = set(
+            await session.scalars(
+                select(UserGroupMember.user_id).where(UserGroupMember.group_id == group.id)
+            )
+        )
+        for student in students:
+            if student.id not in members:
+                session.add(UserGroupMember(group_id=group.id, user_id=student.id))
+        await session.commit()
+    return out
