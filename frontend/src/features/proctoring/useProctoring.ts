@@ -58,6 +58,7 @@ export function useProctoring(
   );
   const [screenProblem, setScreenProblem] = useState<string | null>(null);
   const stoppedAt = useRef<number | null>(null);
+  const cameraOffAt = useRef<number | null>(null);
   const proctor = useRef<Proctor | null>(null);
   const pending = useRef(new Set<Promise<void>>());
   const recordRef = useRef(record);
@@ -114,8 +115,18 @@ export function useProctoring(
   // The heartbeat reports frames; before submitting, open events are recorded.
   useEffect(() => {
     if (!active) return;
+    const since = (at: number | null) =>
+      at === null ? null : Math.round((Date.now() - at) / 1000);
     link.attach({
       frames: () => proctor.current?.frames ?? 0,
+      happening: () => {
+        const now = [...(proctor.current?.ongoing() ?? [])];
+        const off = since(cameraOffAt.current);
+        if (off !== null) now.push({ kind: "CAMERA_OFF", seconds: off });
+        const unshared = since(stoppedAt.current);
+        if (unshared !== null) now.push({ kind: "SCREEN_SHARE_STOPPED", seconds: unshared });
+        return now;
+      },
       flush: async () => {
         proctor.current?.flush();
         await Promise.all(pending.current);
@@ -136,12 +147,18 @@ export function useProctoring(
       (s) => {
         if (cancelled) return;
         s.getVideoTracks()[0]?.addEventListener("ended", () => {
+          cameraOffAt.current ??= Date.now();
           setStream(null);
           setCamera("off");
         });
+        cameraOffAt.current = null;
         setStream(s);
       },
-      () => !cancelled && setCamera("off"),
+      () => {
+        if (cancelled) return;
+        cameraOffAt.current ??= Date.now();
+        setCamera("off");
+      },
     );
     return () => {
       cancelled = true;

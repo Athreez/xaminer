@@ -237,7 +237,7 @@ After M1, four people (or pairs) can work mostly in parallel:
 
 | ID | Ticket | Done when | Area | Size | Needs | P | PRD |
 |---|---|---|---|---|---|---|---|
-| TCK-1201 | Monitor API (from Redis heartbeat data): status, progress, time left, connection, unsynced answers, event counts | 200-student exam responds < 500 ms | BE | M | 0606 | S | MON-01 |
+| TCK-1201 | Monitor API (from Redis heartbeat data): status, progress, time left, connection, unsynced answers, event counts | 200-student exam responds < 500 ms | BE | M | 0606 | S | MON-01, MON-06 |
 | TCK-1202 | Monitor UI with extend / force-submit / void actions | Actions work with reason dialog | FE | M | 1201, 0608 | S | MON-01, MON-02 |
 | TCK-1203 | Analytics API: exam stats, per-question stats, coding verdicts and per-test-case pass rates | Numbers match a hand-computed sample | BE | M | 0905, 0806 | S | MON-03..05 |
 | TCK-1204 | Analytics UI | Low pass-rate test cases highlighted | FE | M | 1203 | S | MON-03..05 |
@@ -281,7 +281,7 @@ Every Must requirement in the PRD maps to at least one ticket:
 | EXE-01..09 | 0615, 0806, 0808–0811, (0813, 0814 S) |
 | GRD-01..09 | 0805, 0806, 0901–0910 |
 | PRC-01..15 | 0507 (settings), 1001–1007, 1101–1108, (1109, 1110 S) |
-| MON-01..05 | 0608 (actions), (1201–1204 S) |
+| MON-01..06 | 0608 (actions), (1201–1204 S); MON-06 live alerts with 1201 |
 | NOT-01..03 | 0201, (1301–1303 S) |
 | AUD-01..03 | 0109, 0304, 0305 |
 | NFR-01..14 | 0002, 0008, 0614, 0703, 0802, 0812, 1003, 1401–1406 |

@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { BellRing } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router";
 
 import { api } from "@/api/client";
 import type { components } from "@/api/schema";
@@ -29,9 +31,17 @@ import { errorText, unwrap } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 import { formatClock } from "../attempt/lib";
+import { eventLabel } from "../results/lib";
 import { useExam } from "./context";
 
 type Row = components["schemas"]["MonitorRow"];
+type Alert = components["schemas"]["Alert"];
+
+const nowLabel: Record<string, string> = { ...eventLabel, CAMERA_OFF: "Camera off" };
+
+function duration(seconds: number): string {
+  return seconds < 60 ? `${seconds} s` : `${Math.floor(seconds / 60)} min`;
+}
 type Action = "extend" | "force-submit" | "void";
 
 const statusLabel: Record<Row["status"], string> = {
@@ -49,8 +59,9 @@ const connectionStyle: Record<string, { label: string; dot: string }> = {
 };
 
 /**
- * Live monitor (FRONTEND_SPEC § 5.4, PRD MON-01, MON-02): every assigned student, refreshed every
+ * Live monitor (FRONTEND_SPEC § 5.4, PRD MON-01, MON-02, MON-06): every assigned student, refreshed every
  * 10 s, time left counting down in between. Row actions ask for a reason (kept in the audit log).
+ * Proctored exams: what proctoring sees right now on each row, and new alerts announced.
  */
 export function MonitorPage() {
   const { exam } = useExam();
@@ -77,11 +88,12 @@ export function MonitorPage() {
   if (monitor.isPending) return <LoadingRows />;
   if (monitor.isError)
     return <ErrorState error={monitor.error} onRetry={() => void monitor.refetch()} />;
-  const { rows, counts } = monitor.data;
+  const { rows, counts, alerts } = monitor.data;
 
   return (
     <div className="space-y-4">
       {notice && <FormMessage tone="success">{notice}</FormMessage>}
+      <LiveAlerts alerts={alerts} base={`/teacher/exams/${exam.id}`} />
       <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
         {(["IN_PROGRESS", "NOT_STARTED", "SUBMITTED", "AUTO_SUBMITTED", "VOIDED"] as const).map(
           (s) =>
@@ -119,6 +131,18 @@ export function MonitorPage() {
                   <TableCell>
                     <div className="font-medium">{r.full_name}</div>
                     <div className="text-muted-foreground text-xs">{r.roll_no ?? r.email}</div>
+                    {(r.happening ?? []).length > 0 && (
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {r.happening!.map((h) => (
+                          <span
+                            key={h.kind}
+                            className="bg-warning-soft text-warning rounded px-1.5 py-0.5 text-xs"
+                          >
+                            Now: {nowLabel[h.kind] ?? h.kind} · {duration(h.seconds)}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline">{statusLabel[r.status]}</Badge>
@@ -207,6 +231,93 @@ export function MonitorPage() {
         />
       )}
     </div>
+  );
+}
+
+/**
+ * Medium and high proctoring events of the last 30 minutes, newest first. New ones are announced
+ * (screen readers too) and counted in the tab's title until marked seen, so a teacher watching
+ * another tab notices.
+ */
+function LiveAlerts({ alerts, base }: { alerts: Alert[]; base: string }) {
+  const [seen, setSeen] = useState<Set<string> | null>(null);
+  const title = useRef(document.title);
+  // The first load counts as seen: only what arrives while watching is new.
+  if (seen === null) setSeen(new Set(alerts.map((a) => a.event_id)));
+  const fresh = seen ? alerts.filter((a) => !seen.has(a.event_id)) : [];
+
+  useEffect(() => {
+    const original = title.current;
+    document.title = fresh.length ? `(${fresh.length}) ${original}` : original;
+    return () => {
+      document.title = original;
+    };
+  }, [fresh.length]);
+  const newest = fresh[0];
+  const announcement = newest
+    ? `New alert: ${newest.full_name}, ${eventLabel[newest.kind] ?? newest.kind}`
+    : "";
+
+  return (
+    <section aria-labelledby="alerts-title" className="bg-card rounded-xl border p-4">
+      <div className="flex items-center justify-between gap-2">
+        <h2 id="alerts-title" className="flex items-center gap-2 font-semibold">
+          <BellRing aria-hidden className="size-4" />
+          Alerts
+          {fresh.length > 0 && <Badge className="bg-destructive">{fresh.length} new</Badge>}
+        </h2>
+        {fresh.length > 0 && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setSeen(new Set(alerts.map((a) => a.event_id)))}
+          >
+            Mark seen
+          </Button>
+        )}
+      </div>
+      <p className="sr-only" role="status" aria-live="polite">
+        {announcement}
+      </p>
+      {alerts.length === 0 ? (
+        <p className="text-muted-foreground mt-1 text-sm">
+          Nothing in the last 30 minutes. Medium and high proctoring events appear here within a
+          minute.
+        </p>
+      ) : (
+        <ul className="mt-2 space-y-1 text-sm">
+          {alerts.map((a) => (
+            <li
+              key={a.event_id}
+              className={cn(
+                "flex flex-wrap items-center gap-2 rounded px-2 py-1",
+                !seen?.has(a.event_id) && "bg-warning-soft",
+              )}
+            >
+              <Badge
+                variant="outline"
+                className={a.severity === "HIGH" ? "text-destructive" : "text-warning"}
+              >
+                {a.severity.toLowerCase()}
+              </Badge>
+              <span className="font-medium">{a.full_name}</span>
+              <span>{eventLabel[a.kind] ?? a.kind}</span>
+              {a.duration_ms != null && (
+                <span className="text-muted-foreground">
+                  {duration(Math.round(a.duration_ms / 1000))}
+                </span>
+              )}
+              <span className="text-muted-foreground">
+                at {new Date(a.occurred_at).toLocaleTimeString()}
+              </span>
+              <Link to={`${base}/results/${a.attempt_id}`} className="ml-auto underline">
+                Review
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 

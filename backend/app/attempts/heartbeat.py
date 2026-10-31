@@ -39,6 +39,25 @@ def _db_gate_key(attempt_id: uuid.UUID) -> str:
     return f"attempt:{attempt_id}:heartbeat-written"
 
 
+NowKind = Literal[
+    "FACE_ABSENT",
+    "MULTIPLE_FACES",
+    "GAZE_AWAY",
+    "VOICE_DETECTED",
+    "SCREEN_SHARE_STOPPED",
+    "CAMERA_OFF",
+]
+
+
+class Happening(BaseModel):
+    """Something proctoring sees right now (for the teacher's live monitor, never the student)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    kind: NowKind
+    seconds: int = Field(ge=0, le=24 * 3600, description="For how long so far")
+
+
 class HeartbeatIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -48,6 +67,9 @@ class HeartbeatIn(BaseModel):
         ge=0,
         le=100_000_000,
         description="Proctored exams: camera frames analysed so far on this page",
+    )
+    proctoring_now: list[Happening] = Field(
+        default=[], max_length=6, description="Proctored exams: what's going on right now"
     )
 
 
@@ -84,7 +106,13 @@ async def beat(
     if in_progress:
         await redis.set(
             live_key(attempt.id),
-            json.dumps({"at": now.isoformat(), "unsynced": body.unsynced}),
+            json.dumps(
+                {
+                    "at": now.isoformat(),
+                    "unsynced": body.unsynced,
+                    "now": [h.model_dump() for h in body.proctoring_now],
+                }
+            ),
             ex=LIVE_SECONDS,
         )
         if await redis.set(_db_gate_key(attempt.id), "1", nx=True, ex=DB_EVERY_SECONDS):

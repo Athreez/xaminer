@@ -8,12 +8,12 @@ import re
 
 from playwright.sync_api import Page, expect
 
-from conftest import BASE, Api, login
+from conftest import BASE, TEACHER, Api, login
 
 
 def test_device_check_then_start(page: Page, make_exam, teacher: Api) -> None:  # type: ignore[no-untyped-def]
     student = "student07@demo.test"
-    exam = make_exam(student, ["demo-recursion"], proctoring_mode="VIDEO")
+    exam = make_exam(student, ["demo-recursion"], proctoring_mode="VIDEO", browser_checks=True)
     login(page, student)
     page.goto(f"{BASE}/student/exams/{exam}")
     expect(page.get_by_text(re.compile("share your whole screen"))).to_be_visible()
@@ -68,7 +68,7 @@ def test_device_check_then_start(page: Page, make_exam, teacher: Api) -> None:  
     page.wait_for_timeout(70_000)
     # Leaving the page takes a picture of the screen (the periodic ones come every 20-40 s).
     page.evaluate("window.dispatchEvent(new Event('blur'))")
-    page.wait_for_timeout(5_000)
+    page.wait_for_timeout(6_000)  # away 6 s: a medium event, so an alert for the teacher
     page.evaluate("window.dispatchEvent(new Event('focus'))")
     page.get_by_role("button", name=re.compile("Review & submit")).first.click()
     page.get_by_role("button", name=re.compile("^Submit")).first.click()
@@ -90,3 +90,11 @@ def test_device_check_then_start(page: Page, make_exam, teacher: Api) -> None:  
             break
         page.wait_for_timeout(1_000)
     assert "LEFT_PAGE" in purposes and "PERIODIC" in purposes, purposes
+
+    # The teacher's Monitor lists it as an alert, with a link to review the attempt.
+    page.context.clear_cookies()
+    login(page, TEACHER)
+    page.goto(f"{BASE}/teacher/exams/{exam}/monitor")
+    alerts = page.get_by_role("region", name="Alerts")
+    expect(alerts.get_by_text("Left the exam page")).to_be_visible()
+    expect(alerts.get_by_role("link", name="Review")).to_be_visible()

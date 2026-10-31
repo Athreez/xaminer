@@ -1868,6 +1868,32 @@ export interface components {
              */
             status: "INVITED" | "ACTIVE" | "DEACTIVATED";
         };
+        /** Alert */
+        Alert: {
+            /**
+             * Attempt Id
+             * Format: uuid
+             */
+            attempt_id: string;
+            /** Duration Ms */
+            duration_ms: number | null;
+            /**
+             * Event Id
+             * Format: uuid
+             */
+            event_id: string;
+            /** Full Name */
+            full_name: string;
+            /** Kind */
+            kind: string;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /** Severity */
+            severity: string;
+        };
         /** AnswerIn */
         AnswerIn: {
             /**
@@ -3069,6 +3095,22 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /**
+         * Happening
+         * @description Something proctoring sees right now (for the teacher's live monitor, never the student).
+         */
+        Happening: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "FACE_ABSENT" | "MULTIPLE_FACES" | "GAZE_AWAY" | "VOICE_DETECTED" | "SCREEN_SHARE_STOPPED" | "CAMERA_OFF";
+            /**
+             * Seconds
+             * @description For how long so far
+             */
+            seconds: number;
+        };
         /** HealthResponse */
         HealthResponse: {
             /** Status */
@@ -3081,6 +3123,12 @@ export interface components {
              * @description Proctored exams: camera frames analysed so far on this page
              */
             proctoring_frames?: number | null;
+            /**
+             * Proctoring Now
+             * @description Proctored exams: what's going on right now
+             * @default []
+             */
+            proctoring_now: components["schemas"]["Happening"][];
             /**
              * Unsynced
              * @description Answers waiting on the device
@@ -3377,6 +3425,12 @@ export interface components {
             extra_minutes: number;
             /** Full Name */
             full_name: string;
+            /**
+             * Happening
+             * @description What proctoring sees right now (online students only)
+             * @default []
+             */
+            happening: components["schemas"]["Happening"][];
             /** Last Seen At */
             last_seen_at: string | null;
             /** Roll No */
@@ -3406,6 +3460,11 @@ export interface components {
         };
         /** MonitorView */
         MonitorView: {
+            /**
+             * Alerts
+             * @description Medium and high events of the last 30 minutes
+             */
+            alerts: components["schemas"]["Alert"][];
             /**
              * Counts
              * @description Students per status

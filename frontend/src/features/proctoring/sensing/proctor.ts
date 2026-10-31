@@ -192,6 +192,11 @@ export class Proctor {
     this.engine.close();
   }
 
+  /** Events open now (for the heartbeat). */
+  ongoing(): { kind: string; seconds: number }[] {
+    return this.stopped ? [] : this.rules.ongoing(Date.now());
+  }
+
   /** Record events still open without stopping (before submitting). */
   flush(): void {
     this.rules.flush();

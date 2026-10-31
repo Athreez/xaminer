@@ -52,8 +52,17 @@ export interface BrowserEvent {
 
 /** Joins the camera proctoring (when the exam has it) to the session: its frame count for the
  *  heartbeat, and events still open, recorded before submitting. */
+/** Something proctoring sees right now, for the teacher's live monitor. */
+export type Happening = { kind: string; seconds: number };
+
+type ProctorSource = {
+  frames: () => number;
+  happening: () => Happening[];
+  flush: () => Promise<void>;
+};
+
 export class ProctorLink {
-  private source: { frames: () => number; flush: () => Promise<void> } | null = null;
+  private source: ProctorSource | null = null;
   /** For picture uploads: the latest attempt token, and whether the student's work is all sent
    *  (pictures wait behind it). Set by the session. */
   private token: string | null = null;
@@ -75,12 +84,16 @@ export class ProctorLink {
     return this.isIdle();
   }
 
-  attach(source: { frames: () => number; flush: () => Promise<void> } | null): void {
+  attach(source: ProctorSource | null): void {
     this.source = source;
   }
 
   frames(): number | undefined {
     return this.source?.frames();
+  }
+
+  happening(): Happening[] {
+    return this.source?.happening() ?? [];
   }
 
   async flush(): Promise<void> {
@@ -291,6 +304,7 @@ export function useExamSession(
           body: {
             unsynced: Math.min(unsent.current, 10_000),
             proctoring_frames: proctor?.frames(),
+            proctoring_now: (proctor?.happening() ?? []) as never,
           },
           signal: AbortSignal.timeout(TIMEOUT_MS),
         });

@@ -6,13 +6,9 @@
 
 FROM ghcr.io/astral-sh/uv:0.13 AS uv
 
-FROM python:3.12-slim AS base
+FROM python:3.12-slim AS deps
 COPY --from=uv /uv /usr/local/bin/uv
-ENV PYTHONUNBUFFERED=1 \
-    UV_COMPILE_BYTECODE=1 \
-    UV_LINK_MODE=copy \
-    UV_PROJECT_ENVIRONMENT=/opt/venv \
-    PATH=/opt/venv/bin:$PATH
+ENV PYTHONUNBUFFERED=1     UV_COMPILE_BYTECODE=1     UV_LINK_MODE=copy     UV_PROJECT_ENVIRONMENT=/opt/venv     PATH=/opt/venv/bin:$PATH
 WORKDIR /srv
 # Every process finds app, domain_core, workers and cli however it was started: the celery command
 # only puts its folder on the path while loading, so a package first imported later inside a task
@@ -20,16 +16,18 @@ WORKDIR /srv
 ENV PYTHONPATH=/srv
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
-COPY . .
 RUN useradd --uid 10000 --no-create-home appuser
+
+FROM deps AS base
+COPY . .
 USER appuser
 
 FROM base AS app
 
 FROM base AS exec
 
-FROM base AS inference
-USER root
+# PyTorch and the models come before the source, so a code change doesn't reinstall them.
+FROM deps AS inference
 RUN uv sync --frozen --no-dev --group inference --no-install-project --no-cache
 # The models, pinned: RT-DETR r18 at a fixed revision, YuNet at a fixed commit with its hash.
 ARG RTDETR_REVISION=ac77a11ff0170a41b771c03264987f8ce2b0d753
@@ -37,4 +35,5 @@ ARG YUNET_URL=https://github.com/opencv/opencv_zoo/raw/f12e12798e8314f7c074a6656
 ARG YUNET_SHA256=8f2383e4dd3cfbb4553ea8718107fc0423210dc964f9f4280604804ed2552fa4
 RUN python -c "from huggingface_hub import snapshot_download; snapshot_download('PekingU/rtdetr_r18vd', revision='${RTDETR_REVISION}', local_dir='/opt/models/rtdetr_r18vd')"  && python -c "import hashlib, urllib.request; d = urllib.request.urlopen('${YUNET_URL}', timeout=60).read(); assert hashlib.sha256(d).hexdigest() == '${YUNET_SHA256}', 'YuNet hash'; open('/opt/models/face_detection_yunet_2023mar.onnx', 'wb').write(d)"
 ENV HF_HUB_OFFLINE=1
+COPY . .
 USER appuser

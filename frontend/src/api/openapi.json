@@ -209,6 +209,59 @@
         "title": "AdminUserView",
         "type": "object"
       },
+      "Alert": {
+        "properties": {
+          "attempt_id": {
+            "format": "uuid",
+            "title": "Attempt Id",
+            "type": "string"
+          },
+          "duration_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          },
+          "event_id": {
+            "format": "uuid",
+            "title": "Event Id",
+            "type": "string"
+          },
+          "full_name": {
+            "title": "Full Name",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "severity": {
+            "title": "Severity",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_id",
+          "attempt_id",
+          "full_name",
+          "kind",
+          "severity",
+          "occurred_at",
+          "duration_ms"
+        ],
+        "title": "Alert",
+        "type": "object"
+      },
       "AnswerIn": {
         "additionalProperties": false,
         "properties": {
@@ -3174,6 +3227,37 @@
         "title": "HTTPValidationError",
         "type": "object"
       },
+      "Happening": {
+        "additionalProperties": false,
+        "description": "Something proctoring sees right now (for the teacher's live monitor, never the student).",
+        "properties": {
+          "kind": {
+            "enum": [
+              "FACE_ABSENT",
+              "MULTIPLE_FACES",
+              "GAZE_AWAY",
+              "VOICE_DETECTED",
+              "SCREEN_SHARE_STOPPED",
+              "CAMERA_OFF"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "seconds": {
+            "description": "For how long so far",
+            "maximum": 86400.0,
+            "minimum": 0.0,
+            "title": "Seconds",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "kind",
+          "seconds"
+        ],
+        "title": "Happening",
+        "type": "object"
+      },
       "HealthResponse": {
         "properties": {
           "status": {
@@ -3203,6 +3287,16 @@
             ],
             "description": "Proctored exams: camera frames analysed so far on this page",
             "title": "Proctoring Frames"
+          },
+          "proctoring_now": {
+            "default": [],
+            "description": "Proctored exams: what's going on right now",
+            "items": {
+              "$ref": "#/components/schemas/Happening"
+            },
+            "maxItems": 6,
+            "title": "Proctoring Now",
+            "type": "array"
           },
           "unsynced": {
             "default": 0,
@@ -3847,6 +3941,15 @@
             "title": "Full Name",
             "type": "string"
           },
+          "happening": {
+            "default": [],
+            "description": "What proctoring sees right now (online students only)",
+            "items": {
+              "$ref": "#/components/schemas/Happening"
+            },
+            "title": "Happening",
+            "type": "array"
+          },
           "last_seen_at": {
             "anyOf": [
               {
@@ -3929,6 +4032,14 @@
       },
       "MonitorView": {
         "properties": {
+          "alerts": {
+            "description": "Medium and high events of the last 30 minutes",
+            "items": {
+              "$ref": "#/components/schemas/Alert"
+            },
+            "title": "Alerts",
+            "type": "array"
+          },
           "counts": {
             "additionalProperties": {
               "type": "integer"
@@ -3953,6 +4064,7 @@
         "required": [
           "server_time",
           "rows",
+          "alerts",
           "counts"
         ],
         "title": "MonitorView",

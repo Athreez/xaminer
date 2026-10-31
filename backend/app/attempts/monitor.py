@@ -1,4 +1,4 @@
-"""The live exam monitor (PRD MON-01; TCK-1201).
+"""The live exam monitor (PRD MON-01, MON-06; TCK-1201).
 
 One row per assigned student: not started, in progress, submitted or voided; questions answered
 of the total; time left; connection; answers still waiting on their device; proctoring events.
@@ -8,11 +8,15 @@ queries, whatever the number of students.
 
 Connection: online when the last heartbeat is under 40 s old (two missed beats are tolerated),
 weak under 2 min, else offline. A gap is never a proctoring event (architecture § 9.6).
+
+Live alerts (proctored exams): each row says what proctoring sees right now (from the latest
+heartbeat: no face for 40 s, another person...), and `alerts` lists the exam's medium and high
+events of the last 30 minutes, newest first. Only the teacher sees either.
 """
 
 import json
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -20,18 +24,21 @@ from redis.asyncio import Redis
 from sqlalchemy import distinct, func, select, union
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.attempts.heartbeat import live_key
+from app.attempts.heartbeat import Happening, live_key
 from app.attempts.models import Answer, AttemptQuestion, ExamAttempt
 from app.auth.tokens import Principal
 from app.authz.ownership import get_owned
 from app.exams.models import Exam, ExamAssignment
 from app.execution.models import CodingSubmission
 from app.proctoring.events import counts as event_counts
+from app.proctoring.models import ProctoringEvent
 from app.users.models import User
 from domain_core import timer
 
 ONLINE_SECONDS = 40
 WEAK_SECONDS = 120
+ALERT_MINUTES = 30
+MAX_ALERTS = 20
 
 Status = Literal["NOT_STARTED", "IN_PROGRESS", "SUBMITTED", "AUTO_SUBMITTED", "VOIDED"]
 Connection = Literal["ONLINE", "WEAK", "OFFLINE"]
@@ -52,11 +59,25 @@ class MonitorRow(BaseModel):
     last_seen_at: datetime | None
     unsynced: int = Field(description="Answers waiting on the student's device")
     event_count: int = Field(description="Proctoring events (with proctoring)")
+    happening: list[Happening] = Field(
+        default=[], description="What proctoring sees right now (online students only)"
+    )
+
+
+class Alert(BaseModel):
+    event_id: uuid.UUID
+    attempt_id: uuid.UUID
+    full_name: str
+    kind: str
+    severity: str
+    occurred_at: datetime
+    duration_ms: int | None
 
 
 class MonitorView(BaseModel):
     server_time: datetime
     rows: list[MonitorRow]
+    alerts: list[Alert] = Field(description="Medium and high events of the last 30 minutes")
     counts: dict[str, int] = Field(description="Students per status")
 
 
@@ -153,9 +174,38 @@ async def monitor(
                 last_seen_at=last_seen,
                 unsynced=int(beat.get("unsynced", 0)) if beat else 0,
                 event_count=events.get(a.id, 0) if a else 0,  # not dismissed
+                happening=[Happening.model_validate(h) for h in beat.get("now", [])]
+                if beat and connection_of(last_seen, now) == "ONLINE"
+                else [],
             )
         )
     counts: dict[str, int] = {}
     for row in rows:
         counts[row.status] = counts.get(row.status, 0) + 1
-    return MonitorView(server_time=now, rows=rows, counts=counts)
+    names = {a.id: a.student_id for a in attempts.values()}
+    people = {row.student_id: row.full_name for row in rows}
+    recent = await session.scalars(
+        select(ProctoringEvent)
+        .where(
+            ProctoringEvent.attempt_id.in_(ids),
+            ProctoringEvent.status == "READY",
+            ProctoringEvent.severity.in_(("MEDIUM", "HIGH")),
+            ProctoringEvent.decision.is_(None),
+            ProctoringEvent.created_at > now - timedelta(minutes=ALERT_MINUTES),
+        )
+        .order_by(ProctoringEvent.created_at.desc())
+        .limit(MAX_ALERTS)
+    )
+    alerts = [
+        Alert(
+            event_id=e.id,
+            attempt_id=e.attempt_id,
+            full_name=people.get(names[e.attempt_id], ""),
+            kind=e.kind,
+            severity=e.severity,
+            occurred_at=e.occurred_at,
+            duration_ms=e.duration_ms,
+        )
+        for e in recent
+    ]
+    return MonitorView(server_time=now, rows=rows, counts=counts, alerts=alerts)

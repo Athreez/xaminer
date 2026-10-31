@@ -43,6 +43,7 @@ describe("proctoring rules", () => {
     run(rules, 10, 13, [FACE, FACE]);
     run(rules, 13, 14, [FACE, FACE, FACE]);
     expect(rules.seen()).toEqual([{ id: expect.any(String), kind: "MULTIPLE_FACES" }]);
+    expect(rules.ongoing(START + 14_000)).toEqual([{ kind: "MULTIPLE_FACES", seconds: 4 }]);
     run(rules, 14, 40, [FACE]);
     expect(rules.seen()).toEqual([]);
     expect(events).toEqual([

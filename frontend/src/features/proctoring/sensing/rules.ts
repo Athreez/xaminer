@@ -90,6 +90,11 @@ class Detector {
     }
   }
 
+  /** The open event and how long it has lasted by `t` (for the teacher's live monitor). */
+  ongoing(t: number): { kind: RuleKind; seconds: number } | null {
+    return this.open ? { kind: this.kind, seconds: Math.round((t - this.open.at) / 1000) } : null;
+  }
+
   /** The open event, while what raised it is still seen (pictures are taken then). */
   seen(): { id: string; kind: RuleKind } | null {
     return this.open?.on ? { id: this.open.id, kind: this.kind } : null;
@@ -217,6 +222,13 @@ export class Rules {
   seen(): { id: string; kind: RuleKind }[] {
     return [this.faceAbsent, this.multipleFaces, this.gazeAway]
       .map((d) => d.seen())
+      .filter((x) => x !== null);
+  }
+
+  /** Events open now and how long so far (sent with the heartbeat). */
+  ongoing(t: number): { kind: RuleKind; seconds: number }[] {
+    return [this.faceAbsent, this.multipleFaces, this.gazeAway, this.voice]
+      .map((d) => d.ongoing(t))
       .filter((x) => x !== null);
   }
 

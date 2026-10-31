@@ -132,3 +132,34 @@ async def test_no_signal_lost_without_proctoring(
                 await signal.check(s, redis, attempt, None, t0 + timedelta(seconds=seconds))
         assert await events(w, attempt_id) == []
     await purge_institutions(migrator_engine, [college.id])
+
+
+async def test_the_teacher_sees_live_alerts_and_the_student_nothing(world: World) -> None:
+    attempt_id = start(world)
+    beat = world.client.post(
+        f"/api/v1/attempts/{attempt_id}/heartbeat",
+        json={"proctoring_frames": 5, "proctoring_now": [{"kind": "FACE_ABSENT", "seconds": 40}]},
+        headers=world.me,
+    )
+    assert "FACE_ABSENT" not in beat.text  # the student's answer says nothing about it
+    now = datetime.now(UTC).isoformat()
+    sent = [
+        {"kind": "SCREEN_SHARE_STOPPED", "duration_ms": 30_000},  # MEDIUM: an alert
+        {"kind": "TAB_SWITCH", "duration_ms": 2_000},  # LOW: not one
+    ]
+    body = {"events": [{"client_id": str(uuid.uuid4()), "occurred_at": now} | e for e in sent]}
+    world.client.post(f"/api/v1/attempts/{attempt_id}/events", json=body, headers=world.me)
+
+    view = world.client.get(f"/api/v1/exams/{world.exam_id}/monitor", headers=world.teacher)
+    (row,) = view.json()["rows"]
+    assert row["happening"] == [{"kind": "FACE_ABSENT", "seconds": 40}]
+    (alert,) = view.json()["alerts"]
+    assert (alert["kind"], alert["severity"], alert["attempt_id"]) == (
+        "SCREEN_SHARE_STOPPED",
+        "MEDIUM",
+        attempt_id,
+    )
+    assert (
+        world.client.get(f"/api/v1/exams/{world.exam_id}/monitor", headers=world.me).status_code
+        == 403
+    )

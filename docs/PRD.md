@@ -310,6 +310,7 @@ Priority: **M** = must have (core demo), **S** = should have (if time allows).
 | MON-03 | Exam analytics: average, median, highest, lowest, score histogram, pass rate | S |
 | MON-04 | Question analytics: average score, % fully correct, option-pick counts for MCQ/MSQ | S |
 | MON-05 | Coding analytics: verdict counts and **pass rate per test case** (finds broken hidden tests) | S |
+| MON-06 | **Live alerts** (proctored exams): the monitor shows what proctoring sees right now per student (from the heartbeat) and lists medium and high events of the last 30 minutes, announcing new ones. Teachers only; students see nothing. Added 2026-10-31 at the user's request | S |
 
 ### 5.12 Notifications — `NOT`
 
