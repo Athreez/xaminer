@@ -59,9 +59,6 @@ Kind = Literal[
     "SCREEN_SHARE_STOPPED",
 ]
 DETAILS = ("length", "how", "screens", "faces", "direction")
-# Checked by the server from their pictures before a teacher sees them (app/proctoring/verdicts.py).
-CHECKED = ("FACE_ABSENT", "MULTIPLE_FACES")
-READY = ProctoringEvent.status == "READY"
 
 
 class EventIn(BaseModel):
@@ -134,7 +131,6 @@ async def upload(
                 duration_ms=event.duration_ms,
                 details=details,
                 severity=severity(event.kind, event.duration_ms, details),
-                status="PROCESSING" if event.kind in CHECKED else "READY",
             )
             .on_conflict_do_nothing(index_elements=["attempt_id", "client_id"])
         )
@@ -182,7 +178,7 @@ def view(e: ProctoringEvent) -> EventView:
 async def of_attempt(session: AsyncSession, attempt_id: uuid.UUID) -> list[EventView]:
     rows = await session.scalars(
         select(ProctoringEvent)
-        .where(ProctoringEvent.attempt_id == attempt_id, READY)
+        .where(ProctoringEvent.attempt_id == attempt_id)
         .order_by(ProctoringEvent.occurred_at, ProctoringEvent.id)
     )
     return [view(e) for e in rows]
@@ -196,7 +192,6 @@ async def counts(session: AsyncSession, attempt_ids: list[uuid.UUID]) -> dict[uu
         select(ProctoringEvent.attempt_id, func.count())
         .where(
             ProctoringEvent.attempt_id.in_(attempt_ids),
-            READY,
             ProctoringEvent.decision.is_distinct_from("DISMISSED"),
         )
         .group_by(ProctoringEvent.attempt_id)
@@ -212,7 +207,7 @@ async def decide(
             select(ProctoringEvent)
             .join(ExamAttempt, ExamAttempt.id == ProctoringEvent.attempt_id)
             .join(Exam, Exam.id == ExamAttempt.exam_id)
-            .where(ProctoringEvent.id == event_id, Exam.owner_id == principal.user_id, READY)
+            .where(ProctoringEvent.id == event_id, Exam.owner_id == principal.user_id)
             .with_for_update(of=ProctoringEvent)
         )
     ).scalar_one_or_none()
@@ -239,7 +234,7 @@ async def decide(
 async def outcome(session: AsyncSession, attempt_id: uuid.UUID) -> str:
     decisions = list(
         await session.scalars(
-            select(ProctoringEvent.decision).where(ProctoringEvent.attempt_id == attempt_id, READY)
+            select(ProctoringEvent.decision).where(ProctoringEvent.attempt_id == attempt_id)
         )
     )
     if "FLAGGED" in decisions:

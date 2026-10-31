@@ -38,12 +38,7 @@ KINDS = (
     "VOICE_DETECTED",
     "SCREEN_SHARE_STOPPED",
     "SIGNAL_LOST",
-    "PHONE_DETECTED",
-    "BOOK_DETECTED",
 )
-# PROCESSING: waiting for the server's check of its pictures (never shown); REJECTED: the check
-# found nothing (never shown); READY: for the teacher.
-STATUSES = ("PROCESSING", "READY", "REJECTED")
 SEVERITIES = ("LOW", "MEDIUM", "HIGH")
 DECISIONS = ("DISMISSED", "FLAGGED")
 
@@ -54,7 +49,6 @@ class ProctoringEvent(IdMixin, TenantMixin, Base):
         UniqueConstraint("attempt_id", "client_id"),  # an upload repeated changes nothing
         CheckConstraint(f"kind IN {KINDS}", name="kind"),
         CheckConstraint(f"severity IN {SEVERITIES}", name="severity"),
-        CheckConstraint(f"status IN {STATUSES}", name="status"),
         CheckConstraint(f"decision IS NULL OR decision IN {DECISIONS}", name="decision"),
         CheckConstraint(
             "(decision IS NULL) = (decided_by IS NULL AND decided_at IS NULL)",
@@ -71,10 +65,6 @@ class ProctoringEvent(IdMixin, TenantMixin, Base):
     duration_ms: Mapped[int | None] = mapped_column(Integer)
     details: Mapped[dict[str, Any]] = mapped_column(JSONB, server_default="{}")
     severity: Mapped[str] = mapped_column(String(8))
-    status: Mapped[str] = mapped_column(String(12), server_default="READY")
-    # The server's check (0..1): how sure it is; null when not checked (no pictures).
-    confidence: Mapped[float | None]
-    check_sent_at: Mapped[datetime | None]
     decision: Mapped[str | None] = mapped_column(String(12))
     note: Mapped[str | None] = mapped_column(Text)
     decided_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("user.id", ondelete="RESTRICT"))
@@ -131,7 +121,5 @@ class ProctoringCapture(IdMixin, TenantMixin, Base):
     taken_at: Mapped[datetime]
     storage_key: Mapped[str] = mapped_column(Text)
     size: Mapped[int] = mapped_column(Integer)
-    check_sent_at: Mapped[datetime | None]  # spot checks: sent to the inference-worker
-    checked_at: Mapped[datetime | None]  # spot checks: its answer applied
     deleted_at: Mapped[datetime | None]
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())

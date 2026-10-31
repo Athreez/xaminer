@@ -146,8 +146,8 @@ services:
 
   inference-worker:
     build: { context: ../backend, target: inference }
-    # Checks proctoring pictures (RT-DETR, YuNet); holds no database or storage credentials.
-    command: ["celery", "-A", "workers.inference_worker", "worker", "--queues=inference.verify", "--concurrency=1", "--hostname=inference@%h", "--loglevel=INFO"]
+    # TODO(TCK-1103): replace with the inference worker.
+    command: ["sleep", "infinity"]
     environment: *untrusted-env
     depends_on:
       redis: { condition: service_healthy }
