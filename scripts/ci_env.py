@@ -14,8 +14,6 @@ text = re.sub(
     flags=re.MULTILINE,
 )
 # The browser tests log in many times a minute, all from one address.
-text += "
-LOGIN_RATE_PER_MINUTE=1000
-"
+text += "\nLOGIN_RATE_PER_MINUTE=1000\n"
 (DEPLOY / ".env").write_text(text, encoding="utf-8")
 print("deploy/.env written with random secrets")
