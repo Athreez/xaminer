@@ -2071,6 +2071,8 @@ export interface components {
             events: {
                 [key: string]: components["schemas"]["Picture"][];
             };
+            /** @description The student's face at the start (identity) */
+            reference: components["schemas"]["Picture"] | null;
             /**
              * Screen
              * @description Pictures of the shared screen, in time order
@@ -2257,7 +2259,7 @@ export interface components {
              * Purpose
              * @enum {string}
              */
-            purpose: "EVENT" | "SPOT_CHECK" | "PERIODIC" | "LEFT_PAGE";
+            purpose: "EVENT" | "SPOT_CHECK" | "PERIODIC" | "LEFT_PAGE" | "REFERENCE";
             /**
              * Taken At
              * Format: date-time
@@ -2582,7 +2584,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "FULLSCREEN_EXIT" | "TAB_SWITCH" | "PASTE_BLOCKED" | "MULTIPLE_SCREENS" | "FACE_ABSENT" | "MULTIPLE_FACES" | "GAZE_AWAY" | "VOICE_DETECTED" | "SCREEN_SHARE_STOPPED";
+            kind: "FULLSCREEN_EXIT" | "TAB_SWITCH" | "PASTE_BLOCKED" | "MULTIPLE_SCREENS" | "FACE_ABSENT" | "MULTIPLE_FACES" | "GAZE_AWAY" | "VOICE_DETECTED" | "SCREEN_SHARE_STOPPED" | "LIVENESS_FAILED";
             /**
              * Occurred At
              * Format: date-time
@@ -3566,7 +3568,7 @@ export interface components {
              * Purpose
              * @enum {string}
              */
-            purpose: "EVENT" | "SPOT_CHECK" | "PERIODIC" | "LEFT_PAGE";
+            purpose: "EVENT" | "SPOT_CHECK" | "PERIODIC" | "LEFT_PAGE" | "REFERENCE";
             /**
              * Taken At
              * Format: date-time

@@ -29,11 +29,15 @@ FROM base AS exec
 # PyTorch and the models come before the source, so a code change doesn't reinstall them.
 FROM deps AS inference
 RUN uv sync --frozen --no-dev --group inference --no-install-project --no-cache
-# The models, pinned: RT-DETR r18 at a fixed revision, YuNet at a fixed commit with its hash.
+# The models, pinned: RT-DETR r18 at a fixed revision; YuNet and SFace at a fixed commit, with
+# their hashes.
 ARG RTDETR_REVISION=ac77a11ff0170a41b771c03264987f8ce2b0d753
 ARG YUNET_URL=https://github.com/opencv/opencv_zoo/raw/f12e12798e8314f7c074a6656816c048dcc95b7a/models/face_detection_yunet/face_detection_yunet_2023mar.onnx
 ARG YUNET_SHA256=8f2383e4dd3cfbb4553ea8718107fc0423210dc964f9f4280604804ed2552fa4
+ARG SFACE_URL=https://github.com/opencv/opencv_zoo/raw/f12e12798e8314f7c074a6656816c048dcc95b7a/models/face_recognition_sface/face_recognition_sface_2021dec.onnx
+ARG SFACE_SHA256=0ba9fbfa01b5270c96627c4ef784da859931e02f04419c829e83484087c34e79
 RUN python -c "from huggingface_hub import snapshot_download; snapshot_download('PekingU/rtdetr_r18vd', revision='${RTDETR_REVISION}', local_dir='/opt/models/rtdetr_r18vd')"  && python -c "import hashlib, urllib.request; d = urllib.request.urlopen('${YUNET_URL}', timeout=60).read(); assert hashlib.sha256(d).hexdigest() == '${YUNET_SHA256}', 'YuNet hash'; open('/opt/models/face_detection_yunet_2023mar.onnx', 'wb').write(d)"
+RUN python -c "import hashlib, urllib.request; d = urllib.request.urlopen('${SFACE_URL}', timeout=120).read(); assert hashlib.sha256(d).hexdigest() == '${SFACE_SHA256}', 'SFace hash'; open('/opt/models/face_recognition_sface_2021dec.onnx', 'wb').write(d)"
 ENV HF_HUB_OFFLINE=1
 COPY . .
 USER appuser

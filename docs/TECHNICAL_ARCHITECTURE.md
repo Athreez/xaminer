@@ -55,7 +55,7 @@ These are the rules the whole design is built around. Every later section follow
 | Auth | Argon2 password hashing, JWT access tokens (15 min), rotating refresh token in an httpOnly cookie |
 | Background jobs | Celery + Redis, Celery Beat for scheduled jobs |
 | Code sandbox | Docker containers (one per test case) on a Docker-in-Docker engine; gVisor `runsc` optional |
-| Proctoring AI (server) | PyTorch / ONNX Runtime, reusing smartSquad's RT-DETR object detector and liveness code |
+| Proctoring AI (server) | PyTorch (CPU) with RT-DETR r18 (phones, books, people); OpenCV's YuNet (faces) and SFace (identity). Liveness prompts are checked in the browser |
 | Database | PostgreSQL 16 |
 | Cache / broker | Redis 7 |
 | File storage | SeaweedFS (S3-compatible). Code uses the plain S3 API (boto3), so the store can be swapped |

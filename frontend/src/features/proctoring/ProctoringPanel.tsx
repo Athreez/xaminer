@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+import { PROMPT } from "./sensing/liveness";
+import type { Prompt } from "./sensing/proctor";
 import type { Proctoring } from "./useProctoring";
 
 /**
@@ -49,6 +51,7 @@ export function ProctoringPanel({ proctoring }: { proctoring: Proctoring }) {
           {open ? <ChevronDown className="size-4" /> : <ChevronUp className="size-4" />}
         </button>
       </div>
+      {proctoring.prompt && <ChallengePrompt prompt={proctoring.prompt} />}
       {open && stream && (
         <video
           ref={video}
@@ -72,6 +75,24 @@ export function ProctoringPanel({ proctoring }: { proctoring: Proctoring }) {
         </p>
       )}
     </aside>
+  );
+}
+
+/** A liveness challenge: what to do and the seconds left. Neutral: it says nothing about why. */
+function ChallengePrompt({ prompt }: { prompt: Prompt }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 250);
+    return () => window.clearInterval(id);
+  }, []);
+  const left = Math.max(0, Math.ceil((prompt.endsAt - now) / 1000));
+  return (
+    <div role="alert" className="bg-primary text-primary-foreground space-y-0.5 p-2 text-xs">
+      <p className="font-semibold">Quick camera check</p>
+      <p>
+        {PROMPT[prompt.kind]} ({left} s)
+      </p>
+    </div>
   );
 }
 

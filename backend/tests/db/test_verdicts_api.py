@@ -198,3 +198,31 @@ async def test_an_event_without_pictures_is_shown_unchecked(world: World) -> Non
     assert jobs == []
     (shown,) = teacher_events(world, sitting.id)
     assert (shown["kind"], shown["severity"]) == ("FACE_ABSENT", "MEDIUM")
+
+
+async def test_a_different_face_than_at_the_start_is_an_identity_event(world: World) -> None:
+    sitting = Sitting(world)
+    assert sitting.send(purpose="REFERENCE").status_code == 204
+    assert sitting.send(purpose="REFERENCE").status_code == 204  # only the first is kept
+    sitting.send()
+    jobs: list[InferenceJob] = []
+    storage = Storage(make_settings())
+    await verdicts.dispatch(
+        world.factory, storage, send=jobs.append, attempts=[uuid.UUID(sitting.id)]
+    )
+    (job,) = jobs
+    assert job.reference is not None and httpx.get(job.reference.url).status_code == 200
+    stranger = found(FACE).model_copy(update={"match": 0.1})
+    await verdicts.apply(
+        world.factory, storage, {"job_id": job.job_id, "findings": [stranger.model_dump()]}
+    )
+    (shown,) = teacher_events(world, sitting.id)
+    assert (shown["kind"], shown["severity"]) == ("IDENTITY_MISMATCH", "HIGH")
+    url = f"/api/v1/exams/{world.exam_id}/results/{sitting.id}/pictures"
+    pictures = world.client.get(url, headers=world.teacher).json()
+    assert pictures["reference"]["purpose"] == "REFERENCE"
+    assert len(pictures["events"][shown["id"]]) == 1
+    references = [
+        p for p in await rows(world, ProctoringCapture, sitting.id) if p.purpose == "REFERENCE"
+    ]
+    assert len(references) == 1

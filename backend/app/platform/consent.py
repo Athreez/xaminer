@@ -14,8 +14,12 @@ STANDARD = """\
 - **What is used:** your {devices} for as long as the exam is open.
 - **On your device only:** the video{audio} is checked by your browser on this computer. \
 Nothing is recorded or streamed.{screen}
-- **Still images:** a few still images are saved only when something possibly suspicious is \
-noticed (for example, nobody or two people in view).
+- **Still images:** every 20-40 seconds a still image is checked by the college's server for a \
+phone or a book and deleted at once if nothing is found. Images are kept only when something \
+possibly suspicious is noticed (for example, nobody or two people in view, or a phone).
+- **That it's you:** a picture of your face at the start of the exam is kept and compared with \
+later images, to check the same person sits the whole exam. Now and then you may be asked to \
+turn your head or blink, to show the camera sees a live person.
 - **Who can see them:** only the teacher who owns this exam. Not other students, and not the \
 college's administrators.
 - **How long:** they are kept for {days} days after the exam closes, then deleted automatically.

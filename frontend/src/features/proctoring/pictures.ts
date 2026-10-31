@@ -6,7 +6,7 @@
  */
 
 export type PictureKind = "CAMERA" | "SCREEN";
-export type Purpose = "EVENT" | "SPOT_CHECK" | "PERIODIC" | "LEFT_PAGE";
+export type Purpose = "EVENT" | "SPOT_CHECK" | "PERIODIC" | "LEFT_PAGE" | "REFERENCE";
 
 export interface Picture {
   clientId: string;
@@ -19,7 +19,7 @@ export interface Picture {
 }
 
 /** Sent first to last; dropped last to first when too many wait. */
-const ORDER: Purpose[] = ["EVENT", "LEFT_PAGE", "PERIODIC", "SPOT_CHECK"];
+const ORDER: Purpose[] = ["REFERENCE", "EVENT", "LEFT_PAGE", "PERIODIC", "SPOT_CHECK"];
 export const MAX_WAITING = 60;
 
 const CAMERA_WIDTH = 640;

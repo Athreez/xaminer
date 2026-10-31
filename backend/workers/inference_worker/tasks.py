@@ -23,11 +23,12 @@ def fetch(url: str) -> bytes:
 
 
 def check(job: InferenceJob) -> InferenceResult:
-    from workers.inference_worker.models import look
+    from workers.inference_worker.models import look, reference
 
     try:
+        known = reference(fetch(job.reference.url)) if job.reference else None
         return InferenceResult(
-            job_id=job.job_id, findings=[look(p.id, fetch(p.url)) for p in job.pictures]
+            job_id=job.job_id, findings=[look(p.id, fetch(p.url), known) for p in job.pictures]
         )
     except (requests.RequestException, OSError, ValueError) as exc:
         return InferenceResult(job_id=job.job_id, error=type(exc).__name__)

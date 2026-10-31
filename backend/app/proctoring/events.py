@@ -16,6 +16,7 @@ Severity comes from these rules, never from the browser:
 | VOICE_DETECTED (talking) | under 20 s | 20 s or more | |
 | SCREEN_SHARE_STOPPED | under 10 s | under 60 s | 60 s or more |
 | SIGNAL_LOST (from heartbeats) | | under 5 min | 5 min or more |
+| LIVENESS_FAILED (a head-turn or blink prompt not done) | | always | |
 
 Camera events carry no pictures yet; until they do, these rules alone set their severity.
 
@@ -57,8 +58,9 @@ Kind = Literal[
     "GAZE_AWAY",
     "VOICE_DETECTED",
     "SCREEN_SHARE_STOPPED",
+    "LIVENESS_FAILED",
 ]
-DETAILS = ("length", "how", "screens", "faces", "direction")
+DETAILS = ("length", "how", "screens", "faces", "direction", "challenge")
 # Checked by the server from their pictures before a teacher sees them (app/proctoring/verdicts.py).
 CHECKED = ("FACE_ABSENT", "MULTIPLE_FACES")
 READY = ProctoringEvent.status == "READY"

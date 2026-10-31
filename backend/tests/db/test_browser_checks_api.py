@@ -55,6 +55,7 @@ async def world(app_engine: AsyncEngine, migrator_engine: AsyncEngine) -> AsyncI
         ("SCREEN_SHARE_STOPPED", 90_000, {}, "HIGH"),
         ("SIGNAL_LOST", 60_000, {}, "MEDIUM"),
         ("SIGNAL_LOST", 300_000, {}, "HIGH"),
+        ("LIVENESS_FAILED", 10_000, {"challenge": "turn"}, "MEDIUM"),
     ],
 )
 def test_severity_rules(kind: str, ms: int | None, details: dict[str, Any], expected: str) -> None:

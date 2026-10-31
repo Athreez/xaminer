@@ -415,6 +415,8 @@ students do naturally. Values below are for the **Standard** sensitivity.
 | `PHONE_DETECTED` | Spot-check frame: phone found with confidence ≥ 0.50 (0.70 missed most phones held low in CALIPER's tests) | 0.50–0.85 MEDIUM · ≥ 0.85 HIGH | On |
 | `BOOK_DETECTED` | Spot-check frame: book found with confidence ≥ 0.50 (for closed-book exams) | LOW | Off |
 | `SIGNAL_LOST` | Heartbeats arrive but proctoring has stopped for ≥ 60 s | MEDIUM · > 5 min HIGH | On |
+| `IDENTITY_MISMATCH` | Spot-check frame: the main face doesn't match the student's face at the start of the exam (SFace cosine < 0.363) | MEDIUM · < 0.2 HIGH | On |
+| `LIVENESS_FAILED` | A prompt (turn the head, or blink twice; 2–3 per exam at random, 10 s each) not done while the face is in view | MEDIUM | On |
 | `SCREEN_SHARE_STOPPED` | The whole screen stopped being shared (PRC-17); questions hidden until shared again | < 10 s LOW · 10–60 s MEDIUM · > 60 s HIGH | With screen sharing |
 
 **Rules for all detectors**
@@ -428,7 +430,7 @@ students do naturally. Values below are for the **Standard** sensitivity.
 | Evidence | 3 images per event (start, middle, latest) |
 | Evidence limit | 30 events with images per attempt; later events have no images |
 | Frame rate | 3 fps, down to 1 fps on slow devices; thresholds are in seconds |
-| Spot checks | One random frame every 20–40 s |
+| Spot checks | One random frame every 20–40 s, plus an extra one when the browser's object model (EfficientDet-Lite0, a trigger only) might see a phone or book, at most every 10 s |
 
 **Sensitivity presets** multiply all time thresholds: Relaxed × 1.5, Standard × 1.0, Strict × 0.6.
 

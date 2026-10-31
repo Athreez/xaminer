@@ -146,8 +146,10 @@ services:
 
   inference-worker:
     build: { context: ../backend, target: inference }
-    # Checks proctoring pictures (RT-DETR, YuNet); holds no database or storage credentials.
-    command: ["celery", "-A", "workers.inference_worker", "worker", "--queues=inference.verify", "--concurrency=1", "--hostname=inference@%h", "--loglevel=INFO"]
+    # Checks proctoring pictures (RT-DETR, YuNet, SFace); holds no database or storage credentials.
+    # At low priority and at most 1.5 cores: the checks can wait, exams and the API can't.
+    command: ["nice", "-n", "10", "celery", "-A", "workers.inference_worker", "worker", "--queues=inference.verify", "--concurrency=1", "--hostname=inference@%h", "--loglevel=INFO"]
+    cpus: 1.5
     environment: *untrusted-env
     depends_on:
       redis: { condition: service_healthy }

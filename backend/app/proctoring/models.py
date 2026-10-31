@@ -40,6 +40,8 @@ KINDS = (
     "SIGNAL_LOST",
     "PHONE_DETECTED",
     "BOOK_DETECTED",
+    "IDENTITY_MISMATCH",
+    "LIVENESS_FAILED",
 )
 # PROCESSING: waiting for the server's check of its pictures (never shown); REJECTED: the check
 # found nothing (never shown); READY: for the teacher.
@@ -103,13 +105,14 @@ class ConsentRecord(IdMixin, TenantMixin, Base):
 
 
 CAPTURE_KINDS = ("CAMERA", "SCREEN")
-CAPTURE_PURPOSES = ("EVENT", "SPOT_CHECK", "PERIODIC", "LEFT_PAGE")
+CAPTURE_PURPOSES = ("EVENT", "SPOT_CHECK", "PERIODIC", "LEFT_PAGE", "REFERENCE")
 
 
 class ProctoringCapture(IdMixin, TenantMixin, Base):
     """A picture from the exam screen (PRD PRC-05, PRC-17; TCK-1006, TCK-1102): up to 3 of the
-    camera per event, random camera spot checks, and pictures of the shared screen (every
-    20-40 s and when the student leaves the page). Stored re-encoded in the `evidence` bucket;
+    camera per event, random camera spot checks, the student's face at the start (the identity
+    reference, one per attempt), and pictures of the shared screen (every 20-40 s and when the
+    student leaves the page). Stored re-encoded in the `evidence` bucket;
     `deleted_at` is set once the image is gone (spot checks soon, the rest after retention)."""
 
     __tablename__ = "proctoring_capture"

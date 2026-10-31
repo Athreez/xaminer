@@ -3,6 +3,8 @@
 - RT-DETR r18 (PekingU/rtdetr_r18vd, Apache-2.0), COCO classes: phones, books, people, laptops.
   The threshold is 0.5: CALIPER's measurements found 0.7 missed most phones held low.
 - YuNet (OpenCV Zoo, MIT): faces, with their size, for "no face" and "another person".
+- SFace (OpenCV Zoo, Apache-2.0): a face's features, compared (cosine) with the student's face
+  at the start of the exam. ArcFace would be more accurate, but its weights are research-only.
 """
 
 import io
@@ -17,6 +19,7 @@ from workers.inference_messages import Face, Finding, Thing
 
 RTDETR = os.environ.get("RTDETR_MODEL", "/opt/models/rtdetr_r18vd")
 YUNET = os.environ.get("YUNET_MODEL", "/opt/models/face_detection_yunet_2023mar.onnx")
+SFACE = os.environ.get("SFACE_MODEL", "/opt/models/face_recognition_sface_2021dec.onnx")
 THING_THRESHOLD = 0.5
 FACE_THRESHOLD = 0.7
 WATCHED = {"cell phone", "book", "person", "laptop"}
@@ -38,7 +41,7 @@ def models() -> Models:
     from transformers import RTDetrForObjectDetection, RTDetrImageProcessorPil
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    torch.set_num_threads(max(1, (os.cpu_count() or 2) // 2))
+    torch.set_num_threads(int(os.environ.get("TORCH_THREADS", "1")))  # the worker gets 1.5 cores
     processor = RTDetrImageProcessorPil.from_pretrained(RTDETR)
     detector = RTDetrForObjectDetection.from_pretrained(RTDETR).to(device).eval()
     return Models(processor, detector, device)
@@ -63,19 +66,40 @@ def things(image: Image.Image) -> list[Thing]:
     return out
 
 
-def faces(image: Image.Image) -> list[Face]:
+def _detect(image: Image.Image) -> tuple[Any, list[Any]]:
+    """The picture as OpenCV wants it, and YuNet's face rows, biggest first."""
     import cv2
     import numpy as np
 
     bgr = cv2.cvtColor(np.asarray(image), cv2.COLOR_RGB2BGR)
     detector = cv2.FaceDetectorYN.create(YUNET, "", (image.width, image.height), FACE_THRESHOLD)
     _, rows = detector.detect(bgr)
-    total = float(image.width * image.height)
-    out = [
-        Face(score=round(float(r[14]), 3), area=round(float(r[2] * r[3]) / total, 4))
-        for r in (rows if rows is not None else [])
-    ]
-    return sorted(out, key=lambda f: f.area, reverse=True)
+    found = list(rows) if rows is not None else []
+    return bgr, sorted(found, key=lambda r: float(r[2] * r[3]), reverse=True)
+
+
+@cache
+def _recognizer() -> Any:
+    import cv2
+
+    return cv2.FaceRecognizerSF.create(SFACE, "")
+
+
+def features(bgr: Any, row: Any) -> Any:
+    recognizer = _recognizer()
+    return recognizer.feature(recognizer.alignCrop(bgr, row))
+
+
+def similarity(a: Any, b: Any) -> float:
+    import cv2
+
+    return float(_recognizer().match(a, b, cv2.FaceRecognizerSF_FR_COSINE))
+
+
+def reference(data: bytes) -> Any | None:
+    """The main face's features in the reference picture (None when no face is found)."""
+    bgr, rows = _detect(open_picture(data))
+    return features(bgr, rows[0]) if rows else None
 
 
 def open_picture(data: bytes) -> Image.Image:
@@ -85,6 +109,19 @@ def open_picture(data: bytes) -> Image.Image:
     return image
 
 
-def look(picture_id: str, data: bytes) -> Finding:
+def look(picture_id: str, data: bytes, known: Any | None = None) -> Finding:
+    """What's in one picture; with `known` (the reference's features), how much its main face
+    looks like the student at the start."""
     image = open_picture(data)
-    return Finding(id=picture_id, faces=faces(image), things=things(image))
+    bgr, rows = _detect(image)
+    total = float(image.width * image.height)
+    match = similarity(features(bgr, rows[0]), known) if rows and known is not None else None
+    return Finding(
+        id=picture_id,
+        faces=[
+            Face(score=round(float(r[14]), 3), area=round(float(r[2] * r[3]) / total, 4))
+            for r in rows
+        ],
+        things=things(image),
+        match=None if match is None else round(match, 3),
+    )

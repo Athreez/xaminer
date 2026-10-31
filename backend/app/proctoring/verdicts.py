@@ -11,9 +11,11 @@
   size) or two people, rejected otherwise;
 - a rejected event is never shown and its pictures are deleted; the share of pictures that
   confirm it is its confidence, and below 0.6 its severity drops one level;
-- a spot check with a phone (score 0.5 or more) becomes PHONE_DETECTED (MEDIUM, HIGH from 0.85),
-  else with a book (closed-book exams only) BOOK_DETECTED (LOW), its picture kept as evidence;
-  a spot check with neither is deleted at once.
+- a spot check whose main face doesn't match the student's face at the start (SFace cosine
+  under 0.363, OpenCV's threshold) becomes IDENTITY_MISMATCH (MEDIUM, HIGH under 0.2); else
+  one with a phone (score 0.5 or more) PHONE_DETECTED (MEDIUM, HIGH from 0.85); else one with a
+  book (closed-book exams only) BOOK_DETECTED (LOW); its picture is kept as evidence. A spot
+  check with none of these is deleted at once.
 A check that couldn't run (a link expired, the worker down for 30 minutes) leaves the event as
 the browser's rules made it, unchecked.
 """
@@ -44,6 +46,8 @@ PHONE = 0.5
 PHONE_HIGH = 0.85
 BOOK = 0.5
 CONFIDENT = 0.6
+SAME_PERSON = 0.363  # SFace cosine similarity: OpenCV's threshold for the same person
+OTHER_PERSON = 0.2
 LOWER = {"HIGH": "MEDIUM", "MEDIUM": "LOW", "LOW": "LOW"}
 
 
@@ -119,9 +123,25 @@ async def dispatch(
             .order_by(ProctoringCapture.created_at)
             .limit(200)
         )
+        references: dict[uuid.UUID, ProctoringCapture | None] = {}
         for spot in spots:
+            if spot.attempt_id not in references:
+                references[spot.attempt_id] = await session.scalar(
+                    select(ProctoringCapture).where(
+                        ProctoringCapture.attempt_id == spot.attempt_id,
+                        ProctoringCapture.purpose == "REFERENCE",
+                        ProctoringCapture.deleted_at.is_(None),
+                    )
+                )
+            known = references[spot.attempt_id]
             spot.check_sent_at = now
-            send(InferenceJob(job_id=f"spot:{spot.id}", pictures=[_ref(storage, spot)]))
+            send(
+                InferenceJob(
+                    job_id=f"spot:{spot.id}",
+                    pictures=[_ref(storage, spot)],
+                    reference=_ref(storage, known) if known else None,
+                )
+            )
             sent += 1
         await session.commit()
     return sent
@@ -228,8 +248,12 @@ async def _apply_spot(
     attempt = await session.get(ExamAttempt, spot.attempt_id)
     phone = best(result.findings, "cell phone")
     book = best(result.findings, "book")
+    match = min((f.match for f in result.findings if f.match is not None), default=None)
     if result.error or attempt is None:
         found = None
+    elif match is not None and match < SAME_PERSON:
+        severity = "HIGH" if match < OTHER_PERSON else "MEDIUM"
+        found = ("IDENTITY_MISMATCH", severity, 1 - max(match, 0.0))
     elif phone >= PHONE:
         found = ("PHONE_DETECTED", "HIGH" if phone >= PHONE_HIGH else "MEDIUM", phone)
     elif book >= BOOK and await _books_watched(session, attempt):

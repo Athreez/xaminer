@@ -20,6 +20,10 @@ class PictureRef(BaseModel):
 class InferenceJob(BaseModel):
     job_id: str
     pictures: list[PictureRef] = Field(min_length=1, max_length=3)
+    reference: PictureRef | None = Field(
+        default=None,
+        description="The student's face at the start: each picture's main face is compared with it",
+    )
 
 
 class Face(BaseModel):
@@ -36,6 +40,9 @@ class Finding(BaseModel):
     id: str
     faces: list[Face]
     things: list[Thing]
+    match: float | None = Field(
+        default=None, description="SFace cosine similarity of the main face to the reference"
+    )
 
 
 class InferenceResult(BaseModel):

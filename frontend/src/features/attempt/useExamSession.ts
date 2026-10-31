@@ -41,7 +41,8 @@ export interface BrowserEvent {
     | "MULTIPLE_FACES"
     | "GAZE_AWAY"
     | "VOICE_DETECTED"
-    | "SCREEN_SHARE_STOPPED";
+    | "SCREEN_SHARE_STOPPED"
+    | "LIVENESS_FAILED";
   /** When it started (ms since epoch); now by default. */
   at?: number;
   /** Given beforehand when pictures name the event; a new one otherwise. */

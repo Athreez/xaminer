@@ -2,6 +2,7 @@
 
 The exam screen uploads, with the attempt token (never the access token):
 - up to 3 camera pictures per event (start, middle, latest), for at most 30 events per attempt;
+- the student's face at the start of the exam, once (the identity reference);
 - a random camera picture every 20-40 s (spot check);
 - pictures of the shared screen every 20-40 s and when the student leaves the exam page.
 
@@ -16,6 +17,7 @@ screen pictures are evidence: the exam's teacher sees them through 5-minute link
 is audit-logged), and they're deleted `evidence_retention_days` after the exam closes.
 """
 
+import asyncio
 import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Literal
@@ -52,7 +54,7 @@ SPOT_CHECK_KEPT = timedelta(
 LINK_SECONDS = 300
 
 Kind = Literal["CAMERA", "SCREEN"]
-Purpose = Literal["EVENT", "SPOT_CHECK", "PERIODIC", "LEFT_PAGE"]
+Purpose = Literal["EVENT", "SPOT_CHECK", "PERIODIC", "LEFT_PAGE", "REFERENCE"]
 
 
 def _refuse(message: str) -> AppError:
@@ -91,8 +93,8 @@ async def upload(
         raise _refuse("Event pictures, and only they, name their event.")
     if kind == "SCREEN" and purpose not in ("PERIODIC", "LEFT_PAGE"):
         raise _refuse("Screen pictures are periodic or taken on leaving the page.")
-    if kind == "CAMERA" and purpose not in ("EVENT", "SPOT_CHECK"):
-        raise _refuse("Camera pictures belong to an event or a spot check.")
+    if kind == "CAMERA" and purpose not in ("EVENT", "SPOT_CHECK", "REFERENCE"):
+        raise _refuse("Camera pictures belong to an event, a spot check or the reference.")
     if len(data) > MAX_BYTES:
         raise _refuse("The picture is larger than 1 MB.")
     limit = await hit(redis, f"captures:{attempt_id}", PER_MINUTE, 60)
@@ -100,7 +102,8 @@ async def upload(
         raise rate_limited(limit.retry_after)
     if not await _room(session, attempt_id, purpose, event_client_id):
         return  # over a limit: dropped, and the answer doesn't say so
-    clean, _, _ = reencode(data)
+    # Decoding and re-encoding is CPU work: in a thread, so other requests aren't held up.
+    clean, _, _ = await asyncio.to_thread(reencode, data)
     capture_id = uuid7()
     key = f"{attempt.institution_id}/{attempt.id}/{capture_id}.webp"
     if purpose == "SPOT_CHECK":
@@ -136,6 +139,11 @@ async def _room(
     total = await session.scalar(select(func.count()).where(of_attempt))
     if (total or 0) >= MAX_PER_ATTEMPT:
         return False
+    if purpose == "REFERENCE":  # one per attempt: the first
+        found = await session.scalar(
+            select(func.count()).where(of_attempt, ProctoringCapture.purpose == "REFERENCE")
+        )
+        return not found
     if purpose != "EVENT":
         return True
     same = await session.scalar(
@@ -160,6 +168,7 @@ class Picture(BaseModel):
 
 
 class AttemptPictures(BaseModel):
+    reference: Picture | None = Field(description="The student's face at the start (identity)")
     events: dict[uuid.UUID, list[Picture]] = Field(description="By event id, in time order")
     screen: list[Picture] = Field(description="Pictures of the shared screen, in time order")
 
@@ -205,7 +214,7 @@ async def for_teacher(
         .tuples()
         .all()
     )
-    pictures = AttemptPictures(events={}, screen=[])
+    pictures = AttemptPictures(reference=None, events={}, screen=[])
     for c in rows:
         picture = Picture(
             kind=c.kind,  # type: ignore[arg-type]
@@ -213,7 +222,9 @@ async def for_teacher(
             taken_at=c.taken_at,
             url=storage.signed_url(EVIDENCE, c.storage_key, LINK_SECONDS),
         )
-        if c.kind == "SCREEN":
+        if c.purpose == "REFERENCE":
+            pictures.reference = picture
+        elif c.kind == "SCREEN":
             pictures.screen.append(picture)
         elif c.event_client_id in event_ids:
             pictures.events.setdefault(event_ids[c.event_client_id], []).append(picture)
@@ -225,7 +236,11 @@ async def for_teacher(
         actor_role=principal.role,
         target_type="attempt",
         target_id=attempt_id,
-        changes={"pictures": sum(map(len, pictures.events.values())) + len(pictures.screen)},
+        changes={
+            "pictures": sum(map(len, pictures.events.values()))
+            + len(pictures.screen)
+            + (1 if pictures.reference else 0)
+        },
     )
     await session.commit()
     return pictures

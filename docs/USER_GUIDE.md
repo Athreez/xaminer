@@ -127,3 +127,8 @@ After agreeing, the **device check** downloads the checks (once), finds your fac
 listens for your voice (camera + microphone exams) and asks you to share your **entire screen**
 (not a window or tab; close other apps and tabs first). Keep the camera on and the screen shared
 until you submit. Use a recent Chrome, Edge or Firefox on a laptop or desktop.
+
+During the exam a small box in the corner shows your camera. Two or three times it may ask for a
+**quick camera check**: turn your head to one side and back, or blink twice, within 10 seconds.
+That's all it ever asks; it never says what was noticed. Teachers see live alerts on the Monitor
+and review every event, with its pictures, afterwards.

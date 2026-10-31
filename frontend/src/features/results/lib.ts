@@ -61,4 +61,6 @@ export const eventLabel: Record<string, string> = {
   SIGNAL_LOST: "Proctoring stopped",
   PHONE_DETECTED: "Phone on camera",
   BOOK_DETECTED: "Book on camera",
+  IDENTITY_MISMATCH: "Different person on camera",
+  LIVENESS_FAILED: "Camera check not done",
 };

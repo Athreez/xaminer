@@ -11,7 +11,7 @@ import {
   type PictureKind,
   type Purpose,
 } from "./pictures";
-import { nextSpotCheck, Proctor } from "./sensing/proctor";
+import { nextSpotCheck, Proctor, type Prompt } from "./sensing/proctor";
 
 /** Pictures are sent this often (when the student's work is all sent), a few at a time. */
 const SEND_EVERY_MS = 2_000;
@@ -26,6 +26,8 @@ export type CameraState = "starting" | "on" | "off" | "broken";
 export type Proctoring = {
   active: boolean;
   camera: CameraState;
+  /** A liveness challenge to answer now (the only prompt proctoring ever shows). */
+  prompt: Prompt | null;
   stream: MediaStream | null;
   /** The whole screen must be shared again: questions stay hidden until then. */
   screenNeeded: boolean;
@@ -57,6 +59,7 @@ export function useProctoring(
     () => !!settings?.screen_sharing && !screenLive(examId),
   );
   const [screenProblem, setScreenProblem] = useState<string | null>(null);
+  const [prompt, setPrompt] = useState<Prompt | null>(null);
   const stoppedAt = useRef<number | null>(null);
   const cameraOffAt = useRef<number | null>(null);
   const proctor = useRef<Proctor | null>(null);
@@ -184,7 +187,8 @@ export function useProctoring(
             gaze: settings.gaze,
             voice: settings.mode === "VIDEO_AUDIO",
           },
-          emit: (e) => emit({ ...e, clientId: e.id }),
+          emit: (e) => emit({ ...e, kind: e.kind as BrowserEvent["kind"], clientId: e.id }),
+          onPrompt: setPrompt,
           onBroken: () => setCamera("broken"),
           onPicture: (purpose, blob, eventId) => keep("CAMERA", purpose, blob, eventId),
         });
@@ -295,5 +299,6 @@ export function useProctoring(
       setAttempt((n) => n + 1);
     },
     shareAgain,
+    prompt: active ? prompt : null,
   };
 }

@@ -31,6 +31,8 @@ function facts(e: Event): string {
   if (e.kind === "MULTIPLE_FACES" && typeof d.faces === "number") parts.push(`${d.faces} faces`);
   if (e.kind === "GAZE_AWAY" && d.direction === "up") parts.push("looking up");
   if (e.confidence != null) parts.push(`server check ${Math.round(e.confidence * 100)} %`);
+  if (e.kind === "LIVENESS_FAILED")
+    parts.push(d.challenge === "blink" ? "asked to blink" : "asked to turn the head");
   if (e.kind === "PASTE_BLOCKED" && typeof d.length === "number")
     parts.push(`${d.length} characters${d.how === "drop" ? ", dragged in" : ""}`);
   if (e.kind === "TAB_SWITCH" && d.how === "window") parts.push("another window");
@@ -87,7 +89,18 @@ export function IntegrityReview({
       ) : pictures.isError ? (
         <FormMessage tone="error">{errorText(pictures.error)}</FormMessage>
       ) : (
-        <ScreenPictures pictures={pictures.data.screen} />
+        <>
+          {pictures.data.reference && (
+            <div>
+              <p className="mb-1 font-medium">Face at the start (identity reference)</p>
+              <Thumbnail
+                picture={pictures.data.reference}
+                label="The student at the start of the exam"
+              />
+            </div>
+          )}
+          <ScreenPictures pictures={pictures.data.screen} />
+        </>
       )}
     </div>
   );

@@ -644,6 +644,17 @@
             "title": "Events",
             "type": "object"
           },
+          "reference": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Picture"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The student's face at the start (identity)"
+          },
           "screen": {
             "description": "Pictures of the shared screen, in time order",
             "items": {
@@ -654,6 +665,7 @@
           }
         },
         "required": [
+          "reference",
           "events",
           "screen"
         ],
@@ -1083,7 +1095,8 @@
               "EVENT",
               "SPOT_CHECK",
               "PERIODIC",
-              "LEFT_PAGE"
+              "LEFT_PAGE",
+              "REFERENCE"
             ],
             "title": "Purpose",
             "type": "string"
@@ -1841,7 +1854,8 @@
               "MULTIPLE_FACES",
               "GAZE_AWAY",
               "VOICE_DETECTED",
-              "SCREEN_SHARE_STOPPED"
+              "SCREEN_SHARE_STOPPED",
+              "LIVENESS_FAILED"
             ],
             "title": "Kind",
             "type": "string"
@@ -4258,7 +4272,8 @@
               "EVENT",
               "SPOT_CHECK",
               "PERIODIC",
-              "LEFT_PAGE"
+              "LEFT_PAGE",
+              "REFERENCE"
             ],
             "title": "Purpose",
             "type": "string"
