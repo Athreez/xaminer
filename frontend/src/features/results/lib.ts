@@ -59,4 +59,6 @@ export const eventLabel: Record<string, string> = {
   VOICE_DETECTED: "Talking",
   SCREEN_SHARE_STOPPED: "Stopped sharing the screen",
   SIGNAL_LOST: "Proctoring stopped",
+  PHONE_DETECTED: "Phone on camera",
+  BOOK_DETECTED: "Book on camera",
 };

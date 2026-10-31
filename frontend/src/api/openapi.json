@@ -1809,6 +1809,18 @@
       },
       "EventView": {
         "properties": {
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The server's check of the pictures, 0..1",
+            "title": "Confidence"
+          },
           "decision": {
             "anyOf": [
               {
@@ -1873,6 +1885,7 @@
           "duration_ms",
           "details",
           "severity",
+          "confidence",
           "decision",
           "note"
         ],

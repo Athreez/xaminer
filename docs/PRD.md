@@ -411,8 +411,8 @@ students do naturally. Values below are for the **Standard** sensitivity.
 | `GAZE_AWAY` | Head turned left/right > 35° or up > 25° for ≥ 8 s, from the student's own resting pose (learned while settling). Looking down is ignored | 8–30 s LOW · > 30 s MEDIUM | Off |
 | `TAB_SWITCH` | Tab hidden or window unfocused ≥ 2 s, or fullscreen exited | < 10 s LOW · 10–60 s MEDIUM · > 60 s HIGH. 5th+ switch at least MEDIUM | On |
 | `VOICE_DETECTED` | Speech in ≥ 50% of a 10 s window (Video + Audio only) | LOW · ≥ 20 s MEDIUM | On in Video + Audio |
-| `PHONE_DETECTED` | Spot-check frame: phone found with confidence ≥ 0.70 | 0.70–0.85 MEDIUM · ≥ 0.85 HIGH | On |
-| `BOOK_DETECTED` | Spot-check frame: book found with confidence ≥ 0.70 (for closed-book exams) | LOW | Off |
+| `PHONE_DETECTED` | Spot-check frame: phone found with confidence ≥ 0.50 (0.70 missed most phones held low in CALIPER's tests) | 0.50–0.85 MEDIUM · ≥ 0.85 HIGH | On |
+| `BOOK_DETECTED` | Spot-check frame: book found with confidence ≥ 0.50 (for closed-book exams) | LOW | Off |
 | `SIGNAL_LOST` | Heartbeats arrive but proctoring has stopped for ≥ 60 s | MEDIUM · > 5 min HIGH | On |
 | `SCREEN_SHARE_STOPPED` | The whole screen stopped being shared (PRC-17); questions hidden until shared again | < 10 s LOW · 10–60 s MEDIUM · > 60 s HIGH | With screen sharing |
 
@@ -423,7 +423,7 @@ students do naturally. Values below are for the **Standard** sensitivity.
 | Settling time | No camera events in the first 60 s (except multiple faces) |
 | Merge | Same event type again within 10 s → extends the existing event |
 | Cooldown | Same type not raised again for 60 s after an event ends |
-| Server check | Confidence < 0.6 → severity drops one level; nothing found → event rejected |
+| Server check | No face and another person are re-checked on their pictures; confidence = share of pictures that show it. Confidence < 0.6 → severity drops one level; nothing found → event rejected. Events without pictures are shown unchecked |
 | Evidence | 3 images per event (start, middle, latest) |
 | Evidence limit | 30 events with images per attempt; later events have no images |
 | Frame rate | 3 fps, down to 1 fps on slow devices; thresholds are in seconds |

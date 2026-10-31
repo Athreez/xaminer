@@ -2565,6 +2565,11 @@ export interface components {
         };
         /** EventView */
         EventView: {
+            /**
+             * Confidence
+             * @description The server's check of the pictures, 0..1
+             */
+            confidence: number | null;
             /** Decision */
             decision: string | null;
             /** Details */

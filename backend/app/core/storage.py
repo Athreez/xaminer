@@ -62,6 +62,14 @@ class Storage:
             Delete={"Objects": [{"Key": k} for k in keys], "Quiet": True},
         )
 
+    async def copy(self, bucket: str, source: str, target: str) -> None:
+        await asyncio.to_thread(
+            self._direct.copy_object,
+            Bucket=bucket,
+            Key=target,
+            CopySource={"Bucket": bucket, "Key": source},
+        )
+
     def internal_url(self, bucket: str, key: str, seconds: int) -> str:
         """A link for other services on the storage network (the exec-worker fetching a test
         bundle), not for browsers. Made locally, like `signed_url`."""

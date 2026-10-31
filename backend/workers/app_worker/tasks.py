@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any
 from celery import shared_task
 
 from app.core.config import get_settings
+from workers.inference_messages import RESULT_TASK as INFERENCE_RESULT_TASK
 
 if TYPE_CHECKING:
     from workers.exec_messages import ExecResult
@@ -151,6 +152,35 @@ async def _delete_old_runs() -> int:
         return await delete(create_session_factory(engine))
     finally:
         await engine.dispose()
+
+
+@shared_task(name="proctoring.dispatch_checks")
+def dispatch_checks() -> None:
+    """Every 30 s: send pictures due for the server's check to the inference-worker."""
+    asyncio.run(_with_factory(_dispatch_checks))
+
+
+async def _dispatch_checks(factory: Any) -> None:
+    from app.core.storage import Storage
+    from app.proctoring.verdicts import dispatch
+
+    sent = await dispatch(factory, Storage(get_settings()))
+    if sent:
+        logger.info("picture checks sent", extra={"count": sent})
+
+
+@shared_task(name=INFERENCE_RESULT_TASK)
+def receive_inference_result(result: dict[str, Any]) -> None:
+    """What the inference-worker found: confirm or reject the event, or make one from a spot
+    check. Safe to repeat: only the first answer for a job counts."""
+
+    async def work(factory: Any) -> None:
+        from app.core.storage import Storage
+        from app.proctoring.verdicts import apply
+
+        await apply(factory, Storage(get_settings()), result)
+
+    asyncio.run(_with_factory(work))
 
 
 @shared_task(name="proctoring.clean_up")

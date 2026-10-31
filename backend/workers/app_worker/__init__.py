@@ -21,7 +21,13 @@ app.conf.beat_schedule = {
         "schedule": 300.0,
         "options": {"queue": "maintenance", "expires": 240},
     },
-    # Proctoring pictures: spot checks after 10 minutes, the rest after retention (PRC-13).
+    # Proctoring pictures to the inference-worker for the server's check (PRC-07).
+    "check-proctoring-pictures": {
+        "task": "proctoring.dispatch_checks",
+        "schedule": 30.0,
+        "options": {"queue": "maintenance", "expires": 25},
+    },
+    # Proctoring pictures: unchecked spot checks after 30 minutes, the rest after retention.
     "delete-proctoring-pictures": {
         "task": "proctoring.clean_up",
         "schedule": 300.0,

@@ -114,7 +114,7 @@ async def test_the_teacher_sees_event_and_screen_pictures(world: World) -> None:
     exam = Sitting(world)
     event = str(uuid.uuid4())
     now = datetime.now(UTC).isoformat()
-    events = {"events": [{"client_id": event, "kind": "FACE_ABSENT", "occurred_at": now}]}
+    events = {"events": [{"client_id": event, "kind": "GAZE_AWAY", "occurred_at": now}]}
     world.client.post(f"/api/v1/attempts/{exam.id}/events", json=events, headers=world.me)
     for _ in range(4):  # the 4th is over the limit of 3 per event: dropped quietly
         assert exam.send(purpose="EVENT", event_client_id=event).status_code == 204
@@ -155,7 +155,7 @@ async def test_cleanup_deletes_spot_checks_soon_and_evidence_after_retention(
     await captures.clean_up(world.factory, storage)  # nothing due yet
     assert all(c.deleted_at is None for c in await stored(world, exam.id))
 
-    await captures.clean_up(world.factory, storage, datetime.now(UTC) + timedelta(minutes=11))
+    await captures.clean_up(world.factory, storage, datetime.now(UTC) + timedelta(minutes=31))
     spot, screen = await stored(world, exam.id)
     assert spot.deleted_at is not None and screen.deleted_at is None
 

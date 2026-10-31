@@ -84,7 +84,7 @@ security risk, language or resource needs are different from the API's.
 | `scheduler` | Celery Beat. Puts scheduled jobs on the queue (sweeper, retention) | Redis | Do the work itself |
 | `exec-worker` | Celery. Runs student code: fetches test bundle, compiles, runs each case in a container, returns raw output | Redis, `sandbox-docker`, storage via pre-signed URLs only | Hold DB or storage credentials, compare output, compute scores |
 | `sandbox-docker` | Docker-in-Docker engine where student containers run | Nothing (student containers have no network) | Be the host's Docker engine |
-| `inference-worker` | Celery. Checks proctoring images: face count, phone/book detection, liveness | Redis, storage via pre-signed URLs only | Hold DB or storage credentials, decide outcomes |
+| `inference-worker` | Celery. Checks proctoring images: faces (YuNet), phones, books and people (RT-DETR r18), and returns what it found | Redis, storage via pre-signed URLs only | Hold DB or storage credentials, decide outcomes |
 | `postgres` | All permanent data | — | Store image files |
 | `redis` | Celery broker, rate limits, idempotency keys, heartbeat cache | — | Be the only copy of anything important |
 | `storage` | Evidence images, test bundles, question images | — | Be publicly readable |
