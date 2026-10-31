@@ -575,6 +575,38 @@
         "title": "AttemptItem",
         "type": "object"
       },
+      "AttemptPictures": {
+        "properties": {
+          "events": {
+            "additionalProperties": {
+              "items": {
+                "$ref": "#/components/schemas/Picture"
+              },
+              "type": "array"
+            },
+            "description": "By event id, in time order",
+            "propertyNames": {
+              "format": "uuid"
+            },
+            "title": "Events",
+            "type": "object"
+          },
+          "screen": {
+            "description": "Pictures of the shared screen, in time order",
+            "items": {
+              "$ref": "#/components/schemas/Picture"
+            },
+            "title": "Screen",
+            "type": "array"
+          }
+        },
+        "required": [
+          "events",
+          "screen"
+        ],
+        "title": "AttemptPictures",
+        "type": "object"
+      },
       "AttemptResult": {
         "description": "What a student sees for a released result.",
         "properties": {
@@ -958,6 +990,65 @@
           "next_cursor"
         ],
         "title": "AuditPage",
+        "type": "object"
+      },
+      "Body_upload_capture_api_v1_attempts__attempt_id__captures_post": {
+        "properties": {
+          "client_id": {
+            "format": "uuid",
+            "title": "Client Id",
+            "type": "string"
+          },
+          "event_client_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Event Client Id"
+          },
+          "image": {
+            "contentMediaType": "application/octet-stream",
+            "description": "JPEG, PNG or WebP, at most 1 MB",
+            "title": "Image",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "CAMERA",
+              "SCREEN"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "purpose": {
+            "enum": [
+              "EVENT",
+              "SPOT_CHECK",
+              "PERIODIC",
+              "LEFT_PAGE"
+            ],
+            "title": "Purpose",
+            "type": "string"
+          },
+          "taken_at": {
+            "format": "date-time",
+            "title": "Taken At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "client_id",
+          "kind",
+          "purpose",
+          "taken_at",
+          "image"
+        ],
+        "title": "Body_upload_capture_api_v1_attempts__attempt_id__captures_post",
         "type": "object"
       },
       "Body_upload_image_api_v1_uploads_images_post": {
@@ -3340,6 +3431,11 @@
             "title": "Name",
             "type": "string"
           },
+          "overdue_evidence": {
+            "description": "Pictures kept past retention (should be 0: deleted hourly)",
+            "title": "Overdue Evidence",
+            "type": "integer"
+          },
           "standard_consent_text": {
             "description": "Used when neither the exam nor the institution has its own (video + audio wording, with this retention)",
             "title": "Standard Consent Text",
@@ -3355,6 +3451,7 @@
           "timezone",
           "evidence_retention_days",
           "default_consent_text",
+          "overdue_evidence",
           "standard_consent_text"
         ],
         "title": "InstitutionSettings",
@@ -4019,6 +4116,46 @@
           "email"
         ],
         "title": "PasswordResetRequest",
+        "type": "object"
+      },
+      "Picture": {
+        "properties": {
+          "kind": {
+            "enum": [
+              "CAMERA",
+              "SCREEN"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "purpose": {
+            "enum": [
+              "EVENT",
+              "SPOT_CHECK",
+              "PERIODIC",
+              "LEFT_PAGE"
+            ],
+            "title": "Purpose",
+            "type": "string"
+          },
+          "taken_at": {
+            "format": "date-time",
+            "title": "Taken At",
+            "type": "string"
+          },
+          "url": {
+            "description": "Works for 5 minutes",
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "purpose",
+          "taken_at",
+          "url"
+        ],
+        "title": "Picture",
         "type": "object"
       },
       "ProctoringSettings": {
@@ -7274,6 +7411,58 @@
         ]
       }
     },
+    "/api/v1/attempts/{attempt_id}/captures": {
+      "post": {
+        "description": "A picture from the exam screen: of the camera for an event or a spot check, or of the\nshared screen. Needs the attempt token, not the access token. Safe to send again. Answers\nnothing about it (PRC-09).",
+        "operationId": "upload_capture_api_v1_attempts__attempt_id__captures_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "attempt_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Attempt Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_capture_api_v1_attempts__attempt_id__captures_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Upload Capture",
+        "tags": [
+          "proctoring"
+        ]
+      }
+    },
     "/api/v1/attempts/{attempt_id}/drafts/{exam_question_id}": {
       "put": {
         "description": "Save unsubmitted code for a coding question (one draft per language).",
@@ -9663,6 +9852,65 @@
         "summary": "Attempt Result",
         "tags": [
           "results"
+        ]
+      }
+    },
+    "/api/v1/exams/{exam_id}/results/{attempt_id}/pictures": {
+      "get": {
+        "description": "An attempt's event and screen pictures, as links valid for 5 minutes. Each call is\naudit-logged.",
+        "operationId": "attempt_pictures_api_v1_exams__exam_id__results__attempt_id__pictures_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "exam_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Exam Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "attempt_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Attempt Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttemptPictures"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Attempt Pictures",
+        "tags": [
+          "proctoring"
         ]
       }
     },

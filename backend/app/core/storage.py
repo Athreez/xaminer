@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from mypy_boto3_s3 import S3Client
 
 IMAGES = "images"
+EVIDENCE = "evidence"
 
 
 class Storage:
@@ -49,6 +50,16 @@ class Storage:
             Body=data,
             ContentType=content_type,
             CacheControl="private, max-age=3600",
+        )
+
+    async def delete(self, bucket: str, keys: list[str]) -> None:
+        """Remove objects (missing ones are fine). At most 1000 keys per call."""
+        if not keys:
+            return
+        await asyncio.to_thread(
+            self._direct.delete_objects,
+            Bucket=bucket,
+            Delete={"Objects": [{"Key": k} for k in keys], "Quiet": True},
         )
 
     def internal_url(self, bucket: str, key: str, seconds: int) -> str:

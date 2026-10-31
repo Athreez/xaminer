@@ -7,6 +7,8 @@ export type Sensitivity = "RELAXED" | "STANDARD" | "STRICT";
 export type RuleKind = "FACE_ABSENT" | "MULTIPLE_FACES" | "GAZE_AWAY" | "VOICE_DETECTED";
 
 export type RuleEvent = {
+  /** Given when the event opens, so pictures taken meanwhile can name it. */
+  id: string;
   kind: RuleKind;
   /** When it started (ms since epoch). */
   at: number;
@@ -47,8 +49,13 @@ const VOICE_SHARE = 0.5;
  *  the condition has been gone for MERGE_MS, and ends when the condition was last seen. */
 class Detector {
   private since: number | null = null;
-  private open: { at: number; last: number; details?: Record<string, string | number> } | null =
-    null;
+  private open: {
+    id: string;
+    at: number;
+    last: number;
+    on: boolean;
+    details?: Record<string, string | number>;
+  } | null = null;
   private coolUntil = 0;
   private readonly kind: RuleKind;
   private readonly holdMs: number;
@@ -66,6 +73,7 @@ class Detector {
   update(t: number, on: boolean, allowed = true, details?: Record<string, string | number>): void {
     if (this.open && t - this.open.last >= MERGE_MS) this.close();
     if (this.open) {
+      this.open.on = on;
       if (on) {
         this.open.last = t;
         if (details) this.open.details = merge(this.open.details, details);
@@ -78,8 +86,13 @@ class Detector {
     }
     this.since ??= t;
     if (t - this.since >= this.holdMs) {
-      this.open = { at: this.since - this.leadMs, last: t, details };
+      this.open = { id: crypto.randomUUID(), at: this.since - this.leadMs, last: t, on, details };
     }
+  }
+
+  /** The open event, while what raised it is still seen (pictures are taken then). */
+  seen(): { id: string; kind: RuleKind } | null {
+    return this.open?.on ? { id: this.open.id, kind: this.kind } : null;
   }
 
   /** What's known is lost (frames far apart): start counting again. */
@@ -94,6 +107,7 @@ class Detector {
     this.since = null;
     this.coolUntil = open.last + COOLDOWN_MS;
     this.emit({
+      id: open.id,
       kind: this.kind,
       at: open.at,
       durationMs: open.last - open.at,
@@ -197,6 +211,13 @@ export class Rules {
     const full = t - this.heard[0]!.t >= this.windowMs * 0.9;
     const share = this.heard.filter((h) => h.speaking).length / this.heard.length;
     this.voice.update(t, full && share >= VOICE_SHARE);
+  }
+
+  /** Camera events open now whose cause is still in view. */
+  seen(): { id: string; kind: RuleKind }[] {
+    return [this.faceAbsent, this.multipleFaces, this.gazeAway]
+      .map((d) => d.seen())
+      .filter((x) => x !== null);
   }
 
   /** The end (submitting, leaving): events still open are recorded now. */

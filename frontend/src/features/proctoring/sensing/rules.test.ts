@@ -42,7 +42,9 @@ describe("proctoring rules", () => {
     run(rules, 0, 10, [FACE, SMALL]);
     run(rules, 10, 13, [FACE, FACE]);
     run(rules, 13, 14, [FACE, FACE, FACE]);
+    expect(rules.seen()).toEqual([{ id: expect.any(String), kind: "MULTIPLE_FACES" }]);
     run(rules, 14, 40, [FACE]);
+    expect(rules.seen()).toEqual([]);
     expect(events).toEqual([
       expect.objectContaining({
         kind: "MULTIPLE_FACES",

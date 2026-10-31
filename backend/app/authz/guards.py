@@ -39,6 +39,13 @@ def require(permission: Permission) -> Callable[..., Awaitable[Principal]]:
     return check
 
 
+def attempt_token(dependency: Callable[..., Any]) -> Callable[..., Any]:
+    """Marks the dependency that checks an attempt token (proctoring uploads): not a role's
+    permission, so the role matrix leaves the route out."""
+    setattr(dependency, _PERMISSION_ATTR, "attempt-token")
+    return dependency
+
+
 async def _public() -> None:
     """Marks a route as deliberately open to everyone (login, health, password reset...)."""
 

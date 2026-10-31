@@ -44,6 +44,8 @@ export interface BrowserEvent {
     | "SCREEN_SHARE_STOPPED";
   /** When it started (ms since epoch); now by default. */
   at?: number;
+  /** Given beforehand when pictures name the event; a new one otherwise. */
+  clientId?: string;
   durationMs?: number;
   details?: Record<string, string | number | boolean>;
 }
@@ -52,6 +54,26 @@ export interface BrowserEvent {
  *  heartbeat, and events still open, recorded before submitting. */
 export class ProctorLink {
   private source: { frames: () => number; flush: () => Promise<void> } | null = null;
+  /** For picture uploads: the latest attempt token, and whether the student's work is all sent
+   *  (pictures wait behind it). Set by the session. */
+  private token: string | null = null;
+  private isIdle: () => boolean = () => false;
+
+  setToken(token: string): void {
+    this.token = token;
+  }
+
+  setIdle(isIdle: () => boolean): void {
+    this.isIdle = isIdle;
+  }
+
+  attemptToken(): string | null {
+    return this.token;
+  }
+
+  idle(): boolean {
+    return this.isIdle();
+  }
 
   attach(source: { frames: () => number; flush: () => Promise<void> } | null): void {
     this.source = source;
@@ -228,6 +250,7 @@ export function useExamSession(
             onServerTime: (sent, received, time) => clock.observe(sent, received, time),
           }),
         };
+        proctor?.setIdle(() => tools.current?.uploader.idle() ?? false);
         setAnswers(restored.answers);
         setFlags(restored.flags);
         setDrafts(restored.drafts);
@@ -245,7 +268,7 @@ export function useExamSession(
       tools.current = null;
       outbox?.close();
     };
-  }, [attemptId, view.questions, clock, flush]);
+  }, [attemptId, view.questions, clock, flush, proctor]);
 
   // Every second: the timer moves and whatever is queued gets another chance to go.
   useEffect(() => {
@@ -286,6 +309,7 @@ export function useExamSession(
       if (added > 0) setExtendedBy(added);
       previousDeadline = next;
       setDeadline(data.deadline_at);
+      if (data.attempt_token) proctor?.setToken(data.attempt_token);
       if (data.status !== "IN_PROGRESS") setEnded(data.status);
     }
     void beat();
@@ -441,7 +465,7 @@ export function useExamSession(
   const recordEvent = useCallback(
     async (event: BrowserEvent) => {
       if (finished.current) return;
-      const clientId = crypto.randomUUID();
+      const clientId = event.clientId ?? crypto.randomUUID();
       await tools.current?.outbox.put(attemptId, "event", clientId, {
         client_id: clientId,
         kind: event.kind,

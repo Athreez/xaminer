@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { api } from "@/api/client";
@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { eventLabel, integrityLabel } from "./lib";
 
 type Event = components["schemas"]["EventView"];
+type Picture = components["schemas"]["Picture"];
 
 function seconds(ms: number | null | undefined): string {
   if (ms == null) return "";
@@ -46,23 +47,57 @@ const severityStyle: Record<string, string> = {
  * flags each, with a note. The integrity outcome follows and never changes the score.
  */
 export function IntegrityReview({
+  examId,
+  attemptId,
   events,
   outcome,
   startedAt,
   queryKey,
 }: {
+  examId: string;
+  attemptId: string;
   events: Event[];
   outcome: string | null | undefined;
   startedAt: string | null | undefined;
   queryKey: unknown[];
 }) {
+  // Pictures only when asked for: each look is audit-logged, and the links last 5 minutes.
+  const [showPictures, setShowPictures] = useState(false);
+  const pictures = useQuery({
+    queryKey: ["exams", examId, "results", attemptId, "pictures"],
+    queryFn: async () =>
+      unwrap(
+        await api.GET("/api/v1/exams/{exam_id}/results/{attempt_id}/pictures", {
+          params: { path: { exam_id: examId, attempt_id: attemptId } },
+        }),
+      ),
+    enabled: showPictures,
+    staleTime: 4 * 60_000,
+    gcTime: 4 * 60_000,
+  });
+  const picturesBar = outcome && (
+    <div className="space-y-2 text-sm">
+      {!showPictures ? (
+        <Button size="sm" variant="outline" onClick={() => setShowPictures(true)}>
+          Show pictures
+        </Button>
+      ) : pictures.isPending ? (
+        <p className="text-muted-foreground">Loading pictures…</p>
+      ) : pictures.isError ? (
+        <FormMessage tone="error">{errorText(pictures.error)}</FormMessage>
+      ) : (
+        <ScreenPictures pictures={pictures.data.screen} />
+      )}
+    </div>
+  );
   if (events.length === 0) {
     return (
-      <section className="bg-card rounded-xl border p-4 text-sm">
+      <section className="bg-card space-y-2 rounded-xl border p-4 text-sm">
         <h3 className="font-semibold">Integrity</h3>
-        <p className="text-muted-foreground mt-1">
-          {outcome ? "No browser-check events: nothing to review." : "No checks on this exam."}
+        <p className="text-muted-foreground">
+          {outcome ? "No proctoring events: nothing to review." : "No checks on this exam."}
         </p>
+        {picturesBar}
       </section>
     );
   }
@@ -76,12 +111,57 @@ export function IntegrityReview({
           {open > 0 && <span className="text-muted-foreground"> · {open} to review</span>}
         </span>
       </div>
+      {picturesBar}
       <ol className="space-y-2">
         {events.map((e) => (
-          <EventRow key={e.id} event={e} startedAt={startedAt} queryKey={queryKey} />
+          <EventRow
+            key={e.id}
+            event={e}
+            startedAt={startedAt}
+            queryKey={queryKey}
+            pictures={pictures.data?.events[e.id] ?? []}
+          />
         ))}
       </ol>
     </section>
+  );
+}
+
+function Thumbnail({ picture, label }: { picture: Picture; label: string }) {
+  return (
+    <a href={picture.url} target="_blank" rel="noreferrer" className="block">
+      <img
+        src={picture.url}
+        alt={label}
+        loading="lazy"
+        className="h-24 rounded border object-cover"
+      />
+    </a>
+  );
+}
+
+function ScreenPictures({ pictures }: { pictures: Picture[] }) {
+  if (pictures.length === 0) return <p className="text-muted-foreground">No screen pictures.</p>;
+  return (
+    <div>
+      <p className="mb-1 font-medium">Screen</p>
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {pictures.map((p) => {
+          const label = `Screen at ${new Date(p.taken_at).toLocaleTimeString()}${
+            p.purpose === "LEFT_PAGE" ? ", on leaving the exam page" : ""
+          }`;
+          return (
+            <figure key={p.url} className="shrink-0">
+              <Thumbnail picture={p} label={label} />
+              <figcaption className="text-muted-foreground mt-0.5 text-xs">
+                {new Date(p.taken_at).toLocaleTimeString()}
+                {p.purpose === "LEFT_PAGE" && " · left the page"}
+              </figcaption>
+            </figure>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -89,10 +169,12 @@ function EventRow({
   event,
   startedAt,
   queryKey,
+  pictures,
 }: {
   event: Event;
   startedAt: string | null | undefined;
   queryKey: unknown[];
+  pictures: Picture[];
 }) {
   const queryClient = useQueryClient();
   const [note, setNote] = useState(event.note ?? "");
@@ -127,6 +209,17 @@ function EventRow({
           </Badge>
         )}
       </div>
+      {pictures.length > 0 && (
+        <div className="mt-2 flex gap-2">
+          {pictures.map((p, i) => (
+            <Thumbnail
+              key={p.url}
+              picture={p}
+              label={`${eventLabel[event.kind] ?? event.kind}, picture ${i + 1} of ${pictures.length}`}
+            />
+          ))}
+        </div>
+      )}
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <Input
           aria-label={`Note on ${eventLabel[event.kind] ?? event.kind} at ${at}`}

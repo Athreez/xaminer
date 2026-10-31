@@ -73,6 +73,8 @@ export function AttemptResultPage() {
         </div>
       )}
       <IntegrityReview
+        examId={exam.id}
+        attemptId={attemptId}
         events={d.events ?? []}
         outcome={d.integrity_outcome}
         startedAt={null}

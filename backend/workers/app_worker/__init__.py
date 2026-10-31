@@ -21,6 +21,12 @@ app.conf.beat_schedule = {
         "schedule": 300.0,
         "options": {"queue": "maintenance", "expires": 240},
     },
+    # Proctoring pictures: spot checks after 10 minutes, the rest after retention (PRC-13).
+    "delete-proctoring-pictures": {
+        "task": "proctoring.clean_up",
+        "schedule": 300.0,
+        "options": {"queue": "maintenance", "expires": 240},
+    },
     # Run Code results are kept for 24 hours (TECHNICAL_ARCHITECTURE.md § 5).
     "delete-old-runs": {
         "task": "execution.delete_old_runs",

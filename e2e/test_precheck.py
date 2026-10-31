@@ -2,7 +2,7 @@
 first, the models downloaded, a face found by the face model on the (fake) camera with the speed
 measured, the whole screen shared, then Start opens the exam. In the exam (TCK-1003..1007): the
 camera corner shows, a reload asks for the screen again (the time without it recorded), and
-the heartbeats show the face model running."""
+the heartbeats show the face model running, and pictures of the screen reach the teacher."""
 
 import re
 
@@ -65,7 +65,11 @@ def test_device_check_then_start(page: Page, make_exam, teacher: Api) -> None:  
 
     # Heartbeats carry the face model's frame count: had it stood still for 60 s, the server
     # would have recorded "proctoring stopped".
-    page.wait_for_timeout(75_000)
+    page.wait_for_timeout(70_000)
+    # Leaving the page takes a picture of the screen (the periodic ones come every 20-40 s).
+    page.evaluate("window.dispatchEvent(new Event('blur'))")
+    page.wait_for_timeout(5_000)
+    page.evaluate("window.dispatchEvent(new Event('focus'))")
     page.get_by_role("button", name=re.compile("Review & submit")).first.click()
     page.get_by_role("button", name=re.compile("^Submit")).first.click()
     page.get_by_role("dialog").get_by_role("button", name=re.compile("^Submit")).click()
@@ -76,3 +80,13 @@ def test_device_check_then_start(page: Page, make_exam, teacher: Api) -> None:  
     kinds = [e["kind"] for e in detail["events"]]
     assert "SCREEN_SHARE_STOPPED" in kinds, kinds
     assert "SIGNAL_LOST" not in kinds and "FACE_ABSENT" not in kinds, kinds
+
+    # The teacher sees the screen pictures (sent behind the answers, with the attempt token).
+    purposes: list[str] = []
+    for _ in range(20):  # the last ones may still be on their way after submitting
+        pictures = teacher("GET", f"/exams/{exam}/results/{row['attempt_id']}/pictures")
+        purposes = [p["purpose"] for p in pictures["screen"]]
+        if "LEFT_PAGE" in purposes and "PERIODIC" in purposes:
+            break
+        page.wait_for_timeout(1_000)
+    assert "LEFT_PAGE" in purposes and "PERIODIC" in purposes, purposes

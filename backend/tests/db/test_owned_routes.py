@@ -861,6 +861,11 @@ OWNED_ROUTES: list[OwnedRoute] = [
         _graded_url("/exams/{exam}/results/{attempt}"),
     ),
     OwnedRoute(
+        "GET /api/v1/exams/{exam_id}/results/{attempt_id}/pictures",
+        "TEACHER",
+        _graded_url("/exams/{exam}/results/{attempt}/pictures"),
+    ),
+    OwnedRoute(
         "POST /api/v1/exams/{exam_id}/results/release",
         "TEACHER",
         _graded_url("/exams/{exam}/results/release", released=False),
@@ -926,7 +931,9 @@ OWNED_ROUTES: list[OwnedRoute] = [
 
 def id_routes() -> list[str]:
     table = access_table(create_app(make_settings()))
-    return sorted(r for r, access in table.items() if "{" in r and access != "public")
+    # The attempt-token route is tied to one attempt by its token (tests/db/test_captures_api.py).
+    skip = ("public", "attempt-token")
+    return sorted(r for r, access in table.items() if "{" in r and access not in skip)
 
 
 def test_every_id_route_is_registered() -> None:

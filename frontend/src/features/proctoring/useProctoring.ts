@@ -4,7 +4,22 @@ import type { AttemptView } from "@/features/attempt/lib";
 import type { BrowserEvent, ProctorLink } from "@/features/attempt/useExamSession";
 
 import { devicesFor, openCamera, screenLive, shareScreen, stopAll } from "./devices";
-import { Proctor } from "./sensing/proctor";
+import {
+  newPicture,
+  PictureQueue,
+  screenPicture,
+  type PictureKind,
+  type Purpose,
+} from "./pictures";
+import { nextSpotCheck, Proctor } from "./sensing/proctor";
+
+/** Pictures are sent this often (when the student's work is all sent), a few at a time. */
+const SEND_EVERY_MS = 2_000;
+const SEND_AT_ONCE = 5;
+/** A picture of the screen this long after leaving the page (the other window is drawn by then),
+ *  at most once per LEFT_EVERY_MS. */
+const LEFT_DELAY_MS = 1_500;
+const LEFT_EVERY_MS = 10_000;
 
 export type CameraState = "starting" | "on" | "off" | "broken";
 
@@ -49,6 +64,47 @@ export function useProctoring(
   useEffect(() => {
     recordRef.current = record;
   }, [record]);
+
+  // Pictures wait on the device and go behind the student's work, also after submitting while
+  // the page is open (PRD PRC-05, PRC-17; TCK-1006).
+  const queue = useRef<PictureQueue | null>(null);
+  useEffect(() => {
+    if (!settings) return;
+    let closed = false;
+    let busy = false;
+    void PictureQueue.open(view.id).then(
+      (opened) => (closed ? opened.close() : (queue.current = opened)),
+      () => undefined, // no IndexedDB: no pictures, the exam goes on
+    );
+    const timer = window.setInterval(async () => {
+      const q = queue.current;
+      const token = link.attemptToken();
+      if (busy || !q || !token || !link.idle()) return;
+      busy = true;
+      try {
+        for (let i = 0; i < SEND_AT_ONCE; i++) {
+          if ((await q.sendNext(token)) !== "sent") break;
+        }
+      } catch {
+        // tried again next time
+      } finally {
+        busy = false;
+      }
+    }, SEND_EVERY_MS);
+    return () => {
+      closed = true;
+      window.clearInterval(timer);
+      queue.current?.close();
+      queue.current = null;
+    };
+  }, [settings, view.id, link]);
+
+  const keep = useCallback(
+    (kind: PictureKind, purpose: Purpose, blob: Blob, eventId?: string) => {
+      void queue.current?.add(newPicture(view.id, kind, purpose, blob, eventId)).catch(() => {});
+    },
+    [view.id],
+  );
 
   const emit = useCallback((event: BrowserEvent) => {
     const p = recordRef.current(event).finally(() => pending.current.delete(p));
@@ -111,8 +167,9 @@ export function useProctoring(
             gaze: settings.gaze,
             voice: settings.mode === "VIDEO_AUDIO",
           },
-          emit,
+          emit: (e) => emit({ ...e, clientId: e.id }),
           onBroken: () => setCamera("broken"),
+          onPicture: (purpose, blob, eventId) => keep("CAMERA", purpose, blob, eventId),
         });
         if (cancelled) return started.stop();
         proctor.current = started;
@@ -127,7 +184,41 @@ export function useProctoring(
       proctor.current = null;
       video.srcObject = null;
     };
-  }, [active, stream, settings, emit]);
+  }, [active, stream, settings, emit, keep]);
+
+  // Pictures of the shared screen: every 20-40 s, and on leaving the exam page.
+  useEffect(() => {
+    if (!active || !settings?.screen_sharing || screenNeeded) return;
+    const shared = devicesFor(examId).screen?.stream;
+    if (!shared) return;
+    const shoot = (purpose: Purpose) =>
+      void screenPicture(shared).then((blob) => blob && keep("SCREEN", purpose, blob));
+    let periodic = 0;
+    const schedule = () => {
+      periodic = window.setTimeout(() => {
+        shoot("PERIODIC");
+        schedule();
+      }, nextSpotCheck(0));
+    };
+    schedule();
+    let leftAt = 0;
+    let leaving = 0;
+    const left = () => {
+      const now = Date.now();
+      if (now - leftAt < LEFT_EVERY_MS) return;
+      leftAt = now;
+      leaving = window.setTimeout(() => shoot("LEFT_PAGE"), LEFT_DELAY_MS);
+    };
+    const onVisibility = () => document.hidden && left();
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("blur", left);
+    return () => {
+      window.clearTimeout(periodic);
+      window.clearTimeout(leaving);
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("blur", left);
+    };
+  }, [active, settings, screenNeeded, examId, keep]);
 
   // The shared screen: stopping it hides the questions until it's shared again.
   useEffect(() => {

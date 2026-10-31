@@ -221,7 +221,7 @@ After M1, four people (or pairs) can work mostly in parallel:
 | ID | Ticket | Done when | Area | Size | Needs | P | PRD |
 |---|---|---|---|---|---|---|---|
 | TCK-1101 | `proctoring_event` table with constraints (decision needs reviewer; no severity before check) | Constraints tested | DB | S | 0601 | M | PRC-07, PRC-10 |
-| TCK-1102 | Upload endpoints: attempt-token auth, type/size checks, re-encode (strip EXIF), storage `tmp/`, event `PROCESSING`, enqueue check; response reveals nothing | Fake JPEG rejected; EXIF gone; rate limits work | BE | M | 1101 | M | PRC-05, PRC-07 |
+| TCK-1102 | Upload endpoints: attempt-token auth, type/size checks, re-encode (strip EXIF), storage `tmp/`, event `PROCESSING`, enqueue check; response reveals nothing (built: `POST /attempts/{id}/captures`; until TCK-1103 event pictures go straight to evidence and spot checks are deleted after 10 min) | Fake JPEG rejected; EXIF gone; rate limits work | BE | M | 1101 | M | PRC-05, PRC-07 |
 | TCK-1103 | `inference-worker`: port smartSquad RT-DETR (phone, book), face count, liveness; CONFIRM/REJECT + severity + confidence; GPU optional, stub mode | Works on CPU; returns verdict on sample images | AI | L | 0002 | M | PRC-06, PRC-07 |
 | TCK-1104 | Verdict consumer in `app-worker`: move images to `evidence/` or delete; set status/severity; confidence < 0.6 lowers severity | Rejected events never appear in any API | BE | M | 1102, 1103 | M | PRC-07 |
 | TCK-1105 | Rule-based severity for no-image events (TAB_SWITCH, VOICE_DETECTED); SIGNAL_LOST from heartbeat counter (only when heartbeats arrive) | Network loss never creates SIGNAL_LOST (test) | BE | M | 1101, 0606 | M | PRC-06, PRC-14 |

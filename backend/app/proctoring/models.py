@@ -90,3 +90,36 @@ class ConsentRecord(IdMixin, TenantMixin, Base):
     consent_text_hash: Mapped[str] = mapped_column(String(64))  # SHA-256 of the text, hex
     decision: Mapped[str] = mapped_column(String(8))
     decided_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+
+CAPTURE_KINDS = ("CAMERA", "SCREEN")
+CAPTURE_PURPOSES = ("EVENT", "SPOT_CHECK", "PERIODIC", "LEFT_PAGE")
+
+
+class ProctoringCapture(IdMixin, TenantMixin, Base):
+    """A picture from the exam screen (PRD PRC-05, PRC-17; TCK-1006, TCK-1102): up to 3 of the
+    camera per event, random camera spot checks, and pictures of the shared screen (every
+    20-40 s and when the student leaves the page). Stored re-encoded in the `evidence` bucket;
+    `deleted_at` is set once the image is gone (spot checks soon, the rest after retention)."""
+
+    __tablename__ = "proctoring_capture"
+    __table_args__ = (
+        UniqueConstraint("attempt_id", "client_id"),  # an upload repeated changes nothing
+        CheckConstraint(f"kind IN {CAPTURE_KINDS}", name="kind"),
+        CheckConstraint(f"purpose IN {CAPTURE_PURPOSES}", name="purpose"),
+        CheckConstraint("(purpose = 'EVENT') = (event_client_id IS NOT NULL)", name="event_has_id"),
+    )
+
+    attempt_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("exam_attempt.id", ondelete="CASCADE"), index=True
+    )
+    client_id: Mapped[uuid.UUID]
+    kind: Mapped[str] = mapped_column(String(8))
+    purpose: Mapped[str] = mapped_column(String(12))
+    # The event's `client_id` (the event itself may arrive before or after its pictures).
+    event_client_id: Mapped[uuid.UUID | None]
+    taken_at: Mapped[datetime]
+    storage_key: Mapped[str] = mapped_column(Text)
+    size: Mapped[int] = mapped_column(Integer)
+    deleted_at: Mapped[datetime | None]
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())

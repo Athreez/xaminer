@@ -153,6 +153,21 @@ async def _delete_old_runs() -> int:
         await engine.dispose()
 
 
+@shared_task(name="proctoring.clean_up")
+def clean_up_pictures() -> None:
+    """Every 5 minutes: delete old spot checks and pictures past their retention."""
+    asyncio.run(_with_factory(_clean_up_pictures))
+
+
+async def _clean_up_pictures(factory: Any) -> None:
+    from app.core.storage import Storage
+    from app.proctoring.captures import clean_up
+
+    deleted = await clean_up(factory, Storage(get_settings()))
+    if deleted:
+        logger.info("proctoring pictures deleted", extra={"count": deleted})
+
+
 @shared_task(
     name="execution.auto_submit",
     autoretry_for=(OSError,),

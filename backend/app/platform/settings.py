@@ -1,7 +1,7 @@
 """Institution settings for admins (PRD PRC-13): evidence retention and default consent text.
 
-Name and timezone are shown but only the platform-admin CLI changes them. The overdue-deletion count
-from the architecture doc arrives with the retention job (TCK-1107).
+Name and timezone are shown but only the platform-admin CLI changes them. The overdue count says
+whether the retention job keeps up (TCK-1107): it should always be 0.
 """
 
 from typing import Annotated
@@ -33,6 +33,9 @@ class InstitutionSettings(BaseModel):
     default_consent_text: str | None = Field(
         description="Shown before proctored exams unless the exam sets its own"
     )
+    overdue_evidence: int = Field(
+        description="Pictures kept past retention (should be 0: deleted hourly)"
+    )
     standard_consent_text: str = Field(
         description="Used when neither the exam nor the institution has its own (video + audio "
         "wording, with this retention)"
@@ -48,12 +51,15 @@ class UpdateSettingsRequest(BaseModel):
     default_consent_text: ConsentText | None = None
 
 
-def _view(institution: Institution) -> InstitutionSettings:
+async def _view(session: AsyncSession, institution: Institution) -> InstitutionSettings:
+    from app.proctoring.captures import overdue
+
     return InstitutionSettings(
         name=institution.name,
         timezone=institution.timezone,
         evidence_retention_days=institution.evidence_retention_days,
         default_consent_text=institution.default_consent_text,
+        overdue_evidence=await overdue(session, institution.id),
         standard_consent_text=standard_consent("VIDEO_AUDIO", institution.evidence_retention_days),
     )
 
@@ -107,7 +113,7 @@ Admin = Annotated[Principal, Depends(require(P.INSTITUTION_SETTINGS_WRITE))]
 
 @router.get("")
 async def get_settings(principal: Admin, db: TenantDB) -> InstitutionSettings:
-    return _view(await _load(db, principal))
+    return await _view(db, await _load(db, principal))
 
 
 @router.patch("")
@@ -115,4 +121,4 @@ async def patch_settings(
     body: UpdateSettingsRequest, principal: Admin, db: TenantDB
 ) -> InstitutionSettings:
     """Change evidence retention (7 to 90 days) or the default consent text. Audit-logged."""
-    return _view(await update_settings(db, principal, body))
+    return await _view(db, await update_settings(db, principal, body))

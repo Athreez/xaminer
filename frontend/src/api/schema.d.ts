@@ -85,6 +85,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/attempts/{attempt_id}/captures": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload Capture
+         * @description A picture from the exam screen: of the camera for an event or a spot check, or of the
+         *     shared screen. Needs the attempt token, not the access token. Safe to send again. Answers
+         *     nothing about it (PRC-09).
+         */
+        post: operations["upload_capture_api_v1_attempts__attempt_id__captures_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/attempts/{attempt_id}/drafts/{exam_question_id}": {
         parameters: {
             query?: never;
@@ -870,6 +892,27 @@ export interface paths {
          * @description One attempt in full: each answer with its score, the key, feedback and coding outcome.
          */
         get: operations["attempt_result_api_v1_exams__exam_id__results__attempt_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exams/{exam_id}/results/{attempt_id}/pictures": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Attempt Pictures
+         * @description An attempt's event and screen pictures, as links valid for 5 minutes. Each call is
+         *     audit-logged.
+         */
+        get: operations["attempt_pictures_api_v1_exams__exam_id__results__attempt_id__pictures_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1993,6 +2036,21 @@ export interface components {
             position: number;
             question: components["schemas"]["StudentQuestion"];
         };
+        /** AttemptPictures */
+        AttemptPictures: {
+            /**
+             * Events
+             * @description By event id, in time order
+             */
+            events: {
+                [key: string]: components["schemas"]["Picture"][];
+            };
+            /**
+             * Screen
+             * @description Pictures of the shared screen, in time order
+             */
+            screen: components["schemas"]["Picture"][];
+        };
         /**
          * AttemptResult
          * @description What a student sees for a released result.
@@ -2149,6 +2207,36 @@ export interface components {
             data: components["schemas"]["AuditEntry"][];
             /** Next Cursor */
             next_cursor: string | null;
+        };
+        /** Body_upload_capture_api_v1_attempts__attempt_id__captures_post */
+        Body_upload_capture_api_v1_attempts__attempt_id__captures_post: {
+            /**
+             * Client Id
+             * Format: uuid
+             */
+            client_id: string;
+            /** Event Client Id */
+            event_client_id?: string | null;
+            /**
+             * Image
+             * @description JPEG, PNG or WebP, at most 1 MB
+             */
+            image: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "CAMERA" | "SCREEN";
+            /**
+             * Purpose
+             * @enum {string}
+             */
+            purpose: "EVENT" | "SPOT_CHECK" | "PERIODIC" | "LEFT_PAGE";
+            /**
+             * Taken At
+             * Format: date-time
+             */
+            taken_at: string;
         };
         /** Body_upload_image_api_v1_uploads_images_post */
         Body_upload_image_api_v1_uploads_images_post: {
@@ -3111,6 +3199,11 @@ export interface components {
             /** Name */
             name: string;
             /**
+             * Overdue Evidence
+             * @description Pictures kept past retention (should be 0: deleted hourly)
+             */
+            overdue_evidence: number;
+            /**
              * Standard Consent Text
              * @description Used when neither the exam nor the institution has its own (video + audio wording, with this retention)
              */
@@ -3397,6 +3490,29 @@ export interface components {
         PasswordResetRequest: {
             /** Email */
             email: string;
+        };
+        /** Picture */
+        Picture: {
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "CAMERA" | "SCREEN";
+            /**
+             * Purpose
+             * @enum {string}
+             */
+            purpose: "EVENT" | "SPOT_CHECK" | "PERIODIC" | "LEFT_PAGE";
+            /**
+             * Taken At
+             * Format: date-time
+             */
+            taken_at: string;
+            /**
+             * Url
+             * @description Works for 5 minutes
+             */
+            url: string;
         };
         /**
          * ProctoringSettings
@@ -4731,6 +4847,39 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Mark"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_capture_api_v1_attempts__attempt_id__captures_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_capture_api_v1_attempts__attempt_id__captures_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -6137,6 +6286,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TeacherAttemptResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    attempt_pictures_api_v1_exams__exam_id__results__attempt_id__pictures_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exam_id: string;
+                attempt_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttemptPictures"];
                 };
             };
             /** @description Validation Error */
