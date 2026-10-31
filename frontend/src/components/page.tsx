@@ -39,7 +39,7 @@ export function PageHeader({
 /** LOADING: grey bars in the shape of the table that is coming. */
 export function LoadingRows({ rows = 5 }: { rows?: number }) {
   return (
-    <div className="space-y-2" aria-busy="true" aria-label="Loading">
+    <div className="space-y-2" role="status" aria-busy="true" aria-label="Loading">
       {Array.from({ length: rows }, (_, i) => (
         <Skeleton key={i} className="h-10 w-full" />
       ))}
