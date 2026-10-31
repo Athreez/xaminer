@@ -10,8 +10,8 @@ hidden dropped) and stored privately. The answer is always 204 and says nothing;
 the limits are dropped quietly. They're accepted while the attempt is in progress and for 30
 minutes after it ends (the last ones may still be on their way).
 
-Spot checks are for the server's own check (phones, books, faces: the inference worker, next);
-until it runs they're deleted after 10 minutes. Event and screen pictures are evidence: the
+Spot checks are for the server's own check (phones, books: app/proctoring/verdicts.py): one that
+finds nothing is deleted at once; any left unchecked are deleted after 30 minutes. Event and screen pictures are evidence: the
 exam's teacher sees them through 5-minute links (each viewing is audit-logged), and they're
 deleted `evidence_retention_days` after the exam closes.
 """
@@ -46,7 +46,7 @@ EVENTS_WITH_PICTURES = 30
 PICTURES_PER_EVENT = 3
 MAX_PER_ATTEMPT = 1000  # every kind together: ~3 hours of screen and camera pictures
 PER_MINUTE = 30
-SPOT_CHECK_KEPT = timedelta(minutes=10)
+SPOT_CHECK_KEPT = timedelta(minutes=30)  # normally deleted once checked; this if the check never ran
 LINK_SECONDS = 300
 
 Kind = Literal["CAMERA", "SCREEN"]
@@ -196,7 +196,7 @@ async def for_teacher(
         (
             await session.execute(
                 select(ProctoringEvent.client_id, ProctoringEvent.id).where(
-                    ProctoringEvent.attempt_id == attempt_id
+                    ProctoringEvent.attempt_id == attempt_id, ProctoringEvent.status == "READY"
                 )
             )
         )

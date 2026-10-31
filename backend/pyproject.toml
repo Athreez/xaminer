@@ -35,8 +35,24 @@ dev = [
     "types-docker>=7.2.0.20261006",
 ]
 
+# Only in the inference-worker image (Dockerfile target `inference`): PyTorch for the CPU, the
+# RT-DETR detector and OpenCV's YuNet face detector.
+inference = [
+    "opencv-python-headless>=4.11",
+    "torch>=2.8",
+    "transformers>=4.56",
+]
+
 [tool.uv]
 package = false
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
 
 [tool.ruff]
 line-length = 100

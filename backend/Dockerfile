@@ -2,7 +2,7 @@
 # contains database settings at build time (they come from the environment at run time).
 #   app        -> api, app-worker, scheduler
 #   exec       -> exec-worker (drives sandbox-docker through the Docker SDK, a normal dependency)
-#   inference  -> inference-worker (adds PyTorch / ONNX Runtime in TCK-1103)
+#   inference  -> inference-worker (adds PyTorch for the CPU, RT-DETR and YuNet)
 
 FROM ghcr.io/astral-sh/uv:0.13 AS uv
 
@@ -29,3 +29,12 @@ FROM base AS app
 FROM base AS exec
 
 FROM base AS inference
+USER root
+RUN uv sync --frozen --no-dev --group inference --no-install-project
+# The models, pinned: RT-DETR r18 at a fixed revision, YuNet at a fixed commit with its hash.
+ARG RTDETR_REVISION=ac77a11ff0170a41b771c03264987f8ce2b0d753
+ARG YUNET_URL=https://github.com/opencv/opencv_zoo/raw/f12e12798e8314f7c074a6656816c048dcc95b7a/models/face_detection_yunet/face_detection_yunet_2023mar.onnx
+ARG YUNET_SHA256=8f2383e4dd3cfbb4553ea8718107fc0423210dc964f9f4280604804ed2552fa4
+RUN python -c "from huggingface_hub import snapshot_download; snapshot_download('PekingU/rtdetr_r18vd', revision='${RTDETR_REVISION}', local_dir='/opt/models/rtdetr_r18vd')"  && python -c "import hashlib, urllib.request; d = urllib.request.urlopen('${YUNET_URL}', timeout=60).read(); assert hashlib.sha256(d).hexdigest() == '${YUNET_SHA256}', 'YuNet hash'; open('/opt/models/face_detection_yunet_2023mar.onnx', 'wb').write(d)"
+ENV HF_HUB_OFFLINE=1
+USER appuser
